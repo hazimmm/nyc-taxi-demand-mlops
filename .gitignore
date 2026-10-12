@@ -23,6 +23,9 @@ mlflow.db
 *.parquet
 !tests/fixtures/**/*.parquet
 
+# PDF edition of the learning book: rebuilt with tools/build_book.py, never committed
+/docs/learning/*.pdf
+
 # DVC
 /.dvc/cache/
 /.dvc/tmp/

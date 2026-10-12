@@ -18,6 +18,7 @@ dependencies = [
     "pyarrow>=16.0",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
+    "python-dotenv>=1.0",
     "pyyaml>=6.0",
     "typer>=0.12",
 ]
@@ -57,7 +58,13 @@ dev = [
     "types-PyYAML>=6.0",
     "uv>=0.4",
 ]
-all = ["demand[ml,serving,monitoring,orchestration,versioning,dev]"]
+# Builds the PDF edition of docs/learning (tools/build_book.py).
+docs = [
+    "markdown-it-py>=3.0",
+    "pygments>=2.17",
+    "pypdf>=5.0",
+]
+all = ["demand[ml,serving,monitoring,orchestration,versioning,dev,docs]"]
 
 [project.scripts]
 demand = "demand.cli:app"
@@ -69,6 +76,8 @@ packages = ["src/demand"]
 line-length = 100
 target-version = "py312"
 src = ["src", "tests"]
+# Markdown code blocks are short excerpts, not complete code; leave them as written.
+extend-exclude = ["*.md"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "PTH", "C4", "D", "RUF"]
@@ -99,7 +108,9 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers --cov=demand --cov-report=term-missing"
+# Coverage is opt-in (`--cov`), so running a single test file does not trip the
+# 80% gate below. The full check and CI always pass `--cov`.
+addopts = "-ra --strict-markers"
 markers = [
     "integration: end-to-end tests that run several pipeline stages on the fixture dataset",
 ]

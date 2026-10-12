@@ -2,7 +2,8 @@
 
 Values come from a YAML file (``configs/config.yaml`` by default, or the file named by
 ``DEMAND_CONFIG_FILE``) and can be overridden by environment variables prefixed with
-``DEMAND_``, using a double underscore between nested keys.
+``DEMAND_``, using a double underscore between nested keys. The same variables can be
+kept in a ``.env`` file in the working directory.
 """
 
 from __future__ import annotations
@@ -14,11 +15,13 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import yaml
+from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 CONFIG_FILE_ENV = "DEMAND_CONFIG_FILE"
 DEFAULT_CONFIG_FILE = Path("configs/config.yaml")
+DOTENV_FILE = Path(".env")
 
 Month = Annotated[str, Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")]
 
@@ -237,10 +240,15 @@ class Settings(BaseSettings):
 def load_settings(config_file: Path | None = None) -> Settings:
     """Load settings from ``config_file``, ``DEMAND_CONFIG_FILE`` or the default path.
 
+    A ``.env`` file in the working directory is read first. Variables that are already
+    set in the real environment win over it, so the order of precedence is: environment,
+    ``.env``, YAML.
+
     Raises:
         FileNotFoundError: If the config file does not exist.
         ValueError: If the file does not contain a YAML mapping.
     """
+    load_dotenv(DOTENV_FILE, override=False)
     path = config_file or Path(os.environ.get(CONFIG_FILE_ENV, DEFAULT_CONFIG_FILE))
     if not path.is_file():
         raise FileNotFoundError(f"Config file not found: {path.resolve()}")

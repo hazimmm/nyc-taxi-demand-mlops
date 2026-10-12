@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import date
 from pathlib import Path
 
@@ -62,6 +63,23 @@ def test_environment_overrides_yaml(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert settings.mlflow.tracking_uri == "http://mlflow:5000"
     assert settings.mlflow.experiment_name == "taxi-demand"
+
+
+def test_dotenv_file_is_read_and_the_environment_wins_over_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Loading .env writes to os.environ, so give this test its own copy.
+    monkeypatch.setattr(os, "environ", os.environ.copy())
+    (tmp_path / ".env").write_text(
+        "DEMAND_PROJECT__SEED=7\nDEMAND_MLFLOW__EXPERIMENT_NAME=from-dotenv\n", encoding="utf-8"
+    )
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("DEMAND_MLFLOW__EXPERIMENT_NAME", "from-env")
+
+    settings = load_settings(CONFIG_FILE)
+
+    assert settings.project.seed == 7
+    assert settings.mlflow.experiment_name == "from-env"
 
 
 def test_config_file_env_var_is_used(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

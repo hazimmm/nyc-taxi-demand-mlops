@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import pandas as pd
 import pandera.errors
 import pytest
@@ -10,7 +12,7 @@ from demand.config import Settings
 TZ = "America/New_York"
 
 
-def _hours(n: int, start: str = "2025-03-08 22:00") -> pd.DatetimeIndex:
+def _hours(n: int, start: str = "2025-03-09 00:00") -> pd.DatetimeIndex:
     """Hourly timestamps that cross the March daylight-saving change."""
     return pd.date_range(start, periods=n, freq="h", tz=TZ)
 
@@ -164,6 +166,25 @@ def test_gold_demand_rejects_zone_outside_frozen_list(settings: Settings) -> Non
 
     with pytest.raises(pandera.errors.SchemaError):
         schemas.gold_demand_schema(settings).validate(frame)
+
+
+@pytest.mark.parametrize(
+    "build_schema",
+    [schemas.gold_demand_schema, schemas.gold_features_schema, schemas.predictions_schema],
+)
+def test_frozen_zone_schemas_refuse_an_empty_zone_list(
+    settings: Settings, build_schema: Callable[[Settings], object]
+) -> None:
+    unfrozen = settings.model_copy(update={"data": settings.data.model_copy(update={"zones": []})})
+
+    with pytest.raises(ValueError, match="select-zones"):
+        build_schema(unfrozen)
+
+
+def test_silver_schema_does_not_need_frozen_zones(settings: Settings) -> None:
+    unfrozen = settings.model_copy(update={"data": settings.data.model_copy(update={"zones": []})})
+
+    schemas.silver_trips_schema(unfrozen).validate(_silver_trips())
 
 
 def test_gold_demand_rejects_timestamps_off_the_hour(settings: Settings) -> None:

@@ -396,7 +396,9 @@ mako==1.4.3
 markdown==3.11
     # via apprise
 markdown-it-py==4.2.0
-    # via rich
+    # via
+    #   demand (pyproject.toml)
+    #   rich
 markupsafe==3.0.4
     # via
     #   flask
@@ -637,6 +639,7 @@ pygit2==1.20.1
     # via scmrepo
 pygments==2.21.0
     # via
+    #   demand (pyproject.toml)
     #   pytest
     #   rich
     #   rich-rst
@@ -653,6 +656,8 @@ pyparsing==3.3.3
     #   matplotlib
     #   pip-requirements-parser
     #   pydot
+pypdf==6.20.1
+    # via demand (pyproject.toml)
 pytest==9.1.1
     # via
     #   demand (pyproject.toml)
@@ -673,6 +678,7 @@ python-discovery==1.6.2
     # via virtualenv
 python-dotenv==1.2.4
     # via
+    #   demand (pyproject.toml)
     #   mlflow-skinny
     #   pydantic-settings
     #   uvicorn

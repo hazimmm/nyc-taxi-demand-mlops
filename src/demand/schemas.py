@@ -92,11 +92,21 @@ def _timestamp_column(timezone: str, *, on_the_hour: bool = False) -> pa.Column:
 
 
 def _zone_column(settings: Settings, *, frozen_only: bool) -> pa.Column:
-    """Zone ID column. ``frozen_only`` restricts it to the configured zone list."""
-    if frozen_only and settings.data.zones:
+    """Zone ID column. ``frozen_only`` restricts it to the configured zone list.
+
+    Raises:
+        ValueError: If ``frozen_only`` is set but no zones are configured. Without this,
+            the gold and prediction gates would silently accept any zone.
+    """
+    if not frozen_only:
+        check = pa.Check.in_range(1, settings.cleaning.max_zone_id)
+    elif settings.data.zones:
         check = pa.Check.isin(settings.data.zones)
     else:
-        check = pa.Check.in_range(1, settings.cleaning.max_zone_id)
+        raise ValueError(
+            "data.zones is empty: run `python -m demand select-zones` and paste the "
+            "result into the config before building or validating the gold layer"
+        )
     return pa.Column("int64", check, nullable=False)
 
 
