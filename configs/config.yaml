@@ -1,0 +1,87 @@
+# Single source of configuration. Any value can be overridden with an environment
+# variable: prefix DEMAND_, nested keys joined by a double underscore,
+# e.g. DEMAND_MLFLOW__TRACKING_URI=http://mlflow:5000
+
+project:
+  name: nyc-taxi-demand
+  seed: 42
+  timezone: America/New_York
+
+paths:
+  data_dir: data
+  reports_dir: reports
+
+data:
+  tlc_url_template: "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_{year}-{month:02d}.parquet"
+  zone_lookup_url: "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv"
+  start_month: "2025-01"
+  end_month: "2025-06"
+  # Last day the model is allowed to learn from. Everything after it is replayed
+  # as "production" by the simulated clock.
+  train_end_date: 2025-04-30
+  n_zones: 20
+  # Frozen list of pickup zone IDs, chosen from the training period only.
+  # Empty until `python -m demand select-zones` has been run and its output pasted here.
+  zones: []
+  weather:
+    latitude: 40.7128
+    longitude: -74.0060
+    forecast_url: "https://historical-forecast-api.open-meteo.com/v1/forecast"
+    archive_url: "https://archive-api.open-meteo.com/v1/archive"
+    variables:
+      - temperature_2m
+      - precipitation
+      - snowfall
+      - wind_speed_10m
+
+cleaning:
+  min_duration_minutes: 1.0
+  max_duration_hours: 6.0
+  max_distance_miles: 100.0
+  min_passengers: 1
+  max_passengers: 8
+  max_zone_id: 263          # 264 and 265 are "Unknown" / "Outside of NYC"
+  max_weather_gap_hours: 3  # longest weather gap that is interpolated
+
+features:
+  horizon_hours: 24
+  lags: [24, 48, 168]
+  rolling_windows: [24, 168]
+  outlier_zscore: 4.0
+
+model:
+  params:
+    objective: poisson
+    learning_rate: 0.05
+    n_estimators: 600
+    num_leaves: 63
+    min_child_samples: 20
+    subsample: 0.8
+    subsample_freq: 1
+    colsample_bytree: 0.8
+    verbosity: -1
+  tuning_trials: 30
+  tuning_timeout_seconds: 900
+
+backtest:
+  n_folds: 4
+  fold_days: 7
+
+mlflow:
+  tracking_uri: "sqlite:///mlflow.db"
+  experiment_name: taxi-demand
+  registered_model_name: taxi-demand
+  champion_alias: champion
+  challenger_alias: challenger
+
+serving:
+  model_uri: "models:/taxi-demand@champion"
+  host: 0.0.0.0
+  port: 8000
+
+monitoring:
+  reference_days: 28
+  window_days: 7
+  drift_share_threshold: 0.3      # share of drifted features that raises an alert
+  mae_degradation_ratio: 1.25     # live MAE / backtest MAE that raises an alert
+  retrain_cooldown_days: 7

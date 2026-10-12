@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+build/
+dist/
+
+# Tooling caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Data and model artefacts (versioned by DVC / MLflow, not git)
+/data/
+/reports/
+/mlruns/
+/mlartifacts/
+mlflow.db
+*.parquet
+!tests/fixtures/**/*.parquet
+
+# DVC
+/.dvc/cache/
+/.dvc/tmp/
+
+# Secrets and local settings
+.env
+.env.*
+!.env.example
+
+# Editors and OS
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
