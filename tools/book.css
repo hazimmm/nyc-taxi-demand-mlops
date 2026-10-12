@@ -1,0 +1,473 @@
+/* Print stylesheet for the study book. Used by tools/build_book.py.
+ *
+ * The page size, the margins and the running headers are NOT here: they depend
+ * on the chapter titles, so build_book.py generates those @page rules.
+ */
+
+:root {
+  --text: #1d2126;
+  --muted: #5b6672;
+  --rule: #c9d0d8;
+  --accent: #1f4e79;
+  --code-bg: #f6f7f9;
+  --serif: Cambria, Charter, "Bitstream Charter", "DejaVu Serif", Georgia, serif;
+  --sans: "Segoe UI", "Helvetica Neue", Helvetica, Arial, "DejaVu Sans", sans-serif;
+  --mono: Consolas, "Cascadia Mono", "DejaVu Sans Mono", "Liberation Mono", Menlo, monospace;
+}
+
+html {
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 11pt;
+  line-height: 1.5;
+  orphans: 3;
+  widows: 3;
+}
+
+/* ---------- Text ---------- */
+
+p {
+  margin: 0 0 0.7em;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a[href^="http"] {
+  text-decoration: underline;
+  text-decoration-thickness: 0.4pt;
+  text-underline-offset: 1.5pt;
+}
+
+strong {
+  font-weight: 700;
+}
+
+ul,
+ol {
+  margin: 0 0 0.8em;
+  padding-left: 1.5em;
+}
+
+li {
+  margin-bottom: 0.25em;
+}
+
+li > p {
+  margin-bottom: 0.3em;
+}
+
+hr {
+  border: 0;
+  border-top: 0.5pt solid var(--rule);
+  margin: 1.4em 0;
+}
+
+blockquote {
+  margin: 0.9em 0;
+  padding: 0.1em 0 0.1em 1em;
+  border-left: 2.5pt solid var(--rule);
+  color: var(--muted);
+}
+
+/* ---------- Headings ---------- */
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--sans);
+  color: #14202c;
+  line-height: 1.2;
+  break-after: avoid;
+  break-inside: avoid;
+  /* Chrome builds the PDF bookmarks from the printed lines. With pre-wrap the
+     space at a line break is kept, so a wrapped title is not glued together. */
+  white-space: pre-wrap;
+}
+
+h2 {
+  font-size: 15pt;
+  font-weight: 600;
+  margin: 1.5em 0 0.55em;
+}
+
+h3 {
+  font-size: 12pt;
+  font-weight: 600;
+  margin: 1.3em 0 0.45em;
+}
+
+h4 {
+  font-size: 11pt;
+  font-weight: 600;
+  margin: 1.1em 0 0.4em;
+}
+
+/* Each chapter, appendix and front-matter part starts on a new page. */
+section {
+  break-before: page;
+}
+
+.section-title {
+  margin: 0 0 1.4em;
+  padding: 14mm 0 5mm;
+  border-bottom: 1.2pt solid var(--accent);
+  font-size: 25pt;
+  font-weight: 600;
+}
+
+.section-title .kicker {
+  display: block;
+  margin-bottom: 3mm;
+  color: var(--accent);
+  font-size: 12pt;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  /* No text-transform here: Chrome would write "CHAPTER 1" into the bookmark. */
+}
+
+/* The dash between "Chapter 1" and the title: kept in the text for the PDF
+   bookmarks, invisible on the page. */
+.section-title .dash {
+  color: transparent;
+  font-size: 1pt;
+}
+
+/* ---------- Title page ---------- */
+
+.cover {
+  box-sizing: border-box;
+  height: 296mm;
+  padding: 62mm 26mm 26mm 30mm;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-left: 14mm solid var(--accent);
+  font-family: var(--sans);
+}
+
+.cover .cover-kicker {
+  margin: 0 0 9mm;
+  color: var(--accent);
+  font-size: 11pt;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.cover h1 {
+  margin: 0;
+  font-size: 38pt;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.cover .cover-subtitle {
+  margin: 7mm 0 0;
+  color: var(--muted);
+  font-size: 17pt;
+  line-height: 1.3;
+}
+
+.cover .cover-build {
+  margin: auto 0 0;
+  padding-top: 5mm;
+  border-top: 0.6pt solid var(--rule);
+  color: var(--muted);
+  font-size: 10pt;
+  line-height: 1.6;
+}
+
+.cover .cover-build strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ---------- Table of contents ---------- */
+
+.toc-part {
+  margin: 1.5em 0 0.4em;
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: 10pt;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  break-after: avoid;
+}
+
+.toc-entry {
+  display: flex;
+  align-items: baseline;
+  margin: 0 0 0.32em;
+  color: var(--text);
+  break-inside: avoid;
+}
+
+.toc-entry .toc-dots {
+  flex: 1;
+  min-width: 8mm;
+  margin: 0 2mm;
+  border-bottom: 0.6pt dotted #8a949e;
+}
+
+.toc-entry .toc-page {
+  min-width: 2em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Code ---------- */
+
+code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  padding: 0.05em 0.25em;
+  border-radius: 2pt;
+  background: #eef0f3;
+  overflow-wrap: break-word;
+}
+
+pre.code {
+  position: relative;
+  margin: 0.8em 0 1em;
+  padding: 7pt 9pt;
+  border: 0.5pt solid #dde1e6;
+  border-left: 2.5pt solid #b8c2cc;
+  border-radius: 2pt;
+  background: var(--code-bg);
+  font-family: var(--mono);
+  font-size: 8.4pt;
+  line-height: 1.42;
+  /* Long lines wrap; nothing is cut off at the page edge. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 4;
+}
+
+pre.code code {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+  overflow-wrap: inherit;
+}
+
+pre.code.short {
+  break-inside: avoid;
+}
+
+/* The language of the block, top right, on a line of its own so that it can
+   never cover the end of a long first line. */
+pre.code[data-lang] {
+  padding-top: 12pt;
+}
+
+pre.code[data-lang]::after {
+  content: attr(data-lang);
+  position: absolute;
+  top: 2pt;
+  right: 5pt;
+  color: #8792a0;
+  font-family: var(--sans);
+  font-size: 6.5pt;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* A sentence that introduces a code block stays with it. */
+p:has(+ pre.code.short) {
+  break-after: avoid;
+}
+
+/* ---------- Figures and captions ---------- */
+
+figure {
+  margin: 1.2em 0 1.3em;
+  break-inside: avoid;
+}
+
+figure.diagram {
+  text-align: center;
+}
+
+.diagram-box {
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.diagram-box svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+figure pre.code {
+  margin-bottom: 0.5em;
+  break-inside: avoid;
+}
+
+figcaption,
+p.caption {
+  margin: 0.6em 0 0;
+  color: var(--muted);
+  font-size: 9.5pt;
+  font-style: italic;
+  text-align: center;
+  break-before: avoid;
+}
+
+p.caption {
+  margin: -0.4em 0 1.3em;
+}
+
+figcaption em,
+p.caption em {
+  font-style: inherit;
+}
+
+.diagram-failed {
+  padding: 6pt 9pt;
+  border: 1pt dashed #b3261e;
+  text-align: left;
+}
+
+.diagram-failed .diagram-failed-title {
+  margin: 0 0 0.3em;
+  color: #b3261e;
+  font-family: var(--sans);
+  font-size: 9.5pt;
+  font-weight: 700;
+}
+
+/* ---------- Tables ---------- */
+
+table {
+  width: 100%;
+  margin: 1em 0 1.2em;
+  border-collapse: collapse;
+  font-size: 9.6pt;
+  line-height: 1.38;
+}
+
+/* Tables with five or more columns: smaller type so they stay inside the page. */
+table.wide {
+  font-size: 8.6pt;
+}
+
+thead {
+  display: table-header-group; /* repeated at the top of every page */
+}
+
+th,
+td {
+  padding: 3.5pt 6pt;
+  border: 0.5pt solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: break-word;
+}
+
+th {
+  background: #e6ecf2;
+  font-family: var(--sans);
+  font-size: 0.95em;
+  font-weight: 600;
+}
+
+tbody tr:nth-child(even) {
+  background: #f6f8fa;
+}
+
+tr {
+  break-inside: avoid;
+}
+
+td code,
+th code {
+  overflow-wrap: anywhere;
+  background: #e9ecf0;
+}
+
+/* ---------- Callouts (GitHub alerts) ---------- */
+
+.callout {
+  --callout: #1f6feb;
+  --callout-bg: #eef5ff;
+  margin: 1em 0 1.1em;
+  padding: 7pt 11pt 2pt;
+  border-left: 3pt solid var(--callout);
+  border-radius: 2pt;
+  background: var(--callout-bg);
+  break-inside: avoid;
+}
+
+.callout-title {
+  margin: 0 0 0.3em;
+  color: var(--callout);
+  font-family: var(--sans);
+  font-size: 8.6pt;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.callout code {
+  background: rgb(255 255 255 / 70%);
+}
+
+.callout-tip {
+  --callout: #1a7f37;
+  --callout-bg: #edf8f0;
+}
+
+.callout-important {
+  --callout: #6f42c1;
+  --callout-bg: #f4f0fb;
+}
+
+.callout-warning {
+  --callout: #9a6700;
+  --callout-bg: #fff8e5;
+}
+
+.callout-caution {
+  --callout: #b3261e;
+  --callout-bg: #fdefee;
+}
+
+/* ---------- Exercise answers (<details> in the Markdown) ---------- */
+
+.answer {
+  margin: 0.2em 0 1.3em 1.4em;
+  padding: 6pt 11pt 1pt;
+  border: 0.5pt solid #cfd6dd;
+  border-left: 3pt solid #6b7a89;
+  border-radius: 2pt;
+  background: #f7f8f9;
+  font-size: 10.4pt;
+  break-inside: avoid;
+}
+
+.answer-title {
+  margin: 0 0 0.3em;
+  color: #4a5764;
+  font-family: var(--sans);
+  font-size: 8.6pt;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+/* The question stays on the same page as the start of its answer. */
+p:has(+ .answer) {
+  break-after: avoid;
+}
