@@ -42,7 +42,7 @@ A new test, `test_dotenv_file_is_read_and_the_environment_wins_over_it`, writes 
 
 The gold tables may contain only the chosen zones. The schema helper had this logic: if a zone list is configured, accept only those zones; otherwise accept any zone from 1 to 263.
 
-The word "otherwise" was the problem. In the config file the list is empty, because the zones are not chosen yet. So the "otherwise" case was not a rare exception. It was the normal state of the project. The gold gate would have accepted a table with every zone and reported success.
+The word "otherwise" was the problem. At that time the list in the config file was empty, because the zones had not been chosen yet. (They were chosen later, in Chapter 18.) So the "otherwise" case was not a rare exception. It was the normal state of the project. The gold gate would have accepted a table with every zone and reported success.
 
 It was found by asking: "What does this function do with the config as it is today?"
 
@@ -128,10 +128,12 @@ The fixes also have something in common. Where possible, the claim was turned in
 
 ## Try it yourself
 
-See story 2 in its fixed state.
+See story 2 in its fixed state. The zone list is filled today, so the first line empties it for this shell, and the last line removes the variable again.
 
 ```powershell
+$env:DEMAND_DATA__ZONES = "[]"
 .venv\Scripts\python.exe -c "from demand.config import get_settings; from demand.schemas import gold_demand_schema; gold_demand_schema(get_settings())"
+Remove-Item Env:DEMAND_DATA__ZONES
 ```
 
 You should see an error ending with `ValueError: data.zones is empty: run ...`. The gate refuses to exist without its list.
@@ -143,7 +145,7 @@ Run the tests that keep stories 1 and 2 fixed.
 .venv\Scripts\python.exe -m pytest tests/unit/test_schemas.py -q -k "empty_zone_list or does_not_need"
 ```
 
-You should see `1 passed, 14 deselected` and then `4 passed, 23 deselected`. The second group has three tests for the three schemas that need the list, and one that checks the silver schema still works without it.
+You should see `1 passed, 15 deselected` and then `4 passed, 23 deselected`. The second group has three tests for the three schemas that need the list, and one that checks the silver schema still works without it.
 
 See story 3 in its fixed state.
 
@@ -151,7 +153,7 @@ See story 3 in its fixed state.
 .venv\Scripts\python.exe -m pytest tests/unit/test_config.py -q
 ```
 
-You should see `15 passed`, and the run ends without a failure. Before the fix, this command ended with a coverage failure.
+You should see `16 passed`, and the run ends without a failure. Before the fix, this command ended with a coverage failure.
 
 Check story 4 in your own copy.
 

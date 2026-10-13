@@ -37,7 +37,7 @@ The book grows with the project. New chapters are added when new code arrives. T
 
 ### Part III – The data pipeline
 
-This part is being written. More chapters follow when aggregation, features and data versioning are built.
+This part is being written. More chapters follow when the quality gates and data versioning are built.
 
 | Chapter | What it covers | Time |
 |---|---|---|
@@ -45,6 +45,8 @@ This part is being written. More chapters follow when aggregation, features and 
 | [15. Knowing what you have: the manifest and idempotency](15-knowing-what-you-have.md) | Checksums, the manifest, skip or download, the weather source, UTC and padding, a first look at the raw data | 20 min |
 | [16. Cleaning the trips: rules you can count](16-cleaning-the-trips.md) | One row is one valid trip, ten rules in a fixed order, counts that must add up, the cleaning report, and a rule from the plan that the data proved wrong | 14 min |
 | [17. Clocks, weather and the silver stage](17-clocks-weather-and-the-silver-stage.md) | Local time and daylight saving, elapsed time, weather from UTC to local hours, gaps, and a stage that validates before it writes | 14 min |
+| [18. From trips to a demand table](18-from-trips-to-a-demand-table.md) | Zones chosen from the training period and frozen, the complete grid and its zeros, the weather join, and an outlier flag that is never a model input | 14 min |
+| [19. Features without leakage](19-features-without-leakage.md) | Lags and rolling windows shifted by the horizon, elapsed hours, warm-up rows, one feature function for training and serving, and the leakage test | 14 min |
 
 ### Later parts
 
@@ -75,3 +77,4 @@ These parts have no chapters yet. They are written when their code is added.
 | 2 – Foundation fixes found in review | `.env` file is read; the gold zone gate fails closed; coverage is opt-in; pre-commit is installed | 13 added; 7, 8, 10 and 11 describe the fixed behaviour |
 | 3 – Ingestion into the raw layer (Phase 1) | `python -m demand ingest` downloads trips, zones and weather safely and records them in a manifest; new `data.download` settings | 14 and 15 added; 1, 2, 4, 5, 9, 10 and 11 updated; appendices A to C extended |
 | 4 – Cleaning into the silver layer (Phase 1) | `python -m demand silver` cleans trips and weather, validates them against the silver contracts and writes a cleaning report; the silver column `fare_amount` became `total_amount` | 16 and 17 added; 1, 2, 4, 8, 9, 10, 11, 14 and 15 updated; appendices A to C extended |
+| 5 – Aggregation and features: the gold layer (Phase 1) | `python -m demand select-zones` finds the 20 busiest zones of the training period, and the list is frozen in the config; `python -m demand gold` builds the hourly demand table and the feature table with one feature function for training and serving; the config refuses a rolling window shorter than 2 hours | 18 and 19 added; 1 to 5, 7 to 11, 13, 14, 16 and 17 updated; appendices A to C extended |

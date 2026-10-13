@@ -154,7 +154,7 @@ Now run the test that checks these values.
 .venv\Scripts\python.exe -m pytest tests/unit/test_config.py -q -k "months_cover"
 ```
 
-You should see `1 passed, 14 deselected`. The option `-k` selects tests by a part of their name. Open `tests/unit/test_config.py` and read `test_months_cover_the_configured_period`: it states the four dates as facts that must stay true.
+You should see `1 passed, 15 deselected`. The option `-k` selects tests by a part of their name. Open `tests/unit/test_config.py` and read `test_months_cover_the_configured_period`: it states the four dates as facts that must stay true.
 
 ## Key takeaways
 

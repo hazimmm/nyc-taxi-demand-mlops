@@ -16,7 +16,7 @@ The plan for this project had a line that nobody questioned: "drop trips with a 
 
 The raw layer of Chapter 15 has 24,083,384 rows, as the source published them. The silver layer of Chapter 4 makes a promise about every row it holds: **one row is one valid trip**. A valid trip is a ride that really happened, is recorded once, and has values that are possible.
 
-The target of the model is a count: pickups per zone and hour. Why not count first and clean afterwards? Because a count hides its rows. If an hour has 312 pickups, nothing in the number 312 says that one of them is a refund and another lasted two seconds. A bad row can only be recognised while it is still a row. So the cleaning happens at trip level, and the counting comes later, in the gold layer.
+The target of the model is a count: pickups per zone and hour. Why not count first and clean afterwards? Because a count hides its rows. If an hour has 312 pickups, nothing in the number 312 says that one of them is a refund and another lasted two seconds. A bad row can only be recognised while it is still a row. So the cleaning happens at trip level, and the counting comes later, in the gold layer (Chapter 18).
 
 The rules are in [`src/demand/data/clean.py`](../../src/demand/data/clean.py). Every function in this file is **pure**: a table goes in, a table and some numbers come out, and no file is read or written. Such functions are easy to test.
 

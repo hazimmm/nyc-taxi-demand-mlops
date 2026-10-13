@@ -72,7 +72,7 @@ nyc-taxi-demand-mlops/
 
 *Figure 5.1 – The main folders and files.*
 
-Each file inside `demand` has one responsibility. Settings are in one file, contracts in another, commands in a third. The five sub-folders are empty packages that reserve a place for the later parts of the system.
+Each file inside `demand` has one responsibility. Settings are in one file, contracts in another, commands in a third. The sub-folder `data` holds the pipeline of Part III. The other four are empty packages that reserve a place for the later parts of the system.
 
 ## Why the code is inside `src/`
 

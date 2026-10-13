@@ -21,6 +21,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | CI | Continuous integration: automatic checks that run on every push. Planned for Phase 7. | 13 |
 | CLI | Command-line interface: a program controlled by typed commands. | 9 |
 | Code review | Reading a change before it is accepted, to find mistakes and to check that code, tests and documents agree. | 13 |
+| Complete grid | A table with one row for every combination of zone and hour, whether something happened or not. An hour without pickups is a row with 0. | 18 |
 | Configuration | The values that can change without the logic changing: dates, paths, limits, addresses. | 7 |
 | Constant | A name for a value that never changes, written in capitals. | 8 |
 | Conventional commits | A format for commit messages: `type: description`. | 12 |
@@ -28,7 +29,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Coverage gate | A rule that fails the test run when coverage is under a limit. Here 80%, applied with `--cov`. | 10 |
 | CRLF / LF | The two ways to mark the end of a line: Windows (two characters) and Linux or macOS (one). | 12 |
 | Data contract | A precise description of a table that can be checked automatically and that producer and consumer both rely on. | 8 |
-| Data leakage | Training or testing with information that is not available when the model is really used. | 2 |
+| Data leakage | Training or testing with information that is not available when the model is really used. | 2, 19 |
 | Daylight saving time | The summer clock, one hour ahead of the winter clock. The change skips one local hour in spring and repeats one in autumn. | 17 |
 | Day-ahead forecast | A forecast made at least 24 hours before the hour it describes. | 1 |
 | Decorator | A marker above a function, starting with `@`, that changes how the function is used. | 9 |
@@ -37,6 +38,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Docstring | A text at the start of a file, class or function that documents it. | 5 |
 | Drift | A change in the data compared with the training period. | 3 |
 | Editable install | An install that points to the source folder, so edits are active without installing again. | 5 |
+| Elapsed time | Real time that passed between two moments, as opposed to the difference between two clock readings. The two differ on the days the clocks change. | 17, 19 |
 | Entry point | The place where a program starts. Here: `python -m demand`. | 9 |
 | `.env` file | A text file with lines of the form `NAME=value`, read into environment variables when the program starts. Not stored in git. | 7 |
 | Environment variable | A named value outside the program, set by the shell or the platform and read at start-up. | 7 |
@@ -44,7 +46,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Exponential backoff | Waiting twice as long after every failed attempt before trying again. | 14 |
 | Extra | See *optional dependency group*. | 6 |
 | Fail closed / fail open | What a check does when it cannot do its job. Fail closed: stop with an error. Fail open: let everything pass. | 8 |
-| Feature | An input column of a model. | 1 |
+| Feature | An input column of a model. | 1, 19 |
 | Fixture | A function that prepares something for tests. A test asks for it by parameter name. | 10 |
 | Fold | One repetition of a backtest, with its own training and test period. | 3 |
 | Footer (Parquet) | A small block at the end of a Parquet file that describes its columns, types and number of rows. | 14 |
@@ -53,7 +55,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Formatter | A tool that rewrites the layout of code in one fixed style. | 11 |
 | Frozen | Said of an object that cannot be changed after it is created. | 7 |
 | Git hook | A script that git runs automatically at a certain moment, for example before a commit. | 11 |
-| Gold layer | Data in the form its users need: one row per zone and hour, and the table of model inputs. | 4 |
+| Gold layer | Data in the form its users need: one row per zone and hour, and the table of model inputs. | 4, 18 |
 | Ground truth | The real value that a prediction tried to match. | 3 |
 | Hard-coded | Said of a value written directly in the code. | 7 |
 | Idempotent | Said of an operation that gives the same result when it is run again. | 15, 17 |
@@ -62,8 +64,9 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Import path | The list of folders where Python searches for code to import. | 5 |
 | Ingest | To bring data from outside sources into the project. The first stage of the pipeline. | 14 |
 | JSON | A standard text format for structured data. | 9 |
-| Lag feature | A past value of the target used as an input. | 2 |
+| Lag feature | A past value of the target used as an input. | 2, 19 |
 | Lazy import | Importing a module at the moment it is needed, not at the top of the file. | 9 |
+| Leakage test | A test that changes the target at one hour, builds the features again, and checks that no row earlier than that hour plus the horizon changed. | 19 |
 | Linear interpolation | Filling missing values on a straight line between the known value before the gap and the known value after it. | 17 |
 | Linter | A tool that reads code and reports likely mistakes and bad habits. | 11 |
 | Localize | To attach a timezone to a timestamp that was recorded without one. The clock time stays the same. | 17 |
@@ -77,6 +80,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Naive timestamp | A date and time without a timezone. | 17 |
 | NaT | "Not a time": the missing value for timestamps in pandas. | 17 |
 | Optional dependency group | A named set of additional libraries, installed only where needed. | 6 |
+| Outlier flag | A true/false column that marks an hour whose pickups are far from normal for its slot. The hour is kept. Here: `is_outlier`. | 18 |
 | Package | A folder of Python files that can be imported by its name. | 5 |
 | Parametrised test | One test function that runs once for each entry in a list of inputs. | 10 |
 | Parquet | A compact file format for tables. | 12 |
@@ -90,14 +94,16 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Random split | Putting rows into training and test sets by chance. Wrong for data ordered in time. | 3 |
 | Raw layer | Data exactly as downloaded, never modified. Also called bronze. | 4 |
 | Reversal | A row with negative amounts that cancels the charge of a trip, for example after a refund. It is not a second trip. | 16 |
-| Rolling statistic | A summary, such as the mean, over a moving window of time. | 2 |
+| Rolling statistic | A summary, such as the mean, over a moving window of time. Here every window ends one horizon before the target hour. | 2, 19 |
 | Rolling-origin backtest | A backtest repeated with a training end date that moves forward. | 3 |
 | Schema | The formal definition of a table: columns, types and rules. | 8 |
 | SHA-256 | A method for calculating a checksum of 64 characters. | 15 |
 | Silver layer | Cleaned data: valid rows, fixed types, no duplicates. One row is one valid trip, or one hour of weather. | 4, 16 |
 | Simulated clock | Replaying unseen historical data one day at a time, as if it were happening now. | 3 |
+| Slot | The group of hours that an hour is compared with when outliers are flagged: the same zone, the same hour of the day and the same kind of day (working day or weekend). | 18 |
 | src layout | Keeping the package inside a folder named `src/`, so that it must be installed to be imported. | 5 |
 | Stage | One step of the pipeline, such as ingest, silver, gold or train. | 9 |
+| Standard deviation | A number that says how far the values of a group typically lie from their mean. | 18 |
 | Static analysis | Finding problems by reading code without running it. | 11 |
 | Static type checker | A tool that reads type hints and reports contradictions. Here: mypy. | 11 |
 | Status code | The number in the answer of a web server that says how the request went, for example 200, 404 or 503. | 14 |
@@ -111,7 +117,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Timeout | The longest time a program waits for one operation before it treats it as failed. | 14 |
 | Timezone-aware timestamp | A timestamp that carries its timezone, so that it names exactly one moment. | 17 |
 | `tmp_path` | A pytest fixture that gives each test a new empty folder. | 10 |
-| Training/serving skew | A difference between how features are calculated for training and for prediction. | 4 |
+| Training/serving skew | A difference between how features are calculated for training and for prediction. | 4, 19 |
 | Transient error | A failure that may go away on its own, such as a short network problem. Worth a retry. | 14 |
 | Transitive dependency | A library that is installed because one of your dependencies needs it. | 6 |
 | Type hint | A note in the code that says which type a value has. | 11 |
@@ -119,7 +125,9 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | UTC | The world standard time, without summer time. | 9 |
 | Validator | A function that checks a rule when an object is created and raises an error if the rule is broken. | 7 |
 | Virtual environment | A folder with its own Python and its own installed libraries, separate from all others. | 6 |
+| Warm-up rows | The first rows of every zone, for which the history is too short to fill all lags and windows. Here 191 hours per zone. They are dropped, not filled. | 19 |
 | YAML | A text format for configuration that is easy for people to read. | 7 |
+| Z-score | The distance of a value from the mean of its group, counted in standard deviations. | 18 |
 
 ---
 

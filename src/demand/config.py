@@ -156,7 +156,8 @@ class FeatureConfig(_Section):
 
     horizon_hours: int = Field(gt=0)
     lags: list[int] = Field(min_length=1)
-    rolling_windows: list[int] = Field(min_length=1)
+    # A standard deviation needs at least two values.
+    rolling_windows: list[Annotated[int, Field(ge=2)]] = Field(min_length=1)
     outlier_zscore: float = Field(gt=0)
 
     @model_validator(mode="after")

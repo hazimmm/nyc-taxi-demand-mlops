@@ -1,8 +1,8 @@
 """Stage functions of the data pipeline, called by ``python -m demand <command>``.
 
-Each function takes the ``Settings`` object first and returns ``None``. ``run_ingest``
-and ``run_silver`` exist so far; the other stages raise ``NotImplementedError`` until
-their feature is built, so the command line fails with a clear message.
+Each function takes the ``Settings`` object first and returns ``None``. ``run_validate``
+raises ``NotImplementedError`` until its feature is built, so the command line fails
+with a clear message.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import time
 import httpx
 
 from demand.config import Settings
+from demand.data.gold import build_gold, select_zones, zones_config_text
 from demand.data.ingest import (
     TRIP_NOT_PUBLISHED_HINT,
     IngestedFile,
@@ -125,8 +126,26 @@ def run_ingest(
 
 
 def run_select_zones(settings: Settings) -> None:
-    """Print the busiest pickup zones of the training period."""
-    raise NotImplementedError("select-zones arrives with the gold feature of phase 1")
+    """Print the busiest pickup zones of the training period, ready for the config.
+
+    The zones are counted on the silver trips up to ``data.train_end_date`` and on
+    nothing later. The config file is not changed: the printed line has to be pasted
+    under ``data:`` by hand. The work itself is in ``gold.py``.
+
+    Raises:
+        MissingSilverFileError: If a silver trip file of the training period is
+            missing; run the silver stage first.
+        TooFewZonesError: If fewer than ``data.n_zones`` zones have pickups.
+    """
+    selected = select_zones(settings)
+    data = settings.data
+    # The result goes to standard output on purpose: logs go to standard error, so
+    # the lines below can be copied or redirected without any log text in between.
+    print(
+        f"  # The {len(selected)} busiest pickup zones from {data.start_date} to "
+        f"{data.train_end_date} (training period only), busiest first."
+    )
+    print(zones_config_text(selected))
 
 
 def run_silver(settings: Settings) -> None:
@@ -143,8 +162,17 @@ def run_silver(settings: Settings) -> None:
 
 
 def run_gold(settings: Settings) -> None:
-    """Aggregate the silver layer into hourly demand and features."""
-    raise NotImplementedError("gold arrives with the gold feature of phase 1")
+    """Aggregate the silver layer into hourly demand and build the feature table.
+
+    Safe to run again: both gold files are rebuilt from the silver layer and come out
+    identical. The work itself is in ``gold.py``.
+
+    Raises:
+        ZonesNotSelectedError: If ``data.zones`` is empty; run ``select-zones`` first.
+        MissingSilverFileError: If a silver file is missing; run the silver stage first.
+        pandera.errors.SchemaError: If a table breaks its gold schema.
+    """
+    build_gold(settings)
 
 
 def run_validate(settings: Settings, layer: str) -> None:

@@ -14,7 +14,9 @@ Official documentation for the tools that the repository uses today. Entries for
 - **Pydantic documentation** – models, validators, and the section on settings management. <https://docs.pydantic.dev>
 - **python-dotenv documentation** – the format of `.env` files.
 - **Pandera documentation** – schemas, checks, strict mode. <https://pandera.readthedocs.io>
-- **pandas documentation** – time series, time zones (`tz_localize` and `tz_convert`, with their options for times that do not exist or exist twice), and `interpolate`. <https://pandas.pydata.org>
+- **pandas documentation** – time series, time zones (`tz_localize` and `tz_convert`, with their options for times that do not exist or exist twice), and `interpolate`. For the gold layer: `reindex`, `merge`, `groupby` with `transform`, and the windowing operations (`shift`, `rolling`). <https://pandas.pydata.org>
+- **NumPy documentation** – `sliding_window_view`, which the feature function uses to calculate every rolling window from its own values. <https://numpy.org>
+- **holidays documentation** – the list of countries and what "observed" holidays are. <https://holidays.readthedocs.io>
 
 ## Getting data
 

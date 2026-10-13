@@ -100,6 +100,13 @@ def test_lag_shorter_than_horizon_is_rejected(tmp_path: Path) -> None:
         load_settings(path)
 
 
+def test_rolling_window_of_one_hour_is_rejected(tmp_path: Path) -> None:
+    path = _write_config(tmp_path, features={"rolling_windows": [1, 24]})
+
+    with pytest.raises(ValidationError, match="rolling_windows"):
+        load_settings(path)
+
+
 @pytest.mark.parametrize(
     ("overrides", "message"),
     [

@@ -3,7 +3,8 @@
 Nothing here touches the network. ``FakeServer`` plugs into ``httpx.MockTransport``, so
 the code under test uses a real ``httpx.Client`` whose requests are answered in memory.
 The silver tests build their raw trips and weather with ``raw_trip`` and
-``weather_payload``.
+``weather_payload``; the gold tests build silver trips with ``silver_trips_frame`` and
+hourly demand with ``demand_frame``.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from collections.abc import Callable, Iterator, Sequence
 from datetime import datetime, timedelta
 
 import httpx
+import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -22,6 +24,20 @@ import pytest
 from demand.config import Settings
 from demand.data.ingest import RetryPolicy, trip_url
 from demand.data.weather import expected_hours, request_period
+from demand.schemas import (
+    DROPOFF_DATETIME,
+    DURATION_MINUTES,
+    HOUR_START,
+    IS_OUTLIER,
+    PASSENGER_COUNT,
+    PICKUP_DATETIME,
+    PICKUP_ZONE_ID,
+    TARGET,
+    TOTAL_AMOUNT,
+    TRIP_DISTANCE,
+    ZONE_ID,
+    silver_trips_schema,
+)
 
 Reply = Callable[[httpx.Request], httpx.Response]
 
@@ -204,6 +220,64 @@ def with_months(settings: Settings, start_month: str, end_month: str) -> Setting
     """The same settings for a shorter period, so tests need only a few tiny files."""
     data = settings.data.model_copy(update={"start_month": start_month, "end_month": end_month})
     return settings.model_copy(update={"data": data})
+
+
+# --- silver and gold tables for the gold tests ------------------------------------------
+
+
+def silver_trips_frame(
+    settings: Settings, pickups: Sequence[tuple[str, int]], *, complete: bool = True
+) -> pd.DataFrame:
+    """Silver trips from ``(pickup time with UTC offset, pickup zone)`` pairs.
+
+    With ``complete=False`` the dropoff time, duration and distance are missing, as for
+    a trip whose source did not record them. The result is checked against the silver
+    schema, so the gold tests cannot drift away from what silver really produces.
+    """
+    timezone = settings.project.timezone
+    pickup = pd.DatetimeIndex(
+        [pd.Timestamp(time).tz_convert(timezone) for time, _ in pickups],
+        dtype=f"M8[us, {timezone}]",
+    )
+    dropoff = pickup + pd.Timedelta(minutes=15)
+    trips = pd.DataFrame(
+        {
+            PICKUP_DATETIME: pickup,
+            # ``pickup + NaT`` is a column of missing times with the type of the pickups.
+            DROPOFF_DATETIME: dropoff if complete else pickup + pd.NaT,
+            PICKUP_ZONE_ID: pd.Series([zone for _, zone in pickups], dtype="int64"),
+            TRIP_DISTANCE: 2.5 if complete else np.nan,
+            PASSENGER_COUNT: 1.0,
+            TOTAL_AMOUNT: 20.0,
+            DURATION_MINUTES: 15.0 if complete else np.nan,
+        }
+    )
+    return silver_trips_schema(settings).validate(trips)
+
+
+def demand_frame(
+    settings: Settings,
+    first_hour: str,
+    hours: int,
+    zones: Sequence[int] | None = None,
+    *,
+    seed: int = 0,
+) -> pd.DataFrame:
+    """A gold demand table on a complete grid, with random pickups and weather.
+
+    ``first_hour`` is local time. The same ``seed`` always gives the same table.
+    """
+    zones = list(settings.data.zones if zones is None else zones)
+    random = np.random.default_rng(seed)
+    timeline = pd.date_range(
+        pd.Timestamp(first_hour, tz=settings.project.timezone), periods=hours, freq="h"
+    )
+    grid = pd.MultiIndex.from_product([sorted(zones), timeline], names=[ZONE_ID, HOUR_START])
+    demand = grid.to_frame(index=False)
+    demand[TARGET] = random.integers(0, 300, len(demand))
+    demand[IS_OUTLIER] = False
+    weather = {name: random.normal(10, 5, hours) for name in settings.data.weather.variables}
+    return demand.merge(pd.DataFrame({HOUR_START: timeline, **weather}), on=HOUR_START)
 
 
 @pytest.fixture

@@ -50,7 +50,7 @@ features:
   outlier_zscore: 4.0
 ```
 
-The line `rolling_windows` describes **rolling statistics**: a summary, such as the mean, over a moving window of hours. "The mean of the last 24 hours" has the same problem as a short lag, because its newest hours are too recent. The plan is to compute these windows so that they end 24 hours before the target hour.
+The line `rolling_windows` describes **rolling statistics**: a summary, such as the mean, over a moving window of hours. "The mean of the last 24 hours" has the same problem as a short lag, because its newest hours are too recent. So the feature code computes these windows so that they end 24 hours before the target hour. Chapter 19 shows the code and the test that guards it.
 
 ## Data leakage
 
@@ -89,14 +89,17 @@ The project forecasts only the 20 busiest zones. Which are they? The obvious met
 
 This also leaks, and no feature is involved. The six months include May and June, which are kept for testing. If a zone became busy only in June, it enters the list because of data the model is not allowed to see. The choice itself carries information from the future into the project.
 
-The decision: the zones are chosen from the training months only, then written into the config file as a fixed list that is never calculated again. At the moment the list is empty, because the command that makes the selection is not built yet:
+The decision: the zones are chosen from the training months only, then written into the config file as a fixed list. The list is calculated again only if the end of the training period changes. For the first part of the project the list was empty, because the command that makes the selection was not built yet. It has since been filled:
 
 ```yaml
   n_zones: 20
   # Frozen list of pickup zone IDs, chosen from the training period only.
-  # Empty until `python -m demand select-zones` has been run and its output pasted here.
-  zones: []
+  # Output of `python -m demand select-zones`, busiest first. Run it again and paste the
+  # result here only when train_end_date changes.
+  zones: [161, 237, 236, 132, 230, 186, 162, 142, 234, 170, 163, 239, 68, 138, 79, 48, 249, 141, 164, 140]
 ```
+
+Chapter 18 shows the command, and the one zone that the full six months would have chosen differently.
 
 The lesson is wider than zones. Any decision made by looking at data can leak: which rows count as outliers, how to fill gaps, which columns to keep. If the decision looked at the test period, the test is no longer clean.
 

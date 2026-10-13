@@ -45,10 +45,12 @@ A **schema** is the formal definition of a table: its columns, types and rules. 
             TRIP_DISTANCE: pa.Column(
                 "float64",
                 pa.Check.in_range(0, cleaning.max_distance_miles, include_min=False),
+                nullable=True,
             ),
             DURATION_MINUTES: pa.Column(
                 "float64",
                 pa.Check.in_range(cleaning.min_duration_minutes, cleaning.max_duration_hours * 60),
+                nullable=True,
             ),
 ```
 
@@ -62,7 +64,9 @@ This is part of the function `silver_trips_schema`. It describes two of the seve
 
 The second column is the duration, with a lower and an upper limit. The upper limit is given in hours in the settings and multiplied by 60 here, because the column is in minutes.
 
-In words, this part of the contract says: every trip in the silver layer has a distance above zero and at most the maximum, and a duration between the minimum and the maximum. If one row breaks one rule, the check fails.
+`nullable=True` allows the value to be missing. Chapter 16 explains why: some sources do not record the distance or the dropoff time of a trip that really happened.
+
+In words, this part of the contract says: a distance that was recorded is above zero and at most the maximum, and a duration that was recorded is between the minimum and the maximum. If one row breaks one rule, the check fails.
 
 ## Design choice 1: schemas are built from settings
 
@@ -105,7 +109,7 @@ This may look too hard. An extra column seems harmless. It is not, for two reaso
 
 ## A gate must never be open by accident
 
-The gold tables may contain only the 20 chosen zones. That list is in the settings, and Chapter 2 explained that it is still empty. What should the gold schema do with an empty list?
+The gold tables may contain only the 20 chosen zones. That list is in the settings. When this gate was written, the list was still empty, because the zones had not been chosen yet. What should the gold schema do with an empty list?
 
 One possible answer is "accept any valid zone number for now". That sounds practical. But then the gate is open while it appears to be closed. A gold table with all 263 zones would pass the check, the result would be reported as success, and a rule of the project would be broken without a sign.
 
@@ -138,10 +142,12 @@ In the third case, the caller asks for the frozen list and it is empty. The func
 
 ## Try it yourself
 
-Ask for the gold schema with the current settings.
+Ask for the gold schema with an empty zone list. The list in the config file is filled today (Chapter 18), so the first line empties it for this shell with an environment variable, and the last line removes the variable again.
 
 ```powershell
+$env:DEMAND_DATA__ZONES = "[]"
 .venv\Scripts\python.exe -c "from demand.config import get_settings; from demand.schemas import gold_demand_schema; gold_demand_schema(get_settings())"
+Remove-Item Env:DEMAND_DATA__ZONES
 ```
 
 You should see an error report that ends with:
@@ -150,7 +156,7 @@ You should see an error report that ends with:
 ValueError: data.zones is empty: run `python -m demand select-zones` and paste the result into the config before building or validating the gold layer
 ```
 
-This proves the gate fails closed. The error will disappear when the zones are chosen in Part III.
+This proves the gate fails closed. Run the middle line again without the variable: it prints nothing, because the schema can now be built from the 20 zones.
 
 Ask for the silver schema, which does not need the list.
 

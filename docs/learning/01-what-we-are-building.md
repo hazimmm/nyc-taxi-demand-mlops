@@ -67,7 +67,7 @@ Each box is one step.
 
 ## What exists today
 
-The foundation exists, and the first two steps of the path: the download and the cleaning. The cleaned trips are not counted per hour yet, and no model is trained.
+The foundation exists, and the first three steps of the path: the download, the cleaning, and the counting per zone and hour with its features. No model is trained yet.
 
 The foundation was built before any step of the pipeline. This order is deliberate. Every later step needs the same basic things: one place for settings, one definition of the column names, one way to start a command, one way to write a log line, and a way to test all of it. If these are built first, every later step uses them. If each step invents its own, they will not fit together.
 
@@ -81,7 +81,7 @@ Ask the program which commands it has.
 .venv\Scripts\python.exe -m demand --help
 ```
 
-You should see a short description and a list of eleven commands: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `train`, `forecast`, `monitor`, `retrain`, `serve`. Compare the list with Figure 1.1: almost every box has a command. This shows that the shape of the whole system was fixed before the steps were written. Three of them do real work today: `config`, `ingest` and `silver`. The others answer with "Not implemented yet".
+You should see a short description and a list of eleven commands: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `train`, `forecast`, `monitor`, `retrain`, `serve`. Compare the list with Figure 1.1: almost every box has a command. This shows that the shape of the whole system was fixed before the steps were written. Five of them do real work today: `config`, `ingest`, `select-zones`, `silver` and `gold`. The others answer with "Not implemented yet".
 
 Now ask for the three dates that define the project.
 

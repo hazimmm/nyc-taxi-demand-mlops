@@ -79,7 +79,7 @@ Here is how it happens. The training code marks weekends with `dayofweek >= 5`, 
 > [!WARNING]
 > Skew produces no error message. Like leakage, it shows only as forecasts that are worse than the tests promised.
 
-The decision in this project: one feature function, used by training, by the batch forecast job and by the web service, and a test that checks that all three get identical output. The function itself arrives with the data pipeline. One part already exists: the list of model inputs has a single definition.
+The decision in this project: one feature function, used by training, by the batch forecast job and by the web service, and a test that checks that all three get identical output. The function is `build_features`, and Chapter 19 explains it together with the test that compares training rows with serving rows. This chapter looks at a smaller part of the same idea: the list of model inputs has a single definition.
 
 ## Worked example: the list of model inputs
 
@@ -129,7 +129,7 @@ Print the layer folders.
 .venv\Scripts\python.exe -c "from demand.config import get_settings; p = get_settings().paths; print(p.raw, p.silver, p.gold, p.predictions)"
 ```
 
-You should see `data\raw data\silver data\gold data\predictions`. Their locations were fixed before any of them existed, so every step agrees on them. The first folder, `data\raw`, is created and filled by the ingest stage (Chapters 14 and 15). The second, `data\silver`, is built from it by the silver stage (Chapters 16 and 17). The other two do not exist yet.
+You should see `data\raw data\silver data\gold data\predictions`. Their locations were fixed before any of them existed, so every step agrees on them. The first folder, `data\raw`, is created and filled by the ingest stage (Chapters 14 and 15). The second, `data\silver`, is built from it by the silver stage (Chapters 16 and 17). The third, `data\gold`, is built from silver by the gold stage (Chapters 18 and 19). The last one does not exist yet.
 
 ## Key takeaways
 
@@ -137,7 +137,7 @@ You should see `data\raw data\silver data\gold data\predictions`. Their location
 - A layer is built only from the layer before it, so every table has one origin and every check has a fixed place.
 - Because raw is immutable, any later layer can be deleted and built again.
 - Training/serving skew is a silent difference between the features used in training and in prediction.
-- The defence against skew is a single definition. The list and the order of model inputs already have one.
+- The defence against skew is a single definition: one list of model inputs in a fixed order, and one function that builds them.
 
 ## Exercises
 

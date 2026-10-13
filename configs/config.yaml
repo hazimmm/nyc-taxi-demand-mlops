@@ -27,8 +27,9 @@ data:
     read_timeout_seconds: 60.0
   n_zones: 20
   # Frozen list of pickup zone IDs, chosen from the training period only.
-  # Empty until `python -m demand select-zones` has been run and its output pasted here.
-  zones: []
+  # Output of `python -m demand select-zones`, busiest first. Run it again and paste the
+  # result here only when train_end_date changes.
+  zones: [161, 237, 236, 132, 230, 186, 162, 142, 234, 170, 163, 239, 68, 138, 79, 48, 249, 141, 164, 140]
   weather:
     latitude: 40.7128
     longitude: -74.0060

@@ -140,6 +140,8 @@ Each box is an idea from an earlier chapter.
 
 Three limits should be stated plainly. If the stage stops at the fourth month, the first three are already replaced and the report is still the old one. If you make the period in the config shorter, the silver files of the months that are no longer asked for stay on disk. Nothing deletes them. And as Chapter 16 said, a trip of a neighbouring month is dropped, not moved.
 
+The silver layer is now complete: valid trips and hourly weather on the same clock. The next step counts the trips per zone and hour. Chapter 18 starts there.
+
 ## Try it yourself
 
 Run the stage. It needs the raw layer of Chapter 15.
@@ -260,4 +262,4 @@ The weather file and the trip files of January to March are new. April was not w
 
 ---
 
-[Previous: Chapter 16 – Cleaning the trips](16-cleaning-the-trips.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 16 – Cleaning the trips](16-cleaning-the-trips.md) | [Contents](README.md) | [Next: Chapter 18 – From trips to a demand table](18-from-trips-to-a-demand-table.md)

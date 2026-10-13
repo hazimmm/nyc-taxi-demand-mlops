@@ -139,12 +139,28 @@ def test_retry_policy_comes_from_the_config(settings: Settings) -> None:
     assert policy.backoff_base_seconds == settings.data.download.backoff_base_seconds
 
 
-@pytest.mark.parametrize("stage", [pipeline.run_select_zones, pipeline.run_gold])
-def test_later_stages_say_they_are_not_built_yet(settings: Settings, stage: object) -> None:
-    assert callable(stage)
+def test_gold_stage_hands_over_to_build_gold(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[Settings] = []
+    monkeypatch.setattr(pipeline, "build_gold", calls.append)
 
-    with pytest.raises(NotImplementedError, match="phase 1"):
-        stage(settings)
+    pipeline.run_gold(settings)
+
+    assert calls == [settings]
+
+
+def test_select_zones_stage_prints_the_list_for_the_config(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(pipeline, "select_zones", lambda settings: {161: 30, 132: 20})
+
+    pipeline.run_select_zones(settings)
+
+    comment, zones_line = capsys.readouterr().out.splitlines()
+    assert comment.strip().startswith("#")
+    assert "2025-01-01 to 2025-04-30" in comment
+    assert zones_line == "  zones: [161, 132]"
 
 
 def test_validate_says_it_is_not_built_yet(settings: Settings) -> None:

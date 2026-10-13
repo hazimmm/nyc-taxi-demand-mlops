@@ -154,7 +154,7 @@ If the list is empty, the function returns the object unchanged, and loading con
 The effect is that a leaking lag is not a bad result that someone must notice. It is a program that does not start.
 
 > [!NOTE]
-> This check covers the `lags` list only. The rolling windows from Chapter 2 need their 24-hour shift inside the feature code, and a test of that code. A validator can only check what is visible in the settings.
+> This check covers the `lags` list only. The rolling windows from Chapter 2 get their 24-hour shift inside the feature code, and a test of that code proves it (Chapter 19). A validator can only check what is visible in the settings. For the windows, the settings refuse one thing: a window shorter than 2 hours, because a standard deviation needs at least two values.
 
 ## Loaded once
 
@@ -203,7 +203,7 @@ Run the tests for the two protections.
 .venv\Scripts\python.exe -m pytest tests/unit/test_config.py -q -k "lag_shorter or unknown_key"
 ```
 
-You should see `2 passed, 13 deselected`. One test gives the program a lag of 1 hour, the other gives it the misspelled name `sead` for `seed`. Both expect a refusal.
+You should see `2 passed, 14 deselected`. One test gives the program a lag of 1 hour, the other gives it the misspelled name `sead` for `seed`. Both expect a refusal.
 
 ## Key takeaways
 

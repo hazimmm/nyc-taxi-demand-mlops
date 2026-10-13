@@ -60,7 +60,7 @@ The marker `@pytest.fixture` makes this function a fixture named `settings`.
 
 The line starting with `base` loads the real config file of the project.
 
-The `return` statement builds a changed copy. Chapter 7 said the settings are frozen, so the fixture does not modify them. It copies them with two changes. The data and report folders are moved to a temporary folder. The zone list is set to three zones, defined a few lines above as `TEST_ZONES = [132, 161, 237]`, so that the gold schemas of Chapter 8 can be built.
+The `return` statement builds a changed copy. Chapter 7 said the settings are frozen, so the fixture does not modify them. It copies them with two changes. The data and report folders are moved to a temporary folder. The zone list is set to three zones, defined a few lines above as `TEST_ZONES = [132, 161, 237]`. The gold schemas of Chapter 8 need a zone list, and with a fixed small one the tests do not depend on the 20 zones in the config file.
 
 The file name `conftest.py` is special. Fixtures in this file are available to every test in the folder without an import. A test uses the fixture like this:
 
@@ -108,7 +108,7 @@ Line 2 sets an environment variable for this test only. Then the settings are lo
 
 ## Testing code that does not exist yet
 
-Chapter 9 ended with a question: how can the stage commands be tested when most stages do not exist? The answer uses `monkeypatch` again.
+Chapter 9 ended with a question: how can the stage commands be tested when many stages do not exist? The answer uses `monkeypatch` again.
 
 [`tests/unit/test_cli.py`](../../tests/unit/test_cli.py)
 
@@ -188,7 +188,7 @@ The first line of `conftest.py` states a rule: "Tests never touch the network or
 
 Imagine a test that downloads a real TLC file. It takes minutes. It fails when the website is slow or your connection is down. It gives a different result when the file is corrected at the source. A failed test then no longer means "the code is broken", and after a few false alarms people stop reading failures. Tests are only useful if a failure can be trusted.
 
-So the tests build tiny tables in memory, as `_silver_trips()` does with two rows, and replace outside services with test doubles. The complete suite runs in about ten seconds. Chapter 14 shows how the download code, which does almost nothing except use the network, is tested under the same rule.
+So the tests build tiny tables in memory, as `_silver_trips()` does with two rows, and replace outside services with test doubles. The complete suite runs in about twenty seconds. Chapter 14 shows how the download code, which does almost nothing except use the network, is tested under the same rule.
 
 ## Try it yourself
 
@@ -198,7 +198,7 @@ Run one test file.
 .venv\Scripts\python.exe -m pytest tests/unit/test_config.py -q
 ```
 
-You should see `15 passed`. Each dot in the output is one passed test. No coverage is shown, because `--cov` was not given.
+You should see `16 passed`. Each dot in the output is one passed test. No coverage is shown, because `--cov` was not given.
 
 Run one test by a part of its name.
 
@@ -206,7 +206,7 @@ Run one test by a part of its name.
 .venv\Scripts\python.exe -m pytest tests/unit/test_config.py -q -k "lag_shorter"
 ```
 
-You should see `1 passed, 14 deselected`. This is the test from the start of this chapter.
+You should see `1 passed, 15 deselected`. This is the test from the start of this chapter.
 
 Run everything with coverage.
 
@@ -214,7 +214,7 @@ Run everything with coverage.
 .venv\Scripts\python.exe -m pytest --cov -q
 ```
 
-You should see `240 passed`, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.71%`. The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
+You should see `348 passed`, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.77%`. The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
 
 ## Key takeaways
 
