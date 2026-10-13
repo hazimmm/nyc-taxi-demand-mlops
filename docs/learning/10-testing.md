@@ -142,7 +142,7 @@ The silver schema must reject a zone of 264, a distance of zero, a distance of 1
         (schemas.DURATION_MINUTES, 361.0),
         (schemas.PASSENGER_COUNT, 0.0),
         (schemas.PASSENGER_COUNT, 9.0),
-        (schemas.FARE_AMOUNT, -3.0),
+        (schemas.TOTAL_AMOUNT, -3.0),
     ],
 )
 def test_silver_trips_reject_bad_values(settings: Settings, column: str, value: float) -> None:
@@ -188,7 +188,7 @@ The first line of `conftest.py` states a rule: "Tests never touch the network or
 
 Imagine a test that downloads a real TLC file. It takes minutes. It fails when the website is slow or your connection is down. It gives a different result when the file is corrected at the source. A failed test then no longer means "the code is broken", and after a few false alarms people stop reading failures. Tests are only useful if a failure can be trusted.
 
-So the tests build tiny tables in memory, as `_silver_trips()` does with two rows, and replace outside services with test doubles. The complete suite runs in a few seconds. Chapter 14 shows how the download code, which does almost nothing except use the network, is tested under the same rule.
+So the tests build tiny tables in memory, as `_silver_trips()` does with two rows, and replace outside services with test doubles. The complete suite runs in about ten seconds. Chapter 14 shows how the download code, which does almost nothing except use the network, is tested under the same rule.
 
 ## Try it yourself
 
@@ -214,7 +214,7 @@ Run everything with coverage.
 .venv\Scripts\python.exe -m pytest --cov -q
 ```
 
-You should see `136 passed`, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.57%`. The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
+You should see `234 passed`, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.70%`. The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
 
 ## Key takeaways
 
@@ -251,7 +251,7 @@ Coverage counts executed lines, not checked results. The test may call the funct
 <details>
 <summary>Answer</summary>
 
-So that the refusal can have one cause only. If the table had a bad distance and a bad fare, the schema would refuse it even if the fare rule were missing completely. The test would pass and prove nothing about the fare rule. One change per case means each case is evidence for exactly one rule.
+So that the refusal can have one cause only. If the table had a bad distance and a bad total amount, the schema would refuse it even if the rule for the total amount were missing completely. The test would pass and prove nothing about that rule. One change per case means each case is evidence for exactly one rule.
 
 </details>
 

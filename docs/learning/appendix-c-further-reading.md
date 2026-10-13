@@ -14,7 +14,7 @@ Official documentation for the tools that the repository uses today. Entries for
 - **Pydantic documentation** – models, validators, and the section on settings management. <https://docs.pydantic.dev>
 - **python-dotenv documentation** – the format of `.env` files.
 - **Pandera documentation** – schemas, checks, strict mode. <https://pandera.readthedocs.io>
-- **pandas documentation** – time series and time zones. <https://pandas.pydata.org>
+- **pandas documentation** – time series, time zones (`tz_localize` and `tz_convert`, with their options for times that do not exist or exist twice), and `interpolate`. <https://pandas.pydata.org>
 
 ## Getting data
 
@@ -22,7 +22,8 @@ Official documentation for the tools that the repository uses today. Entries for
 - **Apache Arrow documentation** – the Python library pyarrow and the Parquet format. <https://arrow.apache.org>
 - **DuckDB documentation** – reading Parquet files with SQL. <https://duckdb.org>
 - **Open-Meteo documentation** – the historical forecast API and the historical weather (archive) API. <https://open-meteo.com>
-- **NYC Taxi and Limousine Commission, TLC Trip Record Data** – the page that lists the monthly files and the data dictionary of the columns.
+- **NYC Taxi and Limousine Commission, TLC Trip Record Data** – the page that lists the monthly files and the data dictionary of the columns. Read the dictionary before you write a cleaning rule: it defines `fare_amount`, `total_amount` and the codes of `payment_type`.
+- **IANA Time Zone Database** – the source of names such as `America/New_York` and of the dates on which clocks change. <https://www.iana.org/time-zones>
 
 ## Command line, tests and code quality
 

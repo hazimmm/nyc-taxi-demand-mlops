@@ -275,7 +275,7 @@ Run the tests for the two silent failures.
 .venv\Scripts\python.exe -m pytest tests/unit/data/test_ingest.py -q -k "middle_of_the_stream or error_page"
 ```
 
-You should see `3 passed, 28 deselected`. Two tests break the stream in the middle. The third serves an HTML page under a `.parquet` name and checks that nothing reaches the raw folder.
+You should see `3 passed, 30 deselected`. Two tests break the stream in the middle. The third serves an HTML page under a `.parquet` name and checks that nothing reaches the raw folder.
 
 Run all tests of the data code and look at the time.
 
@@ -283,7 +283,7 @@ Run all tests of the data code and look at the time.
 .venv\Scripts\python.exe -m pytest tests/unit/data -q
 ```
 
-You should see `70 passed` in about two seconds. These tests include many retries with waits of several seconds each. The short time proves that no test really waits and none uses the network.
+You should see `172 passed` in about five seconds. The number includes the tests of the cleaning code of Chapters 16 and 17. The download tests include many retries with waits of several seconds each. The short time proves that no test really waits and none uses the network.
 
 ## Key takeaways
 

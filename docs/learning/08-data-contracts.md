@@ -12,7 +12,7 @@ One month, the source of your data changes a column from miles to kilometres. No
 
 ## Code fails loudly, data fails silently
 
-When code is wrong, Python usually tells you: a `TypeError`, a `KeyError`, a failing test. When data is wrong, the program continues. A negative fare is a valid number. A duplicated hour is a valid row. A table with these problems goes through aggregation and training without complaint, and the only effect is a model that is slightly worse for a reason nobody can see.
+When code is wrong, Python usually tells you: a `TypeError`, a `KeyError`, a failing test. When data is wrong, the program continues. A negative amount of money is a valid number. A duplicated hour is a valid row. A table with these problems goes through aggregation and training without complaint, and the only effect is a model that is slightly worse for a reason nobody can see.
 
 The longer a problem travels, the harder it is to find. A wrong value found at the moment the table is written points directly to its cause. The same value found a month later, as a small loss of accuracy, points nowhere.
 
@@ -68,7 +68,7 @@ In words, this part of the contract says: every trip in the silver layer has a d
 
 Look at where the limits come from. The number 100 is not written in the schema. The schema reads `cleaning.max_distance_miles`, the value from the config file of Chapter 7.
 
-The cleaning step, when it is written, will remove trips above the same value. So two pieces of code use one number: the code that applies the rule and the gate that checks the result.
+The cleaning step (Chapter 16) removes trips above the same value. So two pieces of code use one number: the code that applies the rule and the gate that checks the result.
 
 Consider the wrong way. The cleaning code has `if distance > 100` and the schema has `in_range(0, 100)`. Later someone lowers the limit to 80 in the cleaning code and forgets the schema. The gate now accepts trips up to 100 and no longer checks the rule that the cleaning step applies. With one shared value this cannot happen. This is why every schema is a function that takes the settings as its argument.
 
@@ -161,7 +161,7 @@ Ask for the silver schema, which does not need the list.
 You should see the seven columns of a cleaned trip:
 
 ```text
-['pickup_datetime', 'dropoff_datetime', 'pickup_zone_id', 'trip_distance', 'duration_minutes', 'passenger_count', 'fare_amount']
+['pickup_datetime', 'dropoff_datetime', 'pickup_zone_id', 'trip_distance', 'duration_minutes', 'passenger_count', 'total_amount']
 ```
 
 Run the tests that give the silver schema bad values.
@@ -170,7 +170,7 @@ Run the tests that give the silver schema bad values.
 .venv\Scripts\python.exe -m pytest tests/unit/test_schemas.py -q -k "bad_values"
 ```
 
-You should see `8 passed, 19 deselected`. Open `tests/unit/test_schemas.py` and find `test_silver_trips_reject_bad_values`. It builds one correct table, replaces one value with a bad one (a zone of 264, a distance of 0, a fare of −3, and five more), and expects the schema to refuse. Each of the eight bad values is one test.
+You should see `8 passed, 19 deselected`. Open `tests/unit/test_schemas.py` and find `test_silver_trips_reject_bad_values`. It builds one correct table, replaces one value with a bad one (a zone of 264, a distance of 0, a total amount of −3, and five more), and expects the schema to refuse. Each of the eight bad values is one test.
 
 Run the test for an unexpected column.
 
@@ -191,12 +191,12 @@ You should see `1 passed, 26 deselected`. The test adds a column named `tip_amou
 
 ## Exercises
 
-**1.** The cleaning step writes a table where one trip has a fare of −3. Describe what happens next with a contract, and what would happen without one.
+**1.** The cleaning step writes a table where one trip has a total amount of −3. Describe what happens next with a contract, and what would happen without one.
 
 <details>
 <summary>Answer</summary>
 
-With the contract, the silver gate checks the table before it is written. The rule for the fare column is "at least 0", so the check fails, the table is not written, and the error names the column and the rule. Someone then fixes the cleaning step. Without a contract, the row enters silver. The gold step only counts trips, so the count is one too high for that hour. Nobody sees it. The single row is a small problem. The larger one is what it means: the cleaning rule for fares does not work, so other bad rows are probably present too, and nothing reports them.
+With the contract, the silver gate checks the table before it is written. The rule for the total amount column is "at least 0", so the check fails, the table is not written, and the error names the column and the rule. Someone then fixes the cleaning step. Without a contract, the row enters silver. The gold step only counts trips, so the count is one too high for that hour. Nobody sees it. The single row is a small problem. The larger one is what it means: the cleaning rule for refunds does not work, so other bad rows are probably present too, and nothing reports them.
 
 </details>
 

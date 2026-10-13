@@ -2,6 +2,8 @@
 
 Nothing here touches the network. ``FakeServer`` plugs into ``httpx.MockTransport``, so
 the code under test uses a real ``httpx.Client`` whose requests are answered in memory.
+The silver tests build their raw trips and weather with ``raw_trip`` and
+``weather_payload``.
 """
 
 from __future__ import annotations
@@ -9,8 +11,10 @@ from __future__ import annotations
 import io
 import json
 from collections.abc import Callable, Iterator, Sequence
+from datetime import datetime, timedelta
 
 import httpx
+import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
@@ -111,6 +115,95 @@ def complete_weather(settings: Settings, *, marker: float = 1.0) -> bytes:
     """A weather response that covers the whole configured period without gaps."""
     hours = expected_hours(*request_period(settings.data.start_date, settings.data.end_date))
     return weather_bytes(settings.data.weather.variables, hours, marker=marker)
+
+
+# --- raw files for the silver tests -----------------------------------------------------
+
+# The columns silver is built from, plus a few it ignores, with the types of a real TLC
+# file (checked with ``pyarrow.parquet.read_schema`` on yellow_tripdata_2025-01.parquet).
+RAW_TRIPS_SCHEMA = pa.schema(
+    [
+        ("VendorID", pa.int32()),
+        ("tpep_pickup_datetime", pa.timestamp("us")),
+        ("tpep_dropoff_datetime", pa.timestamp("us")),
+        ("passenger_count", pa.int64()),
+        ("trip_distance", pa.float64()),
+        ("store_and_fwd_flag", pa.large_string()),
+        ("PULocationID", pa.int32()),
+        ("DOLocationID", pa.int32()),
+        ("payment_type", pa.int64()),
+        ("fare_amount", pa.float64()),
+        ("total_amount", pa.float64()),
+    ]
+)
+
+
+def raw_trip(pickup: str, dropoff: str | None = None, **changes: object) -> dict[str, object]:
+    """One valid raw trip starting at ``pickup``; ``changes`` overwrite single values.
+
+    Without ``dropoff`` the trip lasts 15 minutes.
+    """
+    pickup_time = datetime.fromisoformat(pickup)
+    dropoff_time = (
+        datetime.fromisoformat(dropoff) if dropoff else pickup_time + timedelta(minutes=15)
+    )
+    trip: dict[str, object] = {
+        "VendorID": 2,
+        "tpep_pickup_datetime": pickup_time,
+        "tpep_dropoff_datetime": dropoff_time,
+        "passenger_count": 1,
+        "trip_distance": 2.5,
+        "store_and_fwd_flag": "N",
+        "PULocationID": 161,
+        "DOLocationID": 237,
+        "payment_type": 1,
+        "fare_amount": 14.5,
+        "total_amount": 20.0,
+    }
+    unknown = set(changes) - set(trip)
+    assert not unknown, f"not a raw column: {unknown}"
+    return trip | changes
+
+
+def raw_trips_table(trips: Sequence[dict[str, object]]) -> pa.Table:
+    """Raw trips as an Arrow table with the real column types."""
+    return pa.Table.from_pylist(list(trips), schema=RAW_TRIPS_SCHEMA)
+
+
+def raw_trips_frame(trips: Sequence[dict[str, object]]) -> pd.DataFrame:
+    """Raw trips as pandas reads them from a TLC file."""
+    frame: pd.DataFrame = raw_trips_table(trips).to_pandas()
+    return frame
+
+
+def weather_payload(
+    first_utc_hour: str,
+    hours: int,
+    variables: Sequence[str],
+    *,
+    nulls: Sequence[int] = (),
+    absent: Sequence[int] = (),
+) -> dict[str, object]:
+    """An Open-Meteo style response with real UTC timestamps.
+
+    The value of every variable at position ``i`` is ``float(i)``, which makes an
+    interpolated value easy to predict. ``nulls`` are positions whose values are null;
+    ``absent`` are positions that are left out of the response altogether.
+    """
+    first = datetime.fromisoformat(first_utc_hour)
+    kept = [index for index in range(hours) if index not in absent]
+    hourly: dict[str, list[object]] = {
+        "time": [(first + timedelta(hours=index)).strftime("%Y-%m-%dT%H:%M") for index in kept]
+    }
+    for name in variables:
+        hourly[name] = [None if index in nulls else float(index) for index in kept]
+    return {"utc_offset_seconds": 0, "timezone": "GMT", "hourly": hourly}
+
+
+def with_months(settings: Settings, start_month: str, end_month: str) -> Settings:
+    """The same settings for a shorter period, so tests need only a few tiny files."""
+    data = settings.data.model_copy(update={"start_month": start_month, "end_month": end_month})
+    return settings.model_copy(update={"data": data})
 
 
 @pytest.fixture

@@ -37,12 +37,14 @@ The book grows with the project. New chapters are added when new code arrives. T
 
 ### Part III – The data pipeline
 
-This part is being written. More chapters follow when cleaning, aggregation, features and data versioning are built.
+This part is being written. More chapters follow when aggregation, features and data versioning are built.
 
 | Chapter | What it covers | Time |
 |---|---|---|
 | [14. Getting the data: downloads you can trust](14-getting-the-data.md) | The raw layer, half files and error pages, atomic rename, retries with backoff, testing without a network | 18 min |
 | [15. Knowing what you have: the manifest and idempotency](15-knowing-what-you-have.md) | Checksums, the manifest, skip or download, the weather source, UTC and padding, a first look at the raw data | 20 min |
+| [16. Cleaning the trips: rules you can count](16-cleaning-the-trips.md) | One row is one valid trip, ten rules in a fixed order, counts that must add up, the cleaning report, and a rule from the plan that the data proved wrong | 14 min |
+| [17. Clocks, weather and the silver stage](17-clocks-weather-and-the-silver-stage.md) | Local time and daylight saving, elapsed time, weather from UTC to local hours, gaps, and a stage that validates before it writes | 14 min |
 
 ### Later parts
 
@@ -72,3 +74,4 @@ These parts have no chapters yet. They are written when their code is added.
 | 1 – Project foundation (Phase 0) | Packaging, settings, data contracts, CLI skeleton, logging, tests, quality tools | 1 to 12, appendices A to C |
 | 2 – Foundation fixes found in review | `.env` file is read; the gold zone gate fails closed; coverage is opt-in; pre-commit is installed | 13 added; 7, 8, 10 and 11 describe the fixed behaviour |
 | 3 – Ingestion into the raw layer (Phase 1) | `python -m demand ingest` downloads trips, zones and weather safely and records them in a manifest; new `data.download` settings | 14 and 15 added; 1, 2, 4, 5, 9, 10 and 11 updated; appendices A to C extended |
+| 4 – Cleaning into the silver layer (Phase 1) | `python -m demand silver` cleans trips and weather, validates them against the silver contracts and writes a cleaning report; the silver column `fare_amount` became `total_amount` | 16 and 17 added; 1, 2, 4, 8, 9, 10, 11, 14 and 15 updated; appendices A to C extended |

@@ -139,9 +139,7 @@ def test_retry_policy_comes_from_the_config(settings: Settings) -> None:
     assert policy.backoff_base_seconds == settings.data.download.backoff_base_seconds
 
 
-@pytest.mark.parametrize(
-    "stage", [pipeline.run_select_zones, pipeline.run_silver, pipeline.run_gold]
-)
+@pytest.mark.parametrize("stage", [pipeline.run_select_zones, pipeline.run_gold])
 def test_later_stages_say_they_are_not_built_yet(settings: Settings, stage: object) -> None:
     assert callable(stage)
 

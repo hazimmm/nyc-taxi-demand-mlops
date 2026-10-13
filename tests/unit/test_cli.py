@@ -109,14 +109,14 @@ def test_placeholder_stage_exits_with_an_error_instead_of_a_traceback(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def placeholder(*args: object) -> None:
-        raise NotImplementedError("silver arrives later")
+        raise NotImplementedError("gold arrives later")
 
-    _fake_module(monkeypatch, "demand.data.pipeline", run_silver=placeholder)
+    _fake_module(monkeypatch, "demand.data.pipeline", run_gold=placeholder)
 
-    result = runner.invoke(app, ["silver"])
+    result = runner.invoke(app, ["gold"])
 
     assert result.exit_code == 1
-    assert "Not implemented yet: silver arrives later" in result.output
+    assert "Not implemented yet: gold arrives later" in result.output
 
 
 def test_serve_exits_with_an_error_until_the_api_exists(monkeypatch: pytest.MonkeyPatch) -> None:

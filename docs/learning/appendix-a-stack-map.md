@@ -19,8 +19,8 @@ The **Status** column has three values.
 | pydantic, pydantic-settings | Libraries that check data against typed classes | Settings that are checked when the program starts | In use | 7 |
 | PyYAML | Reads YAML files | A config file that people can read | In use | 7 |
 | python-dotenv | Reads a `.env` file into environment variables | Local values and secrets in one file that is not in git | In use | 7 |
-| Pandera | Schema checks for pandas tables | Data contracts between the data layers | In use (schemas defined; the gates run from Phase 1) | 8 |
-| pandas | Library for tables of data | Table work, and the table type that the schemas check | In use | 8 |
+| Pandera | Schema checks for pandas tables | Data contracts between the data layers | In use (the silver stage validates every table before writing it; the gold gates follow) | 8, 17 |
+| pandas | Library for tables of data | The cleaning rules, time zones and daylight saving, and the table type that the schemas check | In use | 8, 16, 17 |
 | Typer | Library for building command-line programs | One entry point on every operating system | In use | 9 |
 | pytest, pytest-cov | Test runner and coverage measurement | Rules of the project that run after every change | In use | 10 |
 | ruff | Linter and formatter | One style; common mistakes found automatically | In use | 11 |
@@ -31,11 +31,11 @@ The **Status** column has three values.
 
 | Tool | What it is | Problem it solves here | Status | Chapter |
 |---|---|---|---|---|
-| NYC TLC trip records | Public monthly files of taxi trips | The demand data | In use (downloaded by the ingest stage) | 14, 15 |
-| Open-Meteo | Free weather service, no key needed | Weather features | In use (downloaded by the ingest stage) | 15 |
+| NYC TLC trip records | Public monthly files of taxi trips | The demand data | In use (downloaded by the ingest stage, cleaned by the silver stage) | 14, 15, 16 |
+| Open-Meteo | Free weather service, no key needed | Weather features | In use (downloaded by the ingest stage, cleaned by the silver stage) | 15, 17 |
 | httpx | Library for web requests | Downloads with time limits and retries; `MockTransport` for tests without a network | In use | 14 |
-| pyarrow | Reader and writer for Parquet files | The file format of the trip data; the footer check before a file is accepted | In use | 14 |
-| DuckDB | A database engine that runs inside the Python process | Reads and counts large files without loading everything into memory | Declared (used in this book to look at the raw data) | 15 |
+| pyarrow | Reader and writer for Parquet files | The file format of the raw and silver tables; the footer check before a file is accepted | In use | 14, 17 |
+| DuckDB | A database engine that runs inside the Python process | Reads and counts large files without loading everything into memory | Declared (used in this book to look at the raw data and to check a cleaning rule) | 15, 16 |
 | holidays | Library of public holidays | The `is_holiday` feature | Declared | |
 | DVC | Data Version Control: versions data files and pipeline steps next to git | A pipeline that can be repeated; data versions without data in git | Declared | |
 
@@ -90,4 +90,4 @@ The **Status** column has three values.
 
 ---
 
-[Previous: Chapter 15 – Knowing what you have](15-knowing-what-you-have.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)
+[Previous: Chapter 17 – Clocks, weather and the silver stage](17-clocks-weather-and-the-silver-stage.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)

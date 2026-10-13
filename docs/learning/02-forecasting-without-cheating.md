@@ -89,7 +89,7 @@ The project forecasts only the 20 busiest zones. Which are they? The obvious met
 
 This also leaks, and no feature is involved. The six months include May and June, which are kept for testing. If a zone became busy only in June, it enters the list because of data the model is not allowed to see. The choice itself carries information from the future into the project.
 
-The decision: the zones are chosen from the training months only, then written into the config file as a fixed list that is never calculated again. At the moment the list is empty, because the selection needs cleaned data and that step of the pipeline is not built yet:
+The decision: the zones are chosen from the training months only, then written into the config file as a fixed list that is never calculated again. At the moment the list is empty, because the command that makes the selection is not built yet:
 
 ```yaml
   n_zones: 20

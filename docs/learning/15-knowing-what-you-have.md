@@ -195,7 +195,7 @@ The weather is fetched with one request for the whole period, not one per month.
 
 The trips are recorded in New York local time. The weather is requested in UTC, the world standard time from Chapter 9. Why not ask for local time directly?
 
-Local time has a problem once a year. When summer time ends, the clock goes back one hour, and the hour from 01:00 to 02:00 happens twice. A timestamp "01:30" on that night is ambiguous. UTC has no summer time, so every hour exists exactly once. The raw layer stores the unambiguous form. Converting to New York time is a job for the silver layer.
+Local time has a problem once a year. When summer time ends, the clock goes back one hour, and the hour from 01:00 to 02:00 happens twice. A timestamp "01:30" on that night is ambiguous. UTC has no summer time, so every hour exists exactly once. The raw layer stores the unambiguous form. Converting to New York time is a job for the silver layer (Chapter 17).
 
 But mixing two clocks creates a trap at the edges of the period. New York is four or five hours behind UTC.
 
@@ -232,7 +232,7 @@ The file of a month contains trips from outside that month. The January file has
 
 The passenger count is often missing. In January it is empty for 540,149 of 3,475,226 trips, which is 15.5%. In June the share is 28%.
 
-None of this was changed during ingestion, and that is correct. The raw layer shows the source as it is. Each of these facts needs a decision: which clock, which trips belong to a month, what to do with a missing value. Those decisions belong to the cleaning step, where they are written as rules that can be read and tested. That step is built next, and the chapter about it follows this one when it exists.
+None of this was changed during ingestion, and that is correct. The raw layer shows the source as it is. Each of these facts needs a decision: which clock, which trips belong to a month, what to do with a missing value. Those decisions belong to the cleaning step, where they are written as rules that can be read and tested. Chapter 16 covers the rules for the trips, and Chapter 17 covers the clocks, the weather and the stage as a whole.
 
 ## Try it yourself
 
@@ -332,7 +332,7 @@ Three more tests in the same file cover what happens afterwards. Run them with `
 - Forecast weather is preferred. If observed weather is used, the manifest says so, and every later run tries the forecast again.
 - A fallback is for an outage. A request that the server refuses is a wrong setting and must stop the run.
 - Mixing UTC and local time needs care at the edges of a period. One day of padding covers the difference.
-- Raw data is not cleaned. What you find in it becomes rules in the next step.
+- Raw data is not cleaned. What you find in it becomes rules in the next step (Chapter 16).
 
 ## Exercises
 
@@ -387,4 +387,4 @@ The beginning. Midnight in Tokyo on the first day is 15:00 UTC on the day before
 
 ---
 
-[Previous: Chapter 14 – Getting the data](14-getting-the-data.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 14 – Getting the data](14-getting-the-data.md) | [Contents](README.md) | [Next: Chapter 16 – Cleaning the trips](16-cleaning-the-trips.md)

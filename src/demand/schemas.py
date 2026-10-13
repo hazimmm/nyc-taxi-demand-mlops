@@ -24,7 +24,7 @@ PICKUP_ZONE_ID = "pickup_zone_id"
 TRIP_DISTANCE = "trip_distance"
 DURATION_MINUTES = "duration_minutes"
 PASSENGER_COUNT = "passenger_count"
-FARE_AMOUNT = "fare_amount"
+TOTAL_AMOUNT = "total_amount"
 
 # Gold
 TARGET = "pickups"
@@ -138,7 +138,10 @@ def silver_trips_schema(settings: Settings) -> pa.DataFrameSchema:
                 pa.Check.in_range(cleaning.min_passengers, cleaning.max_passengers),
                 nullable=True,
             ),
-            FARE_AMOUNT: pa.Column("float64", pa.Check.ge(0)),
+            # A negative total is a refund or reversed charge, a second row for a trip
+            # that is already there. The fare alone is not checked or kept: it is
+            # negative on many real trips (see the notes in data/clean.py).
+            TOTAL_AMOUNT: pa.Column("float64", pa.Check.ge(0)),
         },
         strict=True,
     )

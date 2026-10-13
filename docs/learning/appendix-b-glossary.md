@@ -14,6 +14,8 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Branch coverage | Coverage that also requires both outcomes of every `if` to be executed. | 10 |
 | Build backend | The tool that turns a source folder into something installable. Here: hatchling. | 5 |
 | Champion / challenger | The model in use / a new model that must beat it to replace it. | 1 |
+| Cleaning report | The record of a cleaning run: rows in, rows removed by each rule, rows out. Here: `reports/silver_cleaning_report.json`. | 16 |
+| Cleaning rule | A condition that marks a row as not valid, with a name and a fixed place in the order of the rules. | 16 |
 | Checksum | A short code calculated from the content of a file. If the content changes, the code changes. | 4, 15 |
 | Chunk | One piece of a file that is read or received in pieces. | 14 |
 | CI | Continuous integration: automatic checks that run on every push. Planned for Phase 7. | 13 |
@@ -27,6 +29,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | CRLF / LF | The two ways to mark the end of a line: Windows (two characters) and Linux or macOS (one). | 12 |
 | Data contract | A precise description of a table that can be checked automatically and that producer and consumer both rely on. | 8 |
 | Data leakage | Training or testing with information that is not available when the model is really used. | 2 |
+| Daylight saving time | The summer clock, one hour ahead of the winter clock. The change skips one local hour in spring and repeats one in autumn. | 17 |
 | Day-ahead forecast | A forecast made at least 24 hours before the hour it describes. | 1 |
 | Decorator | A marker above a function, starting with `@`, that changes how the function is used. | 9 |
 | Dependency | A library that the code needs in order to run. | 6 |
@@ -53,19 +56,24 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Gold layer | Data in the form its users need: one row per zone and hour, and the table of model inputs. | 4 |
 | Ground truth | The real value that a prediction tried to match. | 3 |
 | Hard-coded | Said of a value written directly in the code. | 7 |
-| Idempotent | Said of an operation that gives the same result when it is run again. | 15 |
+| Idempotent | Said of an operation that gives the same result when it is run again. | 15, 17 |
 | Immutable | Cannot be modified after it is written or created. | 4 |
 | Import path | The list of folders where Python searches for code to import. | 5 |
 | Ingest | To bring data from outside sources into the project. The first stage of the pipeline. | 14 |
 | JSON | A standard text format for structured data. | 9 |
 | Lag feature | A past value of the target used as an input. | 2 |
 | Lazy import | Importing a module at the moment it is needed, not at the top of the file. | 9 |
+| Linear interpolation | Filling missing values on a straight line between the known value before the gap and the known value after it. | 17 |
 | Linter | A tool that reads code and reports likely mistakes and bad habits. | 11 |
+| Localize | To attach a timezone to a timestamp that was recorded without one. The clock time stays the same. | 17 |
 | Lock file | A list of the exact version of every installed library. | 6 |
 | Manifest | The record of every raw file: source address, download time, size, checksum, row count. | 4, 15 |
+| Mask | A column of true and false values, one per row, that marks the rows for which a condition holds. | 16 |
 | Medallion architecture | Storing data in layers of increasing quality: raw (bronze), silver, gold. | 4 |
 | Model registry | A place that keeps every version of a model with a label. | 1 |
 | monkeypatch | A pytest fixture that changes something for one test and restores it afterwards. | 10 |
+| Naive timestamp | A date and time without a timezone. | 17 |
+| NaT | "Not a time": the missing value for timestamps in pandas. | 17 |
 | Optional dependency group | A named set of additional libraries, installed only where needed. | 6 |
 | Package | A folder of Python files that can be imported by its name. | 5 |
 | Parametrised test | One test function that runs once for each entry in a list of inputs. | 10 |
@@ -73,15 +81,17 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Pin | To fix a library to one exact version. | 6 |
 | Placeholder | A function that exists by name and only raises `NotImplementedError` until the real one is written. | 9 |
 | Producer / consumer | The step that writes a table / the step that reads it. | 8 |
+| Pure function | A function whose result depends only on its arguments and that reads and writes nothing outside itself. | 16 |
 | Push | To send commits to the shared copy of the repository. | 12 |
 | Quality gate | A check that can stop a pipeline. | 8 |
 | Random split | Putting rows into training and test sets by chance. Wrong for data ordered in time. | 3 |
 | Raw layer | Data exactly as downloaded, never modified. Also called bronze. | 4 |
+| Reversal | A row with negative amounts that cancels the charge of a trip, for example after a refund. It is not a second trip. | 16 |
 | Rolling statistic | A summary, such as the mean, over a moving window of time. | 2 |
 | Rolling-origin backtest | A backtest repeated with a training end date that moves forward. | 3 |
 | Schema | The formal definition of a table: columns, types and rules. | 8 |
 | SHA-256 | A method for calculating a checksum of 64 characters. | 15 |
-| Silver layer | Cleaned data: valid rows, fixed types, no duplicates. | 4 |
+| Silver layer | Cleaned data: valid rows, fixed types, no duplicates. One row is one valid trip, or one hour of weather. | 4, 16 |
 | Simulated clock | Replaying unseen historical data one day at a time, as if it were happening now. | 3 |
 | src layout | Keeping the package inside a folder named `src/`, so that it must be installed to be imported. | 5 |
 | Stage | One step of the pipeline, such as ingest, silver, gold or train. | 9 |
@@ -96,6 +106,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Test double | A simple object that stands in for a real one during a test. | 10 |
 | Time-based split | Training on data before a date and testing on data after it. | 3 |
 | Timeout | The longest time a program waits for one operation before it treats it as failed. | 14 |
+| Timezone-aware timestamp | A timestamp that carries its timezone, so that it names exactly one moment. | 17 |
 | `tmp_path` | A pytest fixture that gives each test a new empty folder. | 10 |
 | Training/serving skew | A difference between how features are calculated for training and for prediction. | 4 |
 | Transient error | A failure that may go away on its own, such as a short network problem. Worth a retry. | 14 |

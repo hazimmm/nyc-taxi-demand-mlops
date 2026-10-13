@@ -31,7 +31,7 @@ def _silver_trips() -> pd.DataFrame:
             schemas.TRIP_DISTANCE: [2.4, 0.9],
             schemas.DURATION_MINUTES: [12.0, 12.0],
             schemas.PASSENGER_COUNT: [1.0, None],
-            schemas.FARE_AMOUNT: [14.5, 8.0],
+            schemas.TOTAL_AMOUNT: [14.5, 8.0],
         }
     )
 
@@ -107,7 +107,7 @@ def test_valid_silver_trips_pass(settings: Settings) -> None:
         (schemas.DURATION_MINUTES, 361.0),
         (schemas.PASSENGER_COUNT, 0.0),
         (schemas.PASSENGER_COUNT, 9.0),
-        (schemas.FARE_AMOUNT, -3.0),
+        (schemas.TOTAL_AMOUNT, -3.0),
     ],
 )
 def test_silver_trips_reject_bad_values(settings: Settings, column: str, value: float) -> None:

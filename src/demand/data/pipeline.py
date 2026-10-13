@@ -1,7 +1,7 @@
 """Stage functions of the data pipeline, called by ``python -m demand <command>``.
 
-Each function takes the ``Settings`` object first and returns ``None``. Only
-``run_ingest`` exists so far; the other stages raise ``NotImplementedError`` until
+Each function takes the ``Settings`` object first and returns ``None``. ``run_ingest``
+and ``run_silver`` exist so far; the other stages raise ``NotImplementedError`` until
 their feature is built, so the command line fails with a clear message.
 """
 
@@ -23,6 +23,7 @@ from demand.data.ingest import (
     zones_path,
 )
 from demand.data.manifest import load_manifest
+from demand.data.silver import build_silver
 from demand.data.weather import ingest_weather
 from demand.logs import get_logger
 
@@ -129,8 +130,16 @@ def run_select_zones(settings: Settings) -> None:
 
 
 def run_silver(settings: Settings) -> None:
-    """Clean the raw layer into the silver layer."""
-    raise NotImplementedError("silver arrives with the silver feature of phase 1")
+    """Clean the raw layer into the silver layer and write the cleaning report.
+
+    Safe to run again: the silver files and the report are rebuilt from the raw layer
+    and come out identical. The work itself is in ``silver.py``.
+
+    Raises:
+        MissingRawFileError: If a raw file is missing; run the ingest stage first.
+        pandera.errors.SchemaError: If a cleaned table breaks its silver schema.
+    """
+    build_silver(settings)
 
 
 def run_gold(settings: Settings) -> None:
