@@ -145,7 +145,7 @@ Types catch technical mistakes. A project also has rules of its own. Chapter 2 g
 
 The first line tells pydantic to run this function after the single values have been checked, so `self.lags` and `self.horizon_hours` are already valid numbers.
 
-The line starting with `too_recent` collects every lag that is smaller than the horizon. With lags `[1, 24]` and a horizon of 24, the result is `[1]`.
+The line starting with `too_recent` collects every lag that is smaller than the horizon. With lags `[24, 168]` and a horizon of 48, the result is `[24]`.
 
 If the list is not empty, the function raises an error. Read the message: it names the bad lags, gives the horizon, and says why this is a problem. A person who has never heard of leakage can understand what to fix.
 
@@ -154,7 +154,7 @@ If the list is empty, the function returns the object unchanged, and loading con
 The effect is that a leaking lag is not a bad result that someone must notice. It is a program that does not start.
 
 > [!NOTE]
-> This check covers the `lags` list only. The rolling windows from Chapter 2 get their 24-hour shift inside the feature code, and a test of that code proves it (Chapter 19). A validator can only check what is visible in the settings. For the windows, the settings refuse one thing: a window shorter than 2 hours, because a standard deviation needs at least two values.
+> This check covers the `lags` list only. The rolling windows from Chapter 2 are moved back by the horizon inside the feature code, and a test of that code proves it (Chapter 19). A validator can only check what is visible in the settings. For the windows, the settings refuse one thing: a window shorter than 2 hours, because a standard deviation needs at least two values.
 
 ## Loaded once
 
@@ -203,7 +203,7 @@ Run the tests for the two protections.
 .venv\Scripts\python.exe -m pytest tests/unit/test_config.py -q -k "lag_shorter or unknown_key"
 ```
 
-You should see `2 passed, 14 deselected`. One test gives the program a lag of 1 hour, the other gives it the misspelled name `sead` for `seed`. Both expect a refusal.
+You should see `2 passed, 17 deselected`. One test gives the program a lag of 1 hour, the other gives it the misspelled name `sead` for `seed`. Both expect a refusal.
 
 ## Key takeaways
 
@@ -233,12 +233,12 @@ It is cheaper and clearer. At start-up nothing has been done, so nothing is half
 
 </details>
 
-**3.** Someone wants to make the horizon flexible and sets `horizon_hours: 12` while keeping `lags: [24, 48, 168]`. Does the validator accept this? Is the config still correct for this project?
+**3.** Someone sets `horizon_hours: 24` while keeping `lags: [48, 168]`. Does the validator accept this? Is the config still correct for this project?
 
 <details>
 <summary>Answer</summary>
 
-The validator accepts it: all lags are at least 12. Whether it is correct depends on the decision the forecast serves. If forecasts are now needed 12 hours ahead, it is a valid and slightly cautious config. If the user still needs them a day ahead, the number 12 would be a false statement about the system. The validator checks that the settings agree with each other. It cannot check that they agree with reality.
+The validator accepts it: all lags are at least 24. Whether it is correct depends on the decision the forecast serves. If each hour is needed only 23 hours before it starts, it is a valid and slightly cautious config. If the user needs the whole of tomorrow at 00:00 today, the number 24 would be a false statement about the system. Chapter 2 tells how this project made exactly that statement at first. The validator checks that the settings agree with each other. It cannot check that they agree with reality.
 
 </details>
 

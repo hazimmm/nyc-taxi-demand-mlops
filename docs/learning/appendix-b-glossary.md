@@ -7,8 +7,8 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Actuals | The real observed values, here the real pickups, known only after the hour has passed. | 3 |
 | Atomic | Said of an operation that happens completely or not at all, with no state in between. Renaming a file inside one folder is atomic. | 14 |
 | Automated test | A small function that runs a piece of code and checks the result with `assert`. | 10 |
-| Backtest | Testing a forecasting model on the past as if it had been used then. | 3 |
-| Baseline | A very simple method that sets the minimum a model must beat. Here: "the same hour last week". | 1 |
+| Backtest | Testing a forecasting model on the past as if it had been used then. Here: four test weeks in April 2025, scored by `python -m demand backtest`. | 3, 23 |
+| Baseline | A very simple method that sets the minimum a model must beat. Here: "the same hour one week ago", a copy of the feature `lag_168h`, named `weekly_naive`. | 1, 22 |
 | Binary file | A file that is not text. Git must not change any byte of it. | 12 |
 | Branch (git) | A named line of commits. Work happens on `dev`. | 12 |
 | Branch coverage | Coverage that also requires both outcomes of every `if` to be executed. | 10 |
@@ -22,6 +22,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | CI | Continuous integration: automatic checks that run on every push. Planned for Phase 7. | 13 |
 | CLI | Command-line interface: a program controlled by typed commands. | 9 |
 | Code review | Reading a change before it is accepted, to find mistakes and to check that code, tests and documents agree. | 13 |
+| Complete (of an hourly count) | Said of the count of an hour once the hour has ended. The pickups of 18:00 are complete at 19:00. | 2 |
 | Complete grid | A table with one row for every combination of zone and hour, whether something happened or not. An hour without pickups is a row with 0. | 18 |
 | Configuration | The values that can change without the logic changing: dates, paths, limits, addresses. | 7 |
 | Constant | A name for a value that never changes, written in capitals. | 8 |
@@ -32,7 +33,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Data contract | A precise description of a table that can be checked automatically and that producer and consumer both rely on. | 8 |
 | Data leakage | Training or testing with information that is not available when the model is really used. | 2, 19 |
 | Daylight saving time | The summer clock, one hour ahead of the winter clock. The change skips one local hour in spring and repeats one in autumn. | 17 |
-| Day-ahead forecast | A forecast made at least 24 hours before the hour it describes. | 1 |
+| Day-ahead forecast | A forecast for all hours of a day, issued on the day before. Here it can be issued at 00:00 on the day before. | 1, 2 |
 | Decorator | A marker above a function, starting with `@`, that changes how the function is used. | 9 |
 | Dependency | A library that the code needs in order to run. | 6 |
 | Dependency injection | Giving a function the things it depends on, such as a network client, as arguments, so that a test can pass different ones. | 14 |
@@ -48,18 +49,22 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | `.env` file | A text file with lines of the form `NAME=value`, read into environment variables when the program starts. Not stored in git. | 7 |
 | Environment variable | A named value outside the program, set by the shell or the platform and read at start-up. | 7 |
 | Exit code | The number a program returns when it ends. Zero is success. | 9 |
+| Expanding window | A way to cut the training rows of a backtest: every fold trains from the first row of the table, so later folds have more training rows. | 23 |
 | Expected failure | A failure that is not a mistake in the code, such as a missing input file or a failed quality gate. It is printed as one line that says what to do next. Here: every `PipelineError`. | 20 |
 | Exponential backoff | Waiting twice as long after every failed attempt before trying again. | 14 |
 | Extra | See *optional dependency group*. | 6 |
 | Fail closed / fail open | What a check does when it cannot do its job. Fail closed: stop with an error. Fail open: let everything pass. | 8 |
 | Feature | An input column of a model. | 1, 19 |
+| Fit | To let a forecaster learn from past rows. A baseline has the method and learns nothing. | 22 |
 | Fixture | A function that prepares something for tests. A test asks for it by parameter name. | 10 |
-| Fold | One repetition of a backtest, with its own training and test period. | 3 |
+| Fold | One repetition of a backtest, with its own training and test period. | 3, 23 |
 | Footer (Parquet) | A small block at the end of a Parquet file that describes its columns, types and number of rows. | 14 |
 | Forecast | A prediction about a future time, made from past data. | 1 |
-| Forecast horizon | The time between making a forecast and the moment it describes. Here 24 hours. | 1 |
+| Forecast horizon | How far ahead of the newest known pickups a forecast must reach. Here 48 hours: no feature of an hour reads pickups newer than 48 hours before it. | 1, 2 |
+| Forecaster | Anything that has the two methods `fit` and `predict`: a baseline or a model. The backtest scores all forecasters with the same code. | 22 |
 | Formatter | A tool that rewrites the layout of code in one fixed style. | 11 |
 | Frozen | Said of an object that cannot be changed after it is created. | 7 |
+| Gap (backtest) | The hours between the last training hour of a fold and its first test hour, used for neither. Here 47 hours per zone, so that no model learns from pickups that did not exist when its first forecast was issued. | 23 |
 | Git hook | A script that git runs automatically at a certain moment, for example before a commit. | 11 |
 | Gold layer | Data in the form its users need: one row per zone and hour, and the table of model inputs. | 4, 18 |
 | Ground truth | The real value that a prediction tried to match. | 3 |
@@ -78,10 +83,12 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Linter | A tool that reads code and reports likely mistakes and bad habits. | 11 |
 | Localize | To attach a timezone to a timestamp that was recorded without one. The clock time stays the same. | 17 |
 | Lock file | A list of the exact version of every installed library. | 6 |
+| MAE | Mean absolute error: the mean size of the error, here in pickups per zone and hour. The main metric of this project. | 22 |
 | Manifest | The record of every raw file: source address, download time, size, checksum, row count. | 4, 15 |
 | Mask | A column of true and false values, one per row, that marks the rows for which a condition holds. | 16 |
 | MD5 | A method for calculating a checksum of 32 characters. DVC uses it to see whether a file changed. | 21 |
 | Medallion architecture | Storing data in layers of increasing quality: raw (bronze), silver, gold. | 4 |
+| Metric | A rule that turns the errors of many forecasts into one number. | 22 |
 | Missing value | A value that is not there: it was never recorded, or it was lost. Stored as an empty cell, not as a number. | 15, 16 |
 | Model registry | A place that keeps every version of a model with a label. | 1 |
 | monkeypatch | A pytest fixture that changes something for one test and restores it afterwards. | 10 |
@@ -104,13 +111,16 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Raw layer | Data exactly as downloaded, never modified. Also called bronze. | 4 |
 | Remote (DVC) | A shared storage place to which the DVC cache can be sent, so that other people can fetch the same data. This project has none. | 21 |
 | Reversal | A row with negative amounts that cancels the charge of a trip, for example after a refund. It is not a second trip. | 16 |
+| RMSE | Root mean squared error: like the MAE, with large errors counted much more. It is never smaller than the MAE. | 22 |
 | Rolling statistic | A summary, such as the mean, over a moving window of time. Here every window ends one horizon before the target hour. | 2, 19 |
 | Rolling-origin backtest | A backtest repeated with a training end date that moves forward. | 3 |
 | Schema | The formal definition of a table: columns, types and rules. | 8 |
+| Seasonal naive forecast | The forecast "the same as one season ago". Here the season is a week. See *baseline*. | 22 |
 | SHA-256 | A method for calculating a checksum of 64 characters. | 15 |
 | Silver layer | Cleaned data: valid rows, fixed types, no duplicates. One row is one valid trip, or one hour of weather. | 4, 16 |
 | Simulated clock | Replaying unseen historical data one day at a time, as if it were happening now. | 3 |
 | Slot | The group of hours that an hour is compared with when outliers are flagged: the same zone, the same hour of the day and the same kind of day (working day or weekend). | 18 |
+| sMAPE | Symmetric mean absolute percentage error: for each hour the error divided by the average of the actual and the forecast, from 0 to 200 percent. Hours with few or no pickups decide it. | 22 |
 | src layout | Keeping the package inside a folder named `src/`, so that it must be installed to be imported. | 5 |
 | Stage | One step of the pipeline, such as ingest, silver, gold or train. | 9, 21 |
 | Standard deviation | A number that says how far the values of a group typically lie from their mean. | 18 |
@@ -137,7 +147,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Validation report | The result of one quality gate: every check with its name, whether it passed, and a detail. Here: `reports/silver_validation_report.json` and `reports/gold_validation_report.json`. | 20 |
 | Validator | A function that checks a rule when an object is created and raises an error if the rule is broken. | 7 |
 | Virtual environment | A folder with its own Python and its own installed libraries, separate from all others. | 6 |
-| Warm-up rows | The first rows of every zone, for which the history is too short to fill all lags and windows. Here 191 hours per zone. They are dropped, not filled. | 19 |
+| Warm-up rows | The first rows of every zone, for which the history is too short to fill all lags and windows. Here 215 hours per zone. They are dropped, not filled. | 19 |
 | YAML | A text format for configuration that is easy for people to read. | 7 |
 | Z-score | The distance of a value from the mean of its group, counted in standard deviations. | 18 |
 

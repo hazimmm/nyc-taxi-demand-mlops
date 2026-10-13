@@ -22,7 +22,7 @@ Chapter 8 defined a **quality gate** as a check that can stop a pipeline. The ch
 | | Silver gate | Gold gate |
 |---|---|---|
 | Files it reads | 6 trip files, the weather file, the cleaning report | the demand table and the feature table |
-| Rows | 23,197,032 trips, one month at a time | 86,860 and 83,040 |
+| Rows | 23,197,032 trips, one month at a time | 86,860 and 82,560 |
 | Checks | 37 | 10 |
 | Time | about 4 seconds | under 1 second |
 
@@ -81,7 +81,7 @@ Notice that this is not the code that built the lags. The feature function moves
 
 ## A check that could not run has not passed
 
-The checks of the second kind rely on the schema. `find_wrong_lags` assumes that the column `lag_24h` exists and holds numbers. If the file is missing, or the table failed its schema, these checks cannot run. What should the report say about them?
+The checks of the second kind rely on the schema. `find_wrong_lags` assumes that the column `lag_48h` exists and holds numbers. If the file is missing, or the table failed its schema, these checks cannot run. What should the report say about them?
 
 ```python
     if subject is None:
@@ -149,8 +149,8 @@ Run both gates on the real data. They only read it.
 After about four seconds you should see two lines like these:
 
 ```text
-{"time": "2026-10-13T10:07:25.561198+00:00", "level": "INFO", "logger": "demand.data.validate", "message": "quality gate passed", "layer": "silver", "checks": 37, "report": "reports\\silver_validation_report.json", "seconds": 3.27}
-{"time": "2026-10-13T10:07:26.855710+00:00", "level": "INFO", "logger": "demand.data.validate", "message": "quality gate passed", "layer": "gold", "checks": 10, "report": "reports\\gold_validation_report.json", "seconds": 0.19}
+{"time": "2026-10-13T14:56:25.628339+00:00", "level": "INFO", "logger": "demand.data.validate", "message": "quality gate passed", "layer": "silver", "checks": 37, "report": "reports\\silver_validation_report.json", "seconds": 4.02}
+{"time": "2026-10-13T14:56:27.148133+00:00", "level": "INFO", "logger": "demand.data.validate", "message": "quality gate passed", "layer": "gold", "checks": 10, "report": "reports\\gold_validation_report.json", "seconds": 0.2}
 ```
 
 Now see a gate fail. Never damage the real `data` folder for this. Copy the gold layer to a temporary folder, and point the program at the copy with two environment variables.
@@ -164,10 +164,10 @@ $env:DEMAND_PATHS__REPORTS_DIR = "$demo\reports"
 .venv\Scripts\python.exe -m demand validate gold
 ```
 
-You should see `quality gate passed` again, this time with a report path inside your temporary folder. Add 1 to one lag in the copy: the `lag_24h` of the first row, which Figure 19.1 showed as 72.
+You should see `quality gate passed` again, this time with a report path inside your temporary folder. Add 1 to one lag in the copy: the `lag_48h` of the first row, which Figure 19.1 showed as 72.
 
 ```powershell
-.venv\Scripts\python.exe -c "import os, pandas as pd; p = os.environ['DEMAND_PATHS__DATA_DIR'] + '/gold/features.parquet'; f = pd.read_parquet(p); f.loc[0, 'lag_24h'] += 1; f.to_parquet(p, index=False)"
+.venv\Scripts\python.exe -c "import os, pandas as pd; p = os.environ['DEMAND_PATHS__DATA_DIR'] + '/gold/features.parquet'; f = pd.read_parquet(p); f.loc[0, 'lag_48h'] += 1; f.to_parquet(p, index=False)"
 .venv\Scripts\python.exe -m demand validate gold
 $LASTEXITCODE
 ```
@@ -188,10 +188,10 @@ You should see:
 
 ```text
 False
-features.lags_match_demand | lag_24h: 1 row not equal to the pickups 24 h earlier, e.g. 48 / 2025-01-08 23:00:00-05:00
+features.lags_match_demand | lag_48h: 1 row not equal to the pickups 48 h earlier, e.g. 48 / 2025-01-09 23:00:00-05:00
 ```
 
-One value among 83,040 rows was changed by 1, and the report names the zone and the hour. Now delete the demand table of the copy and run the gate again.
+One value among 82,560 rows was changed by 1, and the report names the zone and the hour. Now delete the demand table of the copy and run the gate again.
 
 ```powershell
 Remove-Item "$demo\data\gold\demand_hourly.parquet"
@@ -235,7 +235,7 @@ Run the tests of the gates, of the error classes, and of the two kinds of failur
 .venv\Scripts\python.exe -m pytest tests/unit/test_cli.py -q -k "expected_failure or unexpected_failure"
 ```
 
-You should see `45 passed`, then `14 passed`, then `2 passed, 17 deselected`.
+You should see `47 passed`, then `14 passed`, then `2 passed, 18 deselected`.
 
 ## Key takeaways
 

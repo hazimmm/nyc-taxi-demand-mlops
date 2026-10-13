@@ -45,6 +45,7 @@ from demand.schemas import (
     ZONE_ID,
     lag_column,
 )
+from tests.conftest import with_features
 from tests.unit.data.conftest import demand_frame, silver_trips_frame, silver_weather_frame
 
 # February and March 2025: two silver trip files, and March contains the 23-hour day.
@@ -161,12 +162,16 @@ def _write_gold(settings: Settings, demand: pd.DataFrame, features: pd.DataFrame
     write_parquet(features, gold_features_path(settings.paths.gold))
 
 
+def _write_good_gold(settings: Settings) -> None:
+    demand = _good_demand(settings)
+    features, _ = build_feature_table(demand, settings)
+    _write_gold(settings, demand, features)
+
+
 @pytest.fixture
 def good_gold(two_months: Settings) -> Settings:
     """A gold layer that passes its gate; the features come from the real function."""
-    demand = _good_demand(two_months)
-    features, _ = build_feature_table(demand, two_months)
-    _write_gold(two_months, demand, features)
+    _write_good_gold(two_months)
     return two_months
 
 
@@ -626,13 +631,14 @@ def test_weather_that_differs_between_zones_fails(good_gold: Settings) -> None:
 
 
 def test_missing_value_in_the_features_fails_the_schema(good_gold: Settings) -> None:
+    lag = lag_column(good_gold.features.lags[0])
     features = _features(good_gold)
-    features.loc[5, lag_column(24)] = np.nan
+    features.loc[5, lag] = np.nan
     _write_gold(good_gold, _demand(good_gold), features)
 
     failures = _failures(good_gold, "gold")
 
-    assert failures.pop("features.schema") == "lag_24h: not_nullable (1 failing, e.g. nan)"
+    assert failures.pop("features.schema") == f"{lag}: not_nullable (1 failing, e.g. nan)"
     assert failures == _not_checked(
         "features.columns",
         "features.rows",
@@ -703,33 +709,54 @@ def test_target_that_differs_from_the_demand_table_fails(good_gold: Settings) ->
     )
 
 
-def test_lag_that_is_not_the_earlier_pickup_count_fails(good_gold: Settings) -> None:
-    features = _features(good_gold)
-    # Every 24 h lag looks one hour too far back: 25 hours instead of 24.
-    features[lag_column(24)] = features.groupby(ZONE_ID)[lag_column(24)].shift(1).bfill()
-    _write_gold(good_gold, _demand(good_gold), features)
+@pytest.mark.parametrize(
+    ("horizon", "lags", "other_lag"),
+    [(24, [24, 48, 168], "lag_48h"), (48, [48, 168], "lag_168h")],
+)
+def test_lag_that_is_not_the_earlier_pickup_count_fails(
+    two_months: Settings, horizon: int, lags: list[int], other_lag: str
+) -> None:
+    configured = with_features(two_months, horizon_hours=horizon, lags=lags)
+    _write_good_gold(configured)
+    broken = lag_column(horizon)
+    features = _features(configured)
+    # The shortest lag looks one hour too far back: 25 hours instead of 24, or 49
+    # instead of 48.
+    features[broken] = features.groupby(ZONE_ID)[broken].shift(1).bfill()
+    _write_gold(configured, _demand(configured), features)
 
-    failures = _failures(good_gold, "gold")
+    failures = _failures(configured, "gold")
 
     assert list(failures) == ["features.lags_match_demand"]
-    assert failures["features.lags_match_demand"].startswith("lag_24h: ")
-    assert "not equal to the pickups 24 h earlier" in failures["features.lags_match_demand"]
-    assert "lag_48h" not in failures["features.lags_match_demand"]
+    assert failures["features.lags_match_demand"].startswith(f"{broken}: ")
+    assert f"not equal to the pickups {horizon} h earlier" in failures["features.lags_match_demand"]
+    assert other_lag in features.columns
+    assert other_lag not in failures["features.lags_match_demand"]
 
 
-def test_lags_are_checked_in_real_hours_across_the_clock_change(good_gold: Settings) -> None:
-    # 08:00 on the Sunday the clocks went forward is 24 real hours after 07:00 on Saturday.
-    features, demand = _features(good_gold), _demand(good_gold)
+@pytest.mark.parametrize(
+    ("lag", "earlier_hour"),
+    [
+        # 08:00 on the Sunday the clocks went forward is 24 real hours after 07:00 on
+        # Saturday and 48 real hours after 07:00 on Friday.
+        (24, "2025-03-08 07:00:00-05:00"),
+        (48, "2025-03-07 07:00:00-05:00"),
+    ],
+)
+def test_lags_are_checked_in_real_hours_across_the_clock_change(
+    two_months: Settings, lag: int, earlier_hour: str
+) -> None:
+    configured = with_features(two_months, horizon_hours=lag, lags=[lag, 168])
+    _write_good_gold(configured)
+    features, demand = _features(configured), _demand(configured)
     sunday = features[
         (features[ZONE_ID] == 161)
         & (features[HOUR_START] == pd.Timestamp("2025-03-09 08:00:00-04:00"))
     ]
-    saturday = demand[
-        (demand[ZONE_ID] == 161) & (demand[HOUR_START] == pd.Timestamp("2025-03-08 07:00:00-05:00"))
-    ]
-    assert sunday[lag_column(24)].tolist() == saturday[TARGET].astype(float).tolist()
+    earlier = demand[(demand[ZONE_ID] == 161) & (demand[HOUR_START] == pd.Timestamp(earlier_hour))]
+    assert sunday[lag_column(lag)].tolist() == earlier[TARGET].astype(float).tolist()
 
-    assert validate_layer(good_gold, "gold").passed
+    assert validate_layer(configured, "gold").passed
 
 
 # --- what stops a gate before it starts ----------------------------------------------------
@@ -785,7 +812,7 @@ def test_message_names_the_causes_and_only_counts_checks_that_could_not_run() ->
         _result("demand.file", "the file is missing"),
         _result("demand.schema", NOT_CHECKED),
         _result("demand.complete_grid", NOT_CHECKED),
-        _result("features.schema", "lag_24h: not_nullable"),
+        _result("features.schema", "lag_48h: not_nullable"),
     ]
     report = GateReport(layer="gold", passed=False, checks=checks)
 

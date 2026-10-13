@@ -114,7 +114,7 @@ flowchart LR
 
 | Decision | Reason |
 |---|---|
-| **Day-ahead horizon.** Every feature is at least 24 h old. | A feature such as "demand one hour ago" does not exist yet when tomorrow's forecast is made. |
+| **Day-ahead forecast, 48-hour horizon.** Every pickup feature is at least 48 h old. | The forecast for the whole of tomorrow is issued at 00:00 today. Its last hour, 23:00, is then 47 hours away, so nothing newer than 48 hours before each target hour may be used. |
 | **Simulated clock.** Train on January to April 2025, replay May and June day by day as "production". | TLC publishes each month about two months late, so there is no live feed to monitor. |
 | **Weather forecasts as features**, not observed weather. | Observed weather for a future hour is information the model would not have. |
 | **One feature function** shared by training, batch forecasting and the API. | Removes training/serving skew. |

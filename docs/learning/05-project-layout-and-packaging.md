@@ -49,7 +49,7 @@ This block tells hatchling where the code is: in the folder `src/demand`.
 nyc-taxi-demand-mlops/
 ├── pyproject.toml          project description and tool settings
 ├── requirements.lock       exact versions of all dependencies
-├── dvc.yaml                the stages of the data pipeline (Chapter 21)
+├── dvc.yaml                the stages of the pipeline (Chapter 21)
 ├── dvc.lock                checksums of what the pipeline read and wrote
 ├── configs/
 │   └── config.yaml         all settings
@@ -63,8 +63,8 @@ nyc-taxi-demand-mlops/
 │       ├── logs.py         logging
 │       ├── errors.py       failures that are reported in one line (Chapter 20)
 │       ├── data/           the data pipeline (Part III)
-│       ├── models/         this and the next three: empty until their part is built
-│       ├── serving/
+│       ├── models/         the baseline and the backtest (Part IV)
+│       ├── serving/        this and the next two: empty until their part is built
 │       ├── monitoring/
 │       └── flows/
 ├── tests/
@@ -75,7 +75,7 @@ nyc-taxi-demand-mlops/
 
 *Figure 5.1 – The main folders and files.*
 
-Each file inside `demand` has one responsibility. Settings are in one file, contracts in another, commands in a third. The sub-folder `data` holds the pipeline of Part III. The other four are empty packages that reserve a place for the later parts of the system.
+Each file inside `demand` has one responsibility. Settings are in one file, contracts in another, commands in a third. The sub-folder `data` holds the pipeline of Part III, and `models` holds the modelling code of Part IV. The other three are empty packages that reserve a place for the later parts of the system.
 
 ## Why the code is inside `src/`
 

@@ -61,13 +61,17 @@ A **backtest** tests a forecasting model on the past as if you had used it then.
 
 ```text
                     January      February      March         April
-Fold 1   train  ##########################  test ====
-Fold 2   train  ################################  test ====
-Fold 3   train  ######################################  test ====
-Fold 4   train  ############################################  test ====
+Fold 1   train  ##########################  ..  test ====
+Fold 2   train  ################################  ..  test ====
+Fold 3   train  ######################################  ..  test ====
+Fold 4   train  ############################################  ..  test ====
+
+#  used for training      .  used for neither      =  used for testing
 ```
 
-*Figure 3.2 – A rolling-origin backtest with four folds. The exact dates are set by the modelling code in Phase 2; the picture shows the idea.*
+*Figure 3.2 – A rolling-origin backtest with four folds. The picture shows the idea and is not drawn to scale. The test periods of this project are the four weeks from 3 to 30 April 2025.*
+
+Between the training rows and the test week of every fold there is a short gap of hours that are used for neither: the training rows end one forecast horizon before the test week begins. The gap is there for the reason of Chapter 2: a model that forecasts the first hour of the test week could not yet have known the pickups of the two days before it. Chapter 23 works through this with real dates.
 
 The config sets the numbers:
 
@@ -99,7 +103,7 @@ flowchart LR
 
 *Figure 3.3 – The two periods of the project.*
 
-Each simulated day works like this. The clock says "today is 9 May". The forecast job writes the forecast for 10 May, using only data up to 9 May. Then the clock moves to 10 May. Later, the real pickups of 10 May "arrive", and the forecast can be compared with them.
+Each simulated day works like this. The clock says "it is 00:00 on 9 May". The forecast job writes the forecast for all 24 hours of 10 May. It uses pickups up to the end of 8 May and nothing newer, because that is all that exists at that moment (Chapter 2). Then the clock moves to 10 May. Later, the real pickups of 10 May "arrive", and the forecast can be compared with them.
 
 The first replayed day is calculated in the code, not written a second time. This is a property of the data settings in [`src/demand/config.py`](../../src/demand/config.py):
 
@@ -156,14 +160,14 @@ Now run the test that checks these values.
 .venv\Scripts\python.exe -m pytest tests/unit/test_config.py -q -k "months_cover"
 ```
 
-You should see `1 passed, 15 deselected`. The option `-k` selects tests by a part of their name. Open `tests/unit/test_config.py` and read `test_months_cover_the_configured_period`: it states the four dates as facts that must stay true.
+You should see `1 passed, 18 deselected`. The option `-k` selects tests by a part of their name. Open `tests/unit/test_config.py` and read `test_months_cover_the_configured_period`: it states the four dates as facts that must stay true.
 
 ## Key takeaways
 
 - A test must look like real use: train on the past, predict what comes after.
 - A random split lets the model fill holes between known hours, so its score is too good.
 - A time-based split uses one date. Here it is 30 April 2025.
-- A rolling-origin backtest repeats the test over several periods and gives a more reliable average.
+- A rolling-origin backtest repeats the test over several periods and gives a more reliable average. A gap of one horizon separates the training rows from each test period.
 - The simulated clock replays unseen months day by day, because no live data exists. It is stated openly.
 - Ground truth is late, so drift is watched as an early warning and accuracy as the proof.
 
@@ -202,7 +206,7 @@ The inputs look the same as in training, but the relation between inputs and dem
 <summary>Points of a good answer</summary>
 
 - Say directly that there is no live feed and that monitoring is shown with a simulated clock.
-- Explain the design: train on January to April, replay May and June one day at a time, forecast each next day with data up to the current simulated day only.
+- Explain the design: train on January to April, replay May and June one day at a time, and at the start of each simulated day forecast the whole next day from the pickups that are complete at that moment.
 - Explain why the numbers are still real: the replay months were never used for training.
 - Mention that the delay of the actual values is also simulated, which is why drift and accuracy are monitored separately.
 

@@ -1,6 +1,6 @@
 # Appendix C – Further reading
 
-Official documentation for the tools that the repository uses today. Entries for later tools are added when their chapters are written. A web address is given only for the main page of each project; use the search of each site to find the topics named here.
+Official documentation for the tools that the repository uses today, and one textbook on forecasting. Entries for later tools are added when their chapters are written. A web address is given only for the main page of each project; use the search of each site to find the topics named here.
 
 ## Python and packaging
 
@@ -22,7 +22,7 @@ Official documentation for the tools that the repository uses today. Entries for
 ## Getting data
 
 - **HTTPX documentation** – clients, timeouts, streaming responses, and mock transports for tests. <https://www.python-httpx.org>
-- **Apache Arrow documentation** – the Python library pyarrow and the Parquet format. <https://arrow.apache.org>
+- **Apache Arrow documentation** – the Python library pyarrow and the Parquet format, and the `filters` argument that reads only the rows that match a condition. <https://arrow.apache.org>
 - **DuckDB documentation** – reading Parquet files with SQL. <https://duckdb.org>
 - **Open-Meteo documentation** – the historical forecast API and the historical weather (archive) API. <https://open-meteo.com>
 - **NYC Taxi and Limousine Commission, TLC Trip Record Data** – the page that lists the monthly files and the data dictionary of the columns. Read the dictionary before you write a cleaning rule: it defines `fare_amount`, `total_amount` and the codes of `payment_type`.
@@ -30,7 +30,11 @@ Official documentation for the tools that the repository uses today. Entries for
 
 ## Running the pipeline
 
-- **DVC documentation** – pipelines (`dvc.yaml`, `dvc.lock`, `dvc repro`, `dvc status`), the `params` and `persist` fields, the cache, and remotes. <https://dvc.org/doc>
+- **DVC documentation** – pipelines (`dvc.yaml`, `dvc.lock`, `dvc repro`, `dvc status`), the `params`, `persist` and `metrics` fields, the cache, and remotes. <https://dvc.org/doc>
+
+## Forecasting and its evaluation
+
+- **Forecasting: Principles and Practice** by Rob Hyndman and George Athanasopoulos – a free online textbook. Read the sections on simple forecasting methods (the seasonal naive method is the baseline of Chapter 22), on the accuracy of point forecasts (MAE, RMSE and the problems of percentage errors), and on time series cross-validation, which is the backtest of Chapter 23. <https://otexts.com/fpp3/>
 
 ## Command line, tests and code quality
 

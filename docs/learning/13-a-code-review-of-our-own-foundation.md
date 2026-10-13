@@ -145,7 +145,7 @@ Run the tests that keep stories 1 and 2 fixed.
 .venv\Scripts\python.exe -m pytest tests/unit/test_schemas.py -q -k "empty_zone_list or does_not_need"
 ```
 
-You should see `1 passed, 15 deselected` and then `4 passed, 23 deselected`. The second group has three tests for the three schemas that need the list, and one that checks the silver schema still works without it.
+You should see `1 passed, 18 deselected` and then `4 passed, 23 deselected`. The second group has three tests for the three schemas that need the list, and one that checks the silver schema still works without it.
 
 See story 3 in its fixed state.
 
@@ -153,7 +153,7 @@ See story 3 in its fixed state.
 .venv\Scripts\python.exe -m pytest tests/unit/test_config.py -q
 ```
 
-You should see `16 passed`, and the run ends without a failure. Before the fix, this command ended with a coverage failure.
+You should see `19 passed`, and the run ends without a failure. Before the fix, this command ended with a coverage failure.
 
 Check story 4 in your own copy.
 

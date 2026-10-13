@@ -1,6 +1,6 @@
 # Chapter 21 – A pipeline that knows what changed
 
-You change `outlier_zscore` in the config from 4.0 to 3.5. The data pipeline has five commands: `ingest`, `silver`, `validate silver`, `gold`, `validate gold`. Which of them must run again? The honest answer of most people is "I am not sure, so I run all of them", or "only gold, I think". The first answer costs time. The second is a risk: if it is wrong, a layer on disk no longer matches the config, and nothing says so. This chapter gives the question to a tool.
+You change `outlier_zscore` in the config from 4.0 to 3.5. The pipeline has six commands: `ingest`, `silver`, `validate silver`, `gold`, `validate gold`, `backtest`. Which of them must run again? The honest answer of most people is "I am not sure, so I run all of them", or "only gold, I think". The first answer costs time. The second is a risk: if it is wrong, a layer on disk no longer matches the config, and nothing says so. This chapter gives the question to a tool.
 
 ## What you will learn
 
@@ -12,7 +12,7 @@ You change `outlier_zscore` in the config from 4.0 to 3.5. The data pipeline has
 - What DVC cannot see in this project.
 - A real mistake with a date in a YAML file.
 
-## Five commands and a memory
+## Six commands and a memory
 
 Until now the order of the pipeline was in your head. That has three weaknesses. You can run too much: the ingest stage alone compares 390 MB of files with their checksums. You can run too little, as in the opening. And nothing forces the gates of Chapter 20 to run: a person in a hurry types `silver` and then `gold`.
 
@@ -50,7 +50,7 @@ The answer to "what must run again?" is mechanical. A stage must run again when 
       - data/gold
 ```
 
-This is one of the five stages. It has four parts.
+This is one of the six stages. It has four parts.
 
 `cmd` is the command that DVC runs. It is the same command you typed in Chapter 18. DVC adds no logic of its own.
 
@@ -60,7 +60,7 @@ This is one of the five stages. It has four parts.
 
 `outs` (outputs) are what the stage writes.
 
-Now the opening has an answer. `features` is in the `params` of `build_gold`, so that stage runs. Its output `data/gold` changes, and `data/gold` is in the `deps` of `validate_gold`, so the gate runs too. The first three stages list neither the key nor anything that changed. They are skipped.
+Now the opening has an answer. `features` is in the `params` of `build_gold`, so that stage runs. Its output `data/gold` changes, and `data/gold` is in the `deps` of `validate_gold`, so the gate runs too. The last stage, `backtest`, reads the feature table `data/gold/features.parquet`, which holds the column `is_outlier`. If one flag changes, that file changes, and the backtest runs as well. The first three stages list neither the key nor anything that changed. They are skipped.
 
 ## What "changed" means: dvc.lock
 
@@ -78,14 +78,14 @@ After a stage has run, DVC writes down what it saw. The record is the file [`dvc
     outs:
     - path: data/gold
       hash: md5
-      md5: e5b2e1f900d283014008abfddf3cb0ea.dir
-      size: 3143475
+      md5: 7bacf1bf80cf4612d40552e74ef11cc5.dir
+      size: 3025585
       nfiles: 2
 ```
 
 For every key under `params` it stores the value. For every entry under `deps` and `outs` it stores a checksum, calculated with **MD5**, a method like the SHA-256 of Chapter 15 with a shorter result. A folder gets one checksum for all its files together, marked with `.dir`.
 
-`dvc repro` (reproduce) is the command that runs the pipeline. For every stage it calculates the checksums and reads the config keys again, and compares them with `dvc.lock`. If all are equal, the stage is skipped. A run in which every stage is forced takes about 46 seconds here. A second `dvc repro` takes about one second and prints `Data and pipelines are up to date.`
+`dvc repro` (reproduce) is the command that runs the pipeline. For every stage it calculates the checksums and reads the config keys again, and compares them with `dvc.lock`. If all are equal, the stage is skipped. A run in which the five data stages were forced took about 46 seconds here, and the backtest adds about one second. A second `dvc repro` takes about one second and prints `Data and pipelines are up to date.`
 
 `dvc.yaml` and `dvc.lock` are stored in git. The data is not: `.gitignore` still excludes `data/` and `reports/` (Chapter 12). `requirements.lock` records the exact libraries of a commit (Chapter 6). `dvc.lock` does the same for the data: it records the exact content that the pipeline produced.
 
@@ -107,9 +107,12 @@ flowchart TD
     C --> GO[("data/gold")]
     GO --> G2{{"validate_gold"}}
     G2 --> P2["gold validation<br/>report"]
+    GO --> BT["backtest"]
+    P2 --> BT
+    BT --> P3["backtest<br/>report"]
 ```
 
-*Figure 21.1 – The five stages. `build_gold` depends on the silver layer and on the report of the silver gate.*
+*Figure 21.1 – The six stages. `build_gold` depends on the silver layer and on the report of the silver gate. `backtest` depends on the feature table and on the report of the gold gate.*
 
 When the gate fails, its command ends with exit code 1 (Chapter 9). DVC stops and does not run the stages that come after it.
 
@@ -120,7 +123,7 @@ The data engineer of this project tested the gate inside the pipeline once. One 
 The option was needed for a reason that is worth knowing. A plain `dvc repro` first sees that an output of `build_silver` no longer matches `dvc.lock`, and it repairs that output before any gate runs. `--downstream validate_silver` starts at the named stage and does not touch the stages before it.
 
 > [!NOTE]
-> No stage reads the report of the gold gate yet. A failed gold gate makes `dvc repro` fail, which is correct, but there is no stage after it to stop. When a training stage is added, it must list this report under its `deps`, as `build_gold` does with the silver report.
+> The stage `backtest` of Chapter 23 is connected to the gold gate in the same way. It lists `reports/gold_validation_report.json` under its `deps`, so a forecaster is scored only on a gold layer that passed its gate. Its own report is listed under `metrics`, like the cleaning report of the silver stage: an output whose numbers the command `dvc metrics show` can print. A training stage must list the gold report too when it is added.
 
 ## The raw layer keeps its files
 
@@ -142,7 +145,7 @@ The ingest stage has a second special property. Its `deps` are four source files
 
 ## The cache
 
-DVC keeps a copy of every output in the folder `.dvc/cache`. This is what made the repair in two seconds possible. The copies are full copies: `data` has 764 MB, and the cache has 764 MB more.
+DVC keeps a copy of every output in the folder `.dvc/cache`. This is what made the repair in two seconds possible. The copies are full copies: `data` has 764 MB, and the cache has about as much again.
 
 A DVC **remote** is a shared storage place, to which the cache can be sent so that a colleague can fetch the same data. This project has none. The sources are public, and the pipeline rebuilds every layer from them. The price: a new clone of the repository gets `dvc.lock`, but it cannot fetch the files that the checksums describe. It runs `dvc repro` and downloads from the sources. If a source has changed a file by then, the clone gets other data, and its `dvc.lock` will differ.
 
@@ -194,6 +197,7 @@ Stage 'build_silver' didn't change, skipping
 Stage 'validate_silver' didn't change, skipping
 Stage 'build_gold' didn't change, skipping
 Stage 'validate_gold' didn't change, skipping
+Stage 'backtest' didn't change, skipping
 Data and pipelines are up to date.
 ```
 
@@ -209,8 +213,8 @@ Compare one checksum yourself: calculate the MD5 of the gold report, and read th
 You should see the same 32 characters twice:
 
 ```text
-2491f95715aa316715d0fba12ce0fa4c
-reports/gold_validation_report.json 2491f95715aa316715d0fba12ce0fa4c 997
+e1b02e60c2bb93b72aa9f2f73de480f0
+reports/gold_validation_report.json e1b02e60c2bb93b72aa9f2f73de480f0 997
 ```
 
 List the stages with their outputs.
@@ -227,6 +231,7 @@ build_silver     Outputs data/silver; Reports reports/silver_cleaning_report.jso
 validate_silver  Outputs reports/silver_validation_report.json
 build_gold       Outputs data/gold
 validate_gold    Outputs reports/gold_validation_report.json
+backtest         Reports reports/backtest_report.json
 ```
 
 `dvc dag` draws the same stages as a graph of boxes.
@@ -262,7 +267,7 @@ You should see `str`.
 <details>
 <summary>Answer</summary>
 
-`build_silver` runs, because it lists the whole section `cleaning`. Its output `data/silver` changes, because 31 trips of January alone are longer than 80 miles (Chapter 20). `validate_silver` runs: it lists the key, and `data/silver` is in its `deps`. `build_gold` runs because `data/silver` changed. `validate_gold` runs only if `data/gold` changed, which depends on whether one of the removed trips started in one of the 20 zones. `ingest_raw` is skipped. The stale silver layer of the opening of Chapter 20 cannot happen when the pipeline is run through DVC.
+`build_silver` runs, because it lists the whole section `cleaning`. Its output `data/silver` changes, because 31 trips of January alone are longer than 80 miles (Chapter 20). `validate_silver` runs: it lists the key, and `data/silver` is in its `deps`. `build_gold` runs because `data/silver` changed. `validate_gold` runs only if `data/gold` changed, which depends on whether one of the removed trips started in one of the 20 zones. The same is true for `backtest` and the feature table. `ingest_raw` is skipped. The stale silver layer of the opening of Chapter 20 cannot happen when the pipeline is run through DVC.
 
 </details>
 
@@ -291,4 +296,4 @@ Nothing connects the gate to the gold stage any more. Both depend on `data/silve
 
 ---
 
-[Previous: Chapter 20 – Quality gates: checking the files on disk](20-quality-gates.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 20 – Quality gates: checking the files on disk](20-quality-gates.md) | [Contents](README.md) | [Next: Chapter 22 – A number to beat: the baseline and three metrics](22-a-number-to-beat.md)

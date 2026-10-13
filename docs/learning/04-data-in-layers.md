@@ -99,13 +99,13 @@ def feature_columns(settings: Settings) -> list[str]:
 
 The function takes the settings and returns a list of column names.
 
-The line starting with `lags` builds one name for each configured lag. `lag_column(24)` returns the text `"lag_24h"`. With lags 24, 48 and 168 there are three names.
+The line starting with `lags` builds one name for each configured lag. `lag_column(48)` returns the text `"lag_48h"`. With lags 48 and 168 there are two names.
 
 The lines starting with `rolling` build two names for each window: a mean and a standard deviation. With windows of 24 and 168 hours there are four names.
 
 The last line puts everything in a fixed order: the zone, the lags, the rolling columns, five calendar columns, and the weather variables from the config.
 
-Two things matter here. First, the order is part of the definition. Many models identify inputs by position. If training puts the temperature in column 14 and serving puts it in column 15, the model reads the wrong numbers and does not complain. Second, the list is calculated from the settings. If you add a lag of 336 hours to the config, the name `lag_336h` appears in this list everywhere at once: in training, in serving and in the data checks.
+Two things matter here. First, the order is part of the definition. Many models identify inputs by position. If training puts the temperature in column 13 and serving puts it in column 14, the model reads the wrong numbers and does not complain. Second, the list is calculated from the settings. If you add a lag of 336 hours to the config, the name `lag_336h` appears in this list everywhere at once: in training, in serving and in the data checks.
 
 ## Try it yourself
 
@@ -115,13 +115,13 @@ Print the model inputs.
 .venv\Scripts\python.exe -c "from demand.config import get_settings; from demand.schemas import feature_columns; print(feature_columns(get_settings()))"
 ```
 
-You should see one list with 17 names:
+You should see one list with 16 names:
 
 ```text
-['zone_id', 'lag_24h', 'lag_48h', 'lag_168h', 'roll_mean_24h', 'roll_std_24h', 'roll_mean_168h', 'roll_std_168h', 'hour', 'day_of_week', 'month', 'is_weekend', 'is_holiday', 'temperature_2m', 'precipitation', 'snowfall', 'wind_speed_10m']
+['zone_id', 'lag_48h', 'lag_168h', 'roll_mean_24h', 'roll_std_24h', 'roll_mean_168h', 'roll_std_168h', 'hour', 'day_of_week', 'month', 'is_weekend', 'is_holiday', 'temperature_2m', 'precipitation', 'snowfall', 'wind_speed_10m']
 ```
 
-This proves the list is built from the config: three lags, two windows and four weather variables are all visible in it.
+This proves the list is built from the config: two lags, two windows and four weather variables are all visible in it.
 
 Print the layer folders.
 

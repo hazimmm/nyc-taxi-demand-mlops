@@ -20,7 +20,7 @@ from demand.errors import PipelineError
 from demand.logs import configure_logging
 
 app = typer.Typer(
-    help="Day-ahead hourly taxi demand forecasting for NYC zones.",
+    help="Hourly taxi demand forecasts for NYC zones: every hour of the next day, a day before.",
     no_args_is_help=True,
     add_completion=False,
 )
@@ -91,6 +91,12 @@ def validate(layer: Annotated[Layer, typer.Argument(help="Layer to check.")]) ->
 
 
 @app.command()
+def backtest() -> None:
+    """Score the forecasters on past weeks they have not seen and write a report."""
+    _run_stage("demand.models.pipeline", "run_backtest")
+
+
+@app.command()
 def train() -> None:
     """Backtest, train and register a challenger model."""
     _run_stage("demand.models.pipeline", "run_training")
@@ -98,7 +104,7 @@ def train() -> None:
 
 @app.command()
 def forecast() -> None:
-    """Write day-ahead forecasts for the next step of the simulated clock."""
+    """Write the forecast for every hour of the next day at the simulated clock's next step."""
     _run_stage("demand.flows.forecast_flow", "run_forecast")
 
 

@@ -9,7 +9,7 @@ columns are used, the pickup time and the pickup zone. A trip whose dropoff time
 distance was not recorded is still a pickup and is counted like any other.
 
 **A complete grid.** Counting trips only produces rows for hours that had a trip. An
-hour without pickups would simply be absent, and every later step (a lag "24 hours
+hour without pickups would simply be absent, and every later step (a lag "48 hours
 earlier", a rolling mean) would silently read the wrong hour. So the list of hours is
 built from the config, not from the data (``local_hours``), every zone gets every hour,
 and an hour without pickups is an explicit 0. The hours are real consecutive hours: the

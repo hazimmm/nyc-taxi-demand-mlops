@@ -1,7 +1,8 @@
-# The data pipeline of phase 1, as DVC stages. Run it with `dvc repro` from the project
-# folder, with the virtual environment active (the commands call `python`).
+# The pipeline as DVC stages: the data stages of phase 1 and the backtest of phase 2.
+# Run it with `dvc repro` from the project folder, with the virtual environment active
+# (the commands call `python`).
 #
-#   ingest_raw -> build_silver -> validate_silver -> build_gold -> validate_gold
+#   ingest_raw -> build_silver -> validate_silver -> build_gold -> validate_gold -> backtest
 #
 # DVC runs a stage again only when something it depends on has changed:
 #
@@ -12,9 +13,10 @@
 # Which source files are listed as deps: the modules that hold the logic of the stage.
 # Left out on purpose: cli.py, config.py, logs.py and errors.py (shared by everything, so
 # listing them would rebuild the whole pipeline for a change that cannot alter the data),
-# and modules a stage imports only a path helper from. pipeline.py is a dependency of
-# ingest_raw only, because the ingest loop lives there; for the other stages it holds a
-# one-line call.
+# and modules a stage imports only a path helper from. The pipeline.py of the data
+# package is a dependency of ingest_raw only, because the ingest loop lives there; for
+# the other data stages it holds a one-line call. The pipeline.py of the models package
+# is a dependency of backtest, because it decides which forecasters are compared.
 #
 # The order of the stages comes from these lists, not from the order in this file. A
 # quality gate stands between two stages because the next stage depends on the report
@@ -144,3 +146,28 @@ stages:
           - features.rolling_windows
     outs:
       - reports/gold_validation_report.json
+
+  backtest:
+    cmd: python -m demand backtest
+    deps:
+      - data/gold/features.parquet
+      # The gate: only a gold layer that passed validate_gold is scored.
+      - reports/gold_validation_report.json
+      - src/demand/models/pipeline.py
+      - src/demand/models/backtest.py
+      - src/demand/models/baseline.py
+      - src/demand/models/metrics.py
+      # Holds the function that says where the training period ends.
+      - src/demand/data/aggregate.py
+      - src/demand/schemas.py
+    params:
+      - configs/config.yaml:
+          - project.timezone
+          - data.train_end_date
+          - data.weather.variables
+          - features.horizon_hours
+          - features.lags
+          - features.rolling_windows
+          - backtest
+    metrics:
+      - reports/backtest_report.json

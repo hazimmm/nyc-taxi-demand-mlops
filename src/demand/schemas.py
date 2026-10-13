@@ -209,7 +209,7 @@ def gold_features_schema(settings: Settings) -> pa.DataFrameSchema:
 
 
 def predictions_schema(settings: Settings) -> pa.DataFrameSchema:
-    """Day-ahead forecasts. ``actual`` stays null until the ground truth arrives."""
+    """Forecasts for whole days, issued a day before. ``actual`` is null until it is known."""
     timezone = settings.project.timezone
     return pa.DataFrameSchema(
         {

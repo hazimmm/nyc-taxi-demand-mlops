@@ -53,8 +53,12 @@ cleaning:
   max_weather_gap_hours: 3  # longest weather gap that is interpolated
 
 features:
-  horizon_hours: 24
-  lags: [24, 48, 168]
+  # No feature of hour t reads pickups newer than t - 48 h. With 48 the forecast for a
+  # whole day can be issued at 00:00 on the day before it. With 24 it could only be
+  # issued at 00:00 on the day itself. No lag may be shorter than the horizon, so a
+  # lag of 24 ("the same hour yesterday") is not allowed.
+  horizon_hours: 48
+  lags: [48, 168]
   rolling_windows: [24, 168]
   outlier_zscore: 4.0
 

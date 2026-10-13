@@ -25,7 +25,9 @@ def test_default_config_loads() -> None:
     settings = load_settings(CONFIG_FILE)
 
     assert settings.project.timezone == "America/New_York"
-    assert settings.features.horizon_hours == 24
+    assert settings.features.horizon_hours == 48
+    assert settings.features.lags == [48, 168]
+    assert settings.features.rolling_windows == [24, 168]
 
 
 def test_months_cover_the_configured_period(settings: Settings) -> None:
@@ -94,10 +96,29 @@ def test_config_file_env_var_is_used(tmp_path: Path, monkeypatch: pytest.MonkeyP
 
 
 def test_lag_shorter_than_horizon_is_rejected(tmp_path: Path) -> None:
-    path = _write_config(tmp_path, features={"lags": [1, 24]})
+    path = _write_config(tmp_path, features={"horizon_hours": 24, "lags": [1, 24]})
 
-    with pytest.raises(ValidationError, match="leak"):
+    with pytest.raises(
+        ValidationError, match=r"features\.lags \[1\] are shorter than the 24 h.*leak"
+    ):
         load_settings(path)
+
+
+def test_lag_of_24_hours_is_rejected_when_the_horizon_is_48_hours(tmp_path: Path) -> None:
+    # "The same hour yesterday" is not known yet when a forecast is made two days ahead.
+    path = _write_config(tmp_path, features={"horizon_hours": 48, "lags": [24, 48, 168]})
+
+    with pytest.raises(ValidationError, match=r"features\.lags \[24\] are shorter than the 48 h"):
+        load_settings(path)
+
+
+@pytest.mark.parametrize("horizon", [24, 48])
+def test_lag_as_long_as_the_horizon_is_accepted(tmp_path: Path, horizon: int) -> None:
+    path = _write_config(tmp_path, features={"horizon_hours": horizon, "lags": [horizon, 168]})
+
+    features = load_settings(path).features
+
+    assert (features.horizon_hours, features.lags) == (horizon, [horizon, 168])
 
 
 def test_rolling_window_of_one_hour_is_rejected(tmp_path: Path) -> None:

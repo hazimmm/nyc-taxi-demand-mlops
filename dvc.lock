@@ -71,8 +71,8 @@ stages:
       size: 11340
     - path: src/demand/schemas.py
       hash: md5
-      md5: d19899cb19a23aa8a389cc20e3ef0016
-      size: 8389
+      md5: c203bcd2cdbdd31f7e94c04fdeeed8d4
+      size: 8399
     params:
       configs/config.yaml:
         cleaning:
@@ -131,8 +131,8 @@ stages:
       size: 25776
     - path: src/demand/schemas.py
       hash: md5
-      md5: d19899cb19a23aa8a389cc20e3ef0016
-      size: 8389
+      md5: c203bcd2cdbdd31f7e94c04fdeeed8d4
+      size: 8399
     params:
       configs/config.yaml:
         cleaning.max_distance_miles: 100.0
@@ -168,7 +168,7 @@ stages:
       size: 3823
     - path: src/demand/data/aggregate.py
       hash: md5
-      md5: 1173a252ea572f900bd565867757a414
+      md5: db18b6415cd7b61085a37c500056d399
       size: 12164
     - path: src/demand/data/clean_weather.py
       hash: md5
@@ -176,16 +176,16 @@ stages:
       size: 7902
     - path: src/demand/data/features.py
       hash: md5
-      md5: 41f0b0fa906bb887f073569b3b2a9f86
-      size: 14195
+      md5: e116603cb0a7b848499e802be45bf0d5
+      size: 15510
     - path: src/demand/data/gold.py
       hash: md5
       md5: 8487ef213dfa8cd044f24761bf4ab662
       size: 10815
     - path: src/demand/schemas.py
       hash: md5
-      md5: d19899cb19a23aa8a389cc20e3ef0016
-      size: 8389
+      md5: c203bcd2cdbdd31f7e94c04fdeeed8d4
+      size: 8399
     params:
       configs/config.yaml:
         data.end_month: 2025-06
@@ -218,9 +218,8 @@ stages:
         - 164
         - 140
         features:
-          horizon_hours: 24
+          horizon_hours: 48
           lags:
-          - 24
           - 48
           - 168
           rolling_windows:
@@ -231,20 +230,20 @@ stages:
     outs:
     - path: data/gold
       hash: md5
-      md5: e5b2e1f900d283014008abfddf3cb0ea.dir
-      size: 3143475
+      md5: 7bacf1bf80cf4612d40552e74ef11cc5.dir
+      size: 3025585
       nfiles: 2
   validate_gold:
     cmd: python -m demand validate gold
     deps:
     - path: data/gold
       hash: md5
-      md5: e5b2e1f900d283014008abfddf3cb0ea.dir
-      size: 3143475
+      md5: 7bacf1bf80cf4612d40552e74ef11cc5.dir
+      size: 3025585
       nfiles: 2
     - path: src/demand/data/aggregate.py
       hash: md5
-      md5: 1173a252ea572f900bd565867757a414
+      md5: db18b6415cd7b61085a37c500056d399
       size: 12164
     - path: src/demand/data/clean_weather.py
       hash: md5
@@ -252,8 +251,8 @@ stages:
       size: 7902
     - path: src/demand/data/features.py
       hash: md5
-      md5: 41f0b0fa906bb887f073569b3b2a9f86
-      size: 14195
+      md5: e116603cb0a7b848499e802be45bf0d5
+      size: 15510
     - path: src/demand/data/gold.py
       hash: md5
       md5: 8487ef213dfa8cd044f24761bf4ab662
@@ -264,8 +263,8 @@ stages:
       size: 25776
     - path: src/demand/schemas.py
       hash: md5
-      md5: d19899cb19a23aa8a389cc20e3ef0016
-      size: 8389
+      md5: c203bcd2cdbdd31f7e94c04fdeeed8d4
+      size: 8399
     params:
       configs/config.yaml:
         data.end_month: 2025-06
@@ -296,9 +295,8 @@ stages:
         - 141
         - 164
         - 140
-        features.horizon_hours: 24
+        features.horizon_hours: 48
         features.lags:
-        - 24
         - 48
         - 168
         features.rolling_windows:
@@ -308,5 +306,64 @@ stages:
     outs:
     - path: reports/gold_validation_report.json
       hash: md5
-      md5: 2491f95715aa316715d0fba12ce0fa4c
+      md5: e1b02e60c2bb93b72aa9f2f73de480f0
       size: 997
+  backtest:
+    cmd: python -m demand backtest
+    deps:
+    - path: data/gold/features.parquet
+      hash: md5
+      md5: 9fd3ea4709a580a6434dd3b4ef5732f9
+      size: 2533792
+    - path: reports/gold_validation_report.json
+      hash: md5
+      md5: e1b02e60c2bb93b72aa9f2f73de480f0
+      size: 997
+    - path: src/demand/data/aggregate.py
+      hash: md5
+      md5: db18b6415cd7b61085a37c500056d399
+      size: 12164
+    - path: src/demand/models/backtest.py
+      hash: md5
+      md5: d7e72b61063c8a5a681d8dfcfd02a3a3
+      size: 20053
+    - path: src/demand/models/baseline.py
+      hash: md5
+      md5: eb5f39409e11894d966f01b1f1747570
+      size: 5676
+    - path: src/demand/models/metrics.py
+      hash: md5
+      md5: 37f741e4e7a80fa2cc36d923234608f1
+      size: 6916
+    - path: src/demand/models/pipeline.py
+      hash: md5
+      md5: acc2eae8dc3bd924b8553d9a5800cb0d
+      size: 1367
+    - path: src/demand/schemas.py
+      hash: md5
+      md5: c203bcd2cdbdd31f7e94c04fdeeed8d4
+      size: 8399
+    params:
+      configs/config.yaml:
+        backtest:
+          n_folds: 4
+          fold_days: 7
+        data.train_end_date: '2025-04-30'
+        data.weather.variables:
+        - temperature_2m
+        - precipitation
+        - snowfall
+        - wind_speed_10m
+        features.horizon_hours: 48
+        features.lags:
+        - 48
+        - 168
+        features.rolling_windows:
+        - 24
+        - 168
+        project.timezone: America/New_York
+    outs:
+    - path: reports/backtest_report.json
+      hash: md5
+      md5: a1beeb3665288447f181188c327d846c
+      size: 4846

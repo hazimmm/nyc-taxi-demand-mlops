@@ -63,7 +63,7 @@ class PathsConfig(_Section):
 
     @property
     def predictions(self) -> Path:
-        """Day-ahead forecasts written by the batch forecast flow."""
+        """Forecasts for the next day, written by the batch forecast flow."""
         return self.data_dir / "predictions"
 
 
@@ -152,7 +152,7 @@ class CleaningConfig(_Section):
 
 
 class FeatureConfig(_Section):
-    """Feature definitions. Nothing may look closer to the target than the horizon."""
+    """Feature definitions. No lag may be shorter than the horizon; windows end one horizon back."""
 
     horizon_hours: int = Field(gt=0)
     lags: list[int] = Field(min_length=1)

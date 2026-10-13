@@ -17,7 +17,7 @@ The book grows with the project. New chapters are added when new code arrives. T
 | Chapter | What it covers | Time |
 |---|---|---|
 | [1. What we are building](01-what-we-are-building.md) | The forecast, who needs it, and the path from raw files to a served number | 8 min |
-| [2. Forecasting without cheating](02-forecasting-without-cheating.md) | The forecast horizon, lag features, and three ways a model can see the future by accident | 12 min |
+| [2. Forecasting without cheating](02-forecasting-without-cheating.md) | Lag features, the moment a forecast for a whole day can be issued, the horizon of 48 hours, and three ways a model can see the future by accident | 15 min |
 | [3. Testing a forecast honestly](03-testing-a-forecast-honestly.md) | Time-based splits, backtests, and the simulated clock | 12 min |
 | [4. Data in layers, features in one place](04-data-in-layers.md) | Raw, silver and gold data, and why features must have one definition | 10 min |
 
@@ -45,10 +45,19 @@ This part follows the data pipeline of Phase 1: from the download to the gold la
 | [15. Knowing what you have: the manifest and idempotency](15-knowing-what-you-have.md) | Checksums, the manifest, skip or download, the weather source, UTC and padding, a first look at the raw data | 20 min |
 | [16. Cleaning the trips: rules you can count](16-cleaning-the-trips.md) | One row is one valid trip, ten rules in a fixed order, counts that must add up, the cleaning report, and a rule from the plan that the data proved wrong | 14 min |
 | [17. Clocks, weather and the silver stage](17-clocks-weather-and-the-silver-stage.md) | Local time and daylight saving, elapsed time, weather from UTC to local hours, gaps, and a stage that validates before it writes | 14 min |
-| [18. From trips to a demand table](18-from-trips-to-a-demand-table.md) | Zones chosen from the training period and frozen, the complete grid and its zeros, the weather join, and an outlier flag that is never a model input | 14 min |
-| [19. Features without leakage](19-features-without-leakage.md) | Lags and rolling windows shifted by the horizon, elapsed hours, warm-up rows, one feature function for training and serving, and the leakage test | 14 min |
+| [18. From trips to a demand table](18-from-trips-to-a-demand-table.md) | Zones chosen from the training period and frozen, the complete grid and its zeros, the weather join, and an outlier flag that is never a model input | 15 min |
+| [19. Features without leakage](19-features-without-leakage.md) | Lags and rolling windows shifted by the horizon, the moment the rows of a whole day can be built, elapsed hours, warm-up rows, one feature function for training and serving, and the leakage test | 15 min |
 | [20. Quality gates: checking the files on disk](20-quality-gates.md) | A check before reading, lazy validation, checks a schema cannot express, a check that could not run, and one-line messages for expected failures | 14 min |
 | [21. A pipeline that knows what changed](21-a-pipeline-that-knows-what-changed.md) | DVC stages with `deps`, `params` and `outs`, `dvc.lock`, a gate between two stages, the raw layer that persists, the cache, what DVC does not see, and a date without quotes | 14 min |
+
+### Part IV – Modelling
+
+This part follows the modelling of Phase 2. It starts with the forecast that needs no model, and with the test that every later model must pass. Chapters on LightGBM, tuning and MLflow are added when their code arrives.
+
+| Chapter | What it covers | Time |
+|---|---|---|
+| [22. A number to beat: the baseline and three metrics](22-a-number-to-beat.md) | Why a baseline comes before any model, "the same hour one week ago", one interface for baselines and models, MAE, RMSE and sMAPE calculated by hand, and the weaknesses of sMAPE in the real data | 14 min |
+| [23. The backtest: four weeks the forecaster has not seen](23-the-backtest.md) | Four test weeks with an expanding training window, two protections for May and June, the gap before each test week, the result per week, zone and day, and what a backtest does not prove | 15 min |
 
 ### Later parts
 
@@ -56,7 +65,6 @@ These parts have no chapters yet. They are written when their code is added.
 
 | Part | Topic | Arrives with |
 |---|---|---|
-| IV | Modelling: baseline, LightGBM, backtesting, tuning, MLflow | Phase 2 |
 | V | Serving: the FastAPI prediction service | Phase 3 |
 | VI | Containers: Docker and Docker Compose | Phase 4 |
 | VII | Monitoring and retraining: Prefect, Evidently, Prometheus, Grafana | Phase 5 |
@@ -81,3 +89,4 @@ These parts have no chapters yet. They are written when their code is added.
 | 4 – Cleaning into the silver layer (Phase 1) | `python -m demand silver` cleans trips and weather, validates them against the silver contracts and writes a cleaning report; the silver column `fare_amount` became `total_amount` | 16 and 17 added; 1, 2, 4, 8, 9, 10, 11, 14 and 15 updated; appendices A to C extended |
 | 5 – Aggregation and features: the gold layer (Phase 1) | `python -m demand select-zones` finds the 20 busiest zones of the training period, and the list is frozen in the config; `python -m demand gold` builds the hourly demand table and the feature table with one feature function for training and serving; the config refuses a rolling window shorter than 2 hours | 18 and 19 added; 1 to 5, 7 to 11, 13, 14, 16 and 17 updated; appendices A to C extended |
 | 6 – Quality gates and the DVC pipeline (Phase 1) | `python -m demand validate silver` and `validate gold` check the files of a layer and write a validation report; `dvc repro` runs the five stages in order and skips a stage when nothing it depends on changed; an expected failure is printed as one line that says what to do next, not as a traceback; `train_end_date` is quoted in the config | 20 and 21 added; 1, 3, 4, 5, 8 to 11, 14, 17, 18 and 19 updated; appendices A to C extended |
+| 7 – A horizon of 48 hours, the baseline and the backtest (Phase 2) | The forecast horizon changed from 24 to 48 hours, so that the forecast for a whole day can be issued at 00:00 on the day before; the lag of 24 hours is gone, and the feature table has 82,560 rows and 19 columns; `python -m demand backtest` scores the baseline "the same hour one week ago" on four test weeks with three metrics and writes a report; `dvc repro` runs it as a sixth stage | 22 and 23 added; 2 and 19 rewritten around the new horizon; 1, 3, 4, 5, 7, 9, 10, 11, 13, 14, 18, 20 and 21 updated; appendices A to C extended |

@@ -21,13 +21,17 @@ The most useful way to think about a test is as a rule of the project written in
 
 ```python
 def test_lag_shorter_than_horizon_is_rejected(tmp_path: Path) -> None:
-    path = _write_config(tmp_path, features={"lags": [1, 24]})
+    path = _write_config(tmp_path, features={"horizon_hours": 24, "lags": [1, 24]})
 
-    with pytest.raises(ValidationError, match="leak"):
+    with pytest.raises(
+        ValidationError, match=r"features\.lags \[1\] are shorter than the 24 h.*leak"
+    ):
         load_settings(path)
 ```
 
-The name says what must be true. Line 2 writes a config file in which the lags are 1 and 24. The helper `_write_config` copies the real config and replaces the given values. The last two lines say: "loading this file must raise a `ValidationError`, and its message must contain the word leak". If loading succeeds, the test fails.
+The name says what must be true. Line 2 writes a config file in which the horizon is 24 hours and the lags are 1 and 24. The helper `_write_config` copies the real config and replaces the given values. The test states its own horizon on purpose. When the horizon in the real config changed from 24 to 48 (Chapter 2), this test kept testing the same thing.
+
+The last lines say: "loading this file must raise a `ValidationError`, and its message must name the lag 1, the horizon of 24 h and the word leak". The text after `match=` is a pattern: `\.` and `\[` stand for a real dot and a real bracket, and `.*` stands for any text in between. If loading succeeds, or the message is a different one, the test fails.
 
 This test would have caught the mistake at the start of the chapter on the same day.
 
@@ -188,7 +192,7 @@ The first line of `conftest.py` states a rule: "Tests never touch the network or
 
 Imagine a test that downloads a real TLC file. It takes minutes. It fails when the website is slow or your connection is down. It gives a different result when the file is corrected at the source. A failed test then no longer means "the code is broken", and after a few false alarms people stop reading failures. Tests are only useful if a failure can be trusted.
 
-So the tests build tiny tables in memory, as `_silver_trips()` does with two rows, and replace outside services with test doubles. The complete suite runs in about twenty-five seconds. Chapter 14 shows how the download code, which does almost nothing except use the network, is tested under the same rule.
+So the tests build tiny tables in memory, as `_silver_trips()` does with two rows, and replace outside services with test doubles. The complete suite runs in about forty seconds. Chapter 14 shows how the download code, which does almost nothing except use the network, is tested under the same rule.
 
 ## Try it yourself
 
@@ -198,7 +202,7 @@ Run one test file.
 .venv\Scripts\python.exe -m pytest tests/unit/test_config.py -q
 ```
 
-You should see `16 passed`. Each dot in the output is one passed test. No coverage is shown, because `--cov` was not given.
+You should see `19 passed`. Each dot in the output is one passed test. No coverage is shown, because `--cov` was not given.
 
 Run one test by a part of its name.
 
@@ -206,7 +210,7 @@ Run one test by a part of its name.
 .venv\Scripts\python.exe -m pytest tests/unit/test_config.py -q -k "lag_shorter"
 ```
 
-You should see `1 passed, 15 deselected`. This is the test from the start of this chapter.
+You should see `1 passed, 18 deselected`. This is the test from the start of this chapter.
 
 Run everything with coverage.
 
@@ -214,7 +218,7 @@ Run everything with coverage.
 .venv\Scripts\python.exe -m pytest --cov -q
 ```
 
-You should see `413 passed`, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.81%`. The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
+You should see `545 passed`, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.84%`. The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
 
 ## Key takeaways
 

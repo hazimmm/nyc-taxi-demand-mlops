@@ -32,7 +32,7 @@ from demand.schemas import (
     rolling_mean_column,
     rolling_std_column,
 )
-from tests.conftest import TEST_ZONES
+from tests.conftest import TEST_ZONES, with_features
 from tests.unit.data.conftest import demand_frame
 
 TIMEZONE = "America/New_York"
@@ -56,6 +56,16 @@ def _small_settings(settings: Settings) -> Settings:
         update={"horizon_hours": 2, "lags": [2, 4], "rolling_windows": [3]}
     )
     return settings.model_copy(update={"features": features})
+
+
+def _day_ahead(settings: Settings) -> Settings:
+    """A horizon of 24 hours with the lags 24, 48 and 168: a forecast for the next 24 hours."""
+    return with_features(settings, horizon_hours=24, lags=[24, 48, 168])
+
+
+def _two_days_ahead(settings: Settings) -> Settings:
+    """A horizon of 48 hours with the lags 48 and 168: a whole day, issued a day before."""
+    return with_features(settings, horizon_hours=48, lags=[48, 168])
 
 
 def _one_zone(settings: Settings, pickups: list[int]) -> pd.DataFrame:
@@ -239,33 +249,54 @@ def test_window_statistics_are_missing_when_the_table_is_shorter_than_the_window
 # --- daylight saving --------------------------------------------------------------------
 
 
+@pytest.mark.parametrize(
+    ("lag", "earlier_hour"),
+    [
+        # The target is 08:00 on the Sunday the clocks went forward. 24 real hours
+        # earlier the clock showed 07:00 on Saturday, because the night in between lost
+        # an hour; 48 real hours earlier it showed 07:00 on Friday.
+        (24, "2025-03-08 07:00"),
+        (48, "2025-03-07 07:00"),
+    ],
+)
 def test_a_lag_counts_elapsed_hours_across_a_clock_change(
-    settings: Settings, demand: pd.DataFrame
+    settings: Settings, demand: pd.DataFrame, lag: int, earlier_hour: str
 ) -> None:
-    features = build_features(demand, demand, settings)
-    # 08:00 on the Sunday the clocks went forward. 24 real hours earlier the clock
-    # showed 07:00 on Saturday, because the night in between lost an hour.
+    with_lag = with_features(settings, horizon_hours=lag, lags=[lag, 168])
+    features = build_features(demand, demand, with_lag)
     target = _local("2025-03-09 08:00")
-    assert target - pd.Timedelta(hours=24) == _local("2025-03-08 07:00")
+    assert target - pd.Timedelta(hours=lag) == _local(earlier_hour)
 
     row = _row(features, 161, target)
 
-    assert row[lag_column(24)] == _row(demand, 161, _local("2025-03-08 07:00"))[TARGET]
+    assert row[lag_column(lag)] == _row(demand, 161, _local(earlier_hour))[TARGET]
     assert row[HOUR] == 8
 
 
-def test_features_do_not_break_on_a_25_hour_day(settings: Settings) -> None:
-    demand = demand_frame(settings, "2025-10-20 00:00", N_HOURS)
+@pytest.mark.parametrize(
+    ("lag", "earlier_hour"),
+    [
+        # The target is the second 01:00 of the night the clocks went back, already in
+        # standard time. 24 real hours earlier the clock showed 02:00 on Saturday,
+        # because the night in between gained an hour; 48 real hours earlier, 02:00 on
+        # Friday.
+        (24, "2025-11-01 02:00:00-04:00"),
+        (48, "2025-10-31 02:00:00-04:00"),
+    ],
+)
+def test_features_do_not_break_on_a_25_hour_day(
+    settings: Settings, lag: int, earlier_hour: str
+) -> None:
+    with_lag = with_features(settings, horizon_hours=lag, lags=[lag, 168])
+    demand = demand_frame(with_lag, "2025-10-20 00:00", N_HOURS)
     assert (demand[HOUR_START].dt.date == pd.Timestamp("2025-11-02").date()).sum() == 3 * 25
 
-    features = build_features(demand, demand, settings)
+    features = build_features(demand, demand, with_lag)
 
-    # The second 01:00 of the night, already in standard time. 24 real hours earlier
-    # the clock showed 02:00 on Saturday, because the night in between gained an hour.
     target = pd.Timestamp("2025-11-02 01:00:00-05:00").tz_convert(TIMEZONE)
-    earlier = pd.Timestamp("2025-11-01 02:00:00-04:00").tz_convert(TIMEZONE)
-    assert target - pd.Timedelta(hours=24) == earlier
-    assert _row(features, 132, target)[lag_column(24)] == _row(demand, 132, earlier)[TARGET]
+    earlier = pd.Timestamp(earlier_hour).tz_convert(TIMEZONE)
+    assert target - pd.Timedelta(hours=lag) == earlier
+    assert _row(features, 132, target)[lag_column(lag)] == _row(demand, 132, earlier)[TARGET]
     assert _row(features, 132, target)[HOUR] == 1
 
 
@@ -364,8 +395,9 @@ CHANGED_HOURS = [30, 193, 260]
 
 @pytest.mark.parametrize("zone", TEST_ZONES)
 @pytest.mark.parametrize("position", CHANGED_HOURS)
+@pytest.mark.parametrize("horizon_hours", [24, 48])
 def test_no_feature_reads_anything_newer_than_the_horizon(
-    settings: Settings, demand: pd.DataFrame, zone: int, position: int
+    settings: Settings, demand: pd.DataFrame, zone: int, position: int, horizon_hours: int
 ) -> None:
     """The most important test of the gold layer.
 
@@ -373,8 +405,17 @@ def test_no_feature_reads_anything_newer_than_the_horizon(
     Nothing may change in a row whose target hour is before ``t + horizon``, because
     that row is predicted before the pickups of ``t`` are known. Nothing may change in
     another zone at all.
+
+    It is run for a horizon of 24 hours and for one of 48, each with the lags and
+    windows written down here, so it does not depend on the config file.
     """
-    horizon = pd.Timedelta(hours=settings.features.horizon_hours)
+    settings = with_features(
+        settings,
+        horizon_hours=horizon_hours,
+        lags=[horizon_hours, 72, 168],
+        rolling_windows=[24, 168],
+    )
+    horizon = pd.Timedelta(hours=horizon_hours)
     inputs = feature_columns(settings)
     changed_hour = demand[HOUR_START].unique()[position]
     is_changed_cell = (demand[ZONE_ID] == zone) & (demand[HOUR_START] == changed_hour)
@@ -431,17 +472,27 @@ def test_features_of_a_day_do_not_depend_on_any_later_pickups(
 # --- serving: future hours without a target ---------------------------------------------
 
 
-def test_features_for_tomorrow_need_no_pickups_for_tomorrow(
-    settings: Settings, demand: pd.DataFrame
+@pytest.mark.parametrize(
+    ("horizon_hours", "forecast_day"),
+    [
+        # It is 00:00 on Thursday 20 March: every hour up to Wednesday 23:00 is complete.
+        (24, "2025-03-20"),  # day-ahead: the 24 hours that start now, Thursday
+        (48, "2025-03-21"),  # two days ahead: the whole of tomorrow, Friday
+    ],
+)
+def test_features_for_a_whole_day_need_no_pickups_after_the_moment_of_the_forecast(
+    settings: Settings, demand: pd.DataFrame, horizon_hours: int, forecast_day: str
 ) -> None:
-    """The serving use: demand known so far, plus tomorrow's hours and weather forecast."""
+    """The serving use: demand known so far, plus the hours and weather forecast of a day."""
+    settings = with_features(settings, horizon_hours=horizon_hours, lags=[horizon_hours, 168])
     variables = settings.data.weather.variables
-    midnight = _local("2025-03-20 00:00")
-    is_tomorrow = (demand[HOUR_START] >= midnight) & (
-        demand[HOUR_START] < midnight + pd.Timedelta(days=1)
+    now = _local("2025-03-20 00:00")
+    first_hour = _local(f"{forecast_day} 00:00")
+    in_the_day = (demand[HOUR_START] >= first_hour) & (
+        demand[HOUR_START] < first_hour + pd.Timedelta(days=1)
     )
-    history = demand.loc[demand[HOUR_START] < midnight, [ZONE_ID, HOUR_START, TARGET]]
-    targets = demand.loc[is_tomorrow, [ZONE_ID, HOUR_START, *variables]]
+    history = demand.loc[demand[HOUR_START] < now, [ZONE_ID, HOUR_START, TARGET]]
+    targets = demand.loc[in_the_day, [ZONE_ID, HOUR_START, *variables]]
     assert TARGET not in targets.columns
 
     served = build_features(history, targets, settings)
@@ -450,7 +501,34 @@ def test_features_for_tomorrow_need_no_pickups_for_tomorrow(
     assert served.notna().all().all()
     # The same rows as training builds them, to the last bit.
     trained = build_features(demand, demand, settings)
-    pd.testing.assert_frame_equal(served, trained[is_tomorrow], check_exact=True)
+    pd.testing.assert_frame_equal(served, trained[in_the_day], check_exact=True)
+
+
+def test_with_a_horizon_of_48_hours_a_whole_day_is_ready_at_the_midnight_a_day_before_it(
+    settings: Settings, demand: pd.DataFrame
+) -> None:
+    """The product in one test: at 00:00 on Thursday, all of Friday and not an hour more."""
+    two_days_ahead = _two_days_ahead(settings)
+    midnight = _local("2025-03-20 00:00")  # Thursday
+    history = demand[demand[HOUR_START] < midnight]
+    zone = demand[demand[ZONE_ID] == 161].set_index(HOUR_START)
+
+    features = build_features(history, demand[demand[ZONE_ID] == 161], two_days_ahead)
+
+    complete = features.set_index(HOUR_START).notna().all(axis=1)
+    friday = pd.date_range(_local("2025-03-21 00:00"), _local("2025-03-21 23:00"), freq="h")
+    assert complete[friday].all()
+    # Friday starts 24 hours after the forecast is made and its last hour 47 hours after.
+    assert [friday[0] - midnight, friday[-1] - midnight] == [
+        pd.Timedelta(hours=24),
+        pd.Timedelta(hours=47),
+    ]
+    # The last hour of Friday reads the last hour that was complete at midnight.
+    last_row = features.set_index(HOUR_START).loc[friday[-1]]
+    assert last_row[lag_column(48)] == zone.loc[_local("2025-03-19 23:00"), TARGET]
+    # Saturday 00:00 would need the hour that starts at this midnight.
+    assert not complete[_local("2025-03-22 00:00")]
+    assert complete.index[complete].max() == friday[-1]
 
 
 def test_a_short_history_gives_the_same_features_as_a_long_one(
@@ -473,16 +551,35 @@ def test_a_short_history_gives_the_same_features_as_a_long_one(
 def test_target_beyond_the_known_history_has_missing_features(
     settings: Settings, demand: pd.DataFrame
 ) -> None:
+    day_ahead = _day_ahead(settings)
     midnight = _local("2025-03-20 00:00")
     history = demand[demand[HOUR_START] < midnight]
     # 24 hours after midnight is the first hour whose 24 h lag has not been observed.
     targets = demand[demand[HOUR_START] == midnight + pd.Timedelta(hours=24)]
 
-    features = build_features(history, targets, settings)
+    features = build_features(history, targets, day_ahead)
 
     assert features[lag_column(24)].isna().all()
     assert features[rolling_mean_column(24)].isna().all()
     assert features[lag_column(48)].notna().all()
+
+
+def test_target_beyond_the_known_history_has_missing_features_two_days_ahead(
+    settings: Settings, demand: pd.DataFrame
+) -> None:
+    two_days_ahead = _two_days_ahead(settings)
+    midnight = _local("2025-03-20 00:00")
+    history = demand[demand[HOUR_START] < midnight]
+    # 48 hours after midnight is the first hour whose 48 h lag has not been observed.
+    # Every window ends at that same hour, so the rolling features are missing too.
+    targets = demand[demand[HOUR_START] == midnight + pd.Timedelta(hours=48)]
+
+    features = build_features(history, targets, two_days_ahead)
+
+    assert features[lag_column(48)].isna().all()
+    assert features[rolling_mean_column(24)].isna().all()
+    assert features[rolling_std_column(168)].isna().all()
+    assert features[lag_column(168)].notna().all()
 
 
 def test_target_before_the_history_or_in_an_unknown_zone_has_missing_features(
@@ -496,7 +593,7 @@ def test_target_before_the_history_or_in_an_unknown_zone_has_missing_features(
     unknown_zone = features[ZONE_ID] == 237
     history_columns = [lag_column(lag) for lag in settings.features.lags]
     assert features.loc[before_history | unknown_zone, history_columns].isna().all().all()
-    assert features.loc[~before_history & ~unknown_zone, lag_column(24)].notna().any()
+    assert features.loc[~before_history & ~unknown_zone, history_columns].notna().any().all()
     assert features[CALENDAR_FEATURES].notna().all().all()
 
 
@@ -536,9 +633,44 @@ def test_two_rows_for_the_same_zone_and_hour_are_refused(
 # --- the training table -----------------------------------------------------------------
 
 
-def test_warm_up_is_the_longest_look_back_of_any_feature(settings: Settings) -> None:
-    assert warm_up_hours(settings) == 24 + 168 - 1
-    assert warm_up_hours(_small_settings(settings)) == 4
+@pytest.mark.parametrize(
+    ("horizon", "lags", "windows", "expected"),
+    [
+        # The 168 h window decides: its oldest value is horizon + 168 - 1 hours back.
+        (24, [24, 48, 168], [24, 168], 24 + 168 - 1),  # 191
+        (48, [48, 168], [24, 168], 48 + 168 - 1),  # 215, the config of the project
+        # A lag that looks further back than any window decides.
+        (24, [24, 336], [24, 168], 336),
+        (48, [48, 168], [24], 168),
+        # Both are 4 hours: the lag of 4, and the 3 h window that ends 2 hours back.
+        (2, [2, 4], [3], 4),
+    ],
+)
+def test_warm_up_is_the_longest_look_back_of_any_feature(
+    settings: Settings, horizon: int, lags: list[int], windows: list[int], expected: int
+) -> None:
+    configured = with_features(settings, horizon_hours=horizon, lags=lags, rolling_windows=windows)
+
+    assert warm_up_hours(configured) == expected
+
+
+def test_first_row_with_every_feature_is_the_warm_up_after_the_first_hour(
+    settings: Settings,
+) -> None:
+    # 9 days from Wednesday 1 January 2025 00:00, the first hour of the real data. With
+    # a horizon of 48 hours and a 168 h window the first complete row is 215 hours
+    # later: 8 days and 23 hours, which is 23:00 on Thursday 9 January.
+    two_days_ahead = with_features(
+        settings, horizon_hours=48, lags=[48, 168], rolling_windows=[24, 168]
+    )
+    demand = demand_frame(two_days_ahead, "2025-01-01 00:00", 9 * 24)
+
+    table, rows_dropped = build_feature_table(demand, two_days_ahead)
+
+    assert warm_up_hours(two_days_ahead) == 215
+    assert table[HOUR_START].min() == _local("2025-01-09 23:00")
+    assert rows_dropped == 3 * 215
+    assert len(table) == 3 * (9 * 24 - 215)
 
 
 def test_feature_table_follows_the_gold_schema(settings: Settings, demand: pd.DataFrame) -> None:

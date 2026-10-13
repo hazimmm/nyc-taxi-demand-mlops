@@ -21,7 +21,7 @@ The **Status** column has three values.
 | python-dotenv | Reads a `.env` file into environment variables | Local values and secrets in one file that is not in git | In use | 7 |
 | Pandera | Schema checks for pandas tables | Data contracts between the data layers | In use (the silver and gold stages validate every table before writing it; the `validate` command checks the files of a layer with the same schemas, in lazy mode) | 8, 17, 18, 20 |
 | pandas | Library for tables of data | The cleaning rules, time zones and daylight saving, counting pickups on a complete grid, and the table type that the schemas check | In use | 8, 16, 17, 18 |
-| NumPy | Library for fast calculations on arrays of numbers | The lags and rolling windows of the feature function | In use | 19 |
+| NumPy | Library for fast calculations on arrays of numbers | The lags and rolling windows of the feature function; the three metrics | In use | 19, 22 |
 | Typer | Library for building command-line programs | One entry point on every operating system | In use | 9 |
 | pytest, pytest-cov | Test runner and coverage measurement | Rules of the project that run after every change | In use | 10 |
 | ruff | Linter and formatter | One style; common mistakes found automatically | In use | 11 |
@@ -35,12 +35,14 @@ The **Status** column has three values.
 | NYC TLC trip records | Public monthly files of taxi trips | The demand data | In use (downloaded by the ingest stage, cleaned by the silver stage, counted per zone and hour by the gold stage) | 14, 15, 16, 18 |
 | Open-Meteo | Free weather service, no key needed | Weather features | In use (downloaded by the ingest stage, cleaned by the silver stage, joined to the demand table by the gold stage) | 15, 17, 18 |
 | httpx | Library for web requests | Downloads with time limits and retries; `MockTransport` for tests without a network | In use | 14 |
-| pyarrow | Reader and writer for Parquet files | The file format of the raw, silver and gold tables; the footer check before a file is accepted | In use | 14, 17, 18 |
+| pyarrow | Reader and writer for Parquet files | The file format of the raw, silver and gold tables; the footer check before a file is accepted; the filter that keeps the rows after the training period out of the backtest | In use | 14, 17, 18, 23 |
 | DuckDB | A database engine that runs inside the Python process | Reads and counts large files without loading everything into memory | Declared (used in this book to look at the raw data and to check a cleaning rule) | 15, 16 |
 | holidays | Library of public holidays | The `is_holiday` feature: the federal holidays of the United States | In use | 19 |
-| DVC | Data Version Control: versions data files and pipeline steps next to git | Runs the five stages in order, skips a stage when nothing it depends on changed, and stops when a quality gate fails | In use (pipeline and local cache; no remote, so the data itself is not shared) | 21 |
+| DVC | Data Version Control: versions data files and pipeline steps next to git | Runs the six stages in order, skips a stage when nothing it depends on changed, and stops when a quality gate fails | In use (pipeline and local cache; no remote, so the data itself is not shared) | 21, 23 |
 
 ## Modelling (Phase 2)
+
+The baseline, the metrics and the backtest of Chapters 22 and 23 need no new tool. They use pandas, NumPy and pyarrow from the tables above. The tools below wait for the first trained model.
 
 | Tool | What it is | Problem it solves here | Status |
 |---|---|---|---|
@@ -91,4 +93,4 @@ The **Status** column has three values.
 
 ---
 
-[Previous: Chapter 21 – A pipeline that knows what changed](21-a-pipeline-that-knows-what-changed.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)
+[Previous: Chapter 23 – The backtest: four weeks the forecaster has not seen](23-the-backtest.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)

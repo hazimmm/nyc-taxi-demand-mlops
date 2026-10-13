@@ -67,7 +67,6 @@ def _gold_features(settings: Settings) -> pd.DataFrame:
 def test_feature_columns_order_is_stable(settings: Settings) -> None:
     assert schemas.feature_columns(settings) == [
         "zone_id",
-        "lag_24h",
         "lag_48h",
         "lag_168h",
         "roll_mean_24h",
@@ -209,7 +208,7 @@ def test_valid_gold_features_pass(settings: Settings) -> None:
 
 def test_gold_features_reject_missing_lag(settings: Settings) -> None:
     frame = _gold_features(settings)
-    frame.loc[0, schemas.lag_column(24)] = None
+    frame.loc[0, schemas.lag_column(settings.features.lags[0])] = None
 
     with pytest.raises(pandera.errors.SchemaError):
         schemas.gold_features_schema(settings).validate(frame)

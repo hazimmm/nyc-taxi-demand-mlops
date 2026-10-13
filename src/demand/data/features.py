@@ -21,17 +21,22 @@ tomorrow passes the demand known so far as ``history`` and tomorrow's hours with
 weather forecast as ``targets``.
 
 **The features**, in the order of ``feature_columns``, for a target hour ``t`` and a
-forecast horizon of ``h`` hours (``features.horizon_hours``, 24):
+forecast horizon of ``h`` hours (``features.horizon_hours``; 48 in the config of this
+project, and the examples below use that value):
 
 * ``lag_<k>h``: the pickups of the same zone ``k`` hours before ``t``, for every ``k``
-  in ``features.lags``. The config refuses a lag shorter than ``h``.
+  in ``features.lags``. The config refuses a lag shorter than ``h``. With ``h = 48`` the
+  lags are 48 and 168: the same hour two days earlier and the same hour a week earlier.
 * ``roll_mean_<w>h`` and ``roll_std_<w>h``: the mean and the standard deviation of the
   ``w`` hourly values that end at ``t - h``, that is the hours ``t - h - w + 1`` to
-  ``t - h``. For ``w = 24`` and ``h = 24`` these are the hours 47 to 24 before ``t``.
-  The standard deviation is the sample standard deviation (divided by ``w - 1``).
+  ``t - h``. For ``w = 24`` and ``h = 48`` these are the hours 71 to 48 before ``t``;
+  for ``w = 168`` the hours 215 to 48 before ``t``. The standard deviation is the
+  sample standard deviation (divided by ``w - 1``).
 * ``hour``, ``day_of_week`` (Monday is 0), ``month``, ``is_weekend``, ``is_holiday``:
   read from the local clock time of ``t``.
-* The weather of ``t`` itself. It is a forecast, so it is known a day ahead.
+* The weather of ``t`` itself. It is a weather forecast, so a value for ``t`` exists
+  before ``t``. (Whether the stored value is what was forecast ``h`` hours ahead is a
+  limit of the data and not of this function; see ``backtest.py``.)
 
 **No leakage.** At the moment hour ``t`` is predicted, nothing newer than ``t - h`` is
 known. The function is built so that it *cannot* read anything newer, whatever it is
@@ -40,17 +45,29 @@ a history that goes far beyond each row's target hour, and that is safe because 
 and not because the caller was careful. Features are also calculated zone by zone; no
 value of one zone enters a feature of another.
 
-**"24 hours earlier" means 24 real hours.** Twice a year the clocks change, and then
-"the same clock time yesterday" and "24 hours ago" are different hours. All lags and
+**When a row can be built.** The newest pickups the row of hour ``t`` reads are those
+of the hour that starts at ``t - h``. That hour is complete one hour later, so the row
+can be built ``h - 1`` hours before ``t`` starts: 47 hours with ``h = 48``. For a whole
+day the last hour decides. 23:00 on a day reads the hour that starts at 23:00 two days
+earlier, and that hour is complete at 00:00 on the day before. So with ``h = 48`` all
+24 rows of a day can be built at once at 00:00 on the day before it; its first hour
+then starts 24 hours later and its last hour 47 hours later. (With ``h = 24`` the same
+sum gives 00:00 on the day itself.) Around a clock change the moment moves by an hour;
+``backtest.py`` has the details. The features of a row depend on its target hour only,
+not on the moment the row is built: building it later does not make it read newer
+pickups.
+
+**"48 hours earlier" means 48 real hours.** Twice a year the clocks change, and then
+"the same clock time two days ago" and "48 hours ago" are different hours. All lags and
 windows here count *elapsed* hours, for three reasons. The rule that protects against
-leakage is a rule about elapsed time: "the same clock time yesterday" is only 23 real
-hours back on the day after the clocks go forward, which is newer than the horizon
-allows. Clock time has holes, too: 02:00 does not exist on the night the clocks go
-forward and 01:00 exists twice when they go back, so a clock-time lag would need
-special cases. And elapsed hours are simply a fixed number of rows on the hourly grid.
-The price: for the rows after a clock change (24 hours of rows for the 24 h lag, a week
-for the 168 h lag) the lag points at the clock hour next to the one a person would
-expect, for example at 07:00 on Saturday for a target of 08:00 on the Sunday the
+leakage is a rule about elapsed time: in the two days after the clocks go forward, "the
+same clock time two days ago" is only 47 real hours back, which is newer than a horizon
+of 48 hours allows. Clock time has holes, too: 02:00 does not exist on the night the
+clocks go forward and 01:00 exists twice when they go back, so a clock-time lag would
+need special cases. And elapsed hours are simply a fixed number of rows on the hourly
+grid. The price: for the rows after a clock change (48 hours of rows for the 48 h lag,
+a week for the 168 h lag) the lag points at the clock hour next to the one a person
+would expect, for example at 07:00 on Friday for a target of 08:00 on the Sunday the
 clocks went forward. The calendar features are *not* affected; they always describe
 the local clock time of the target hour.
 
@@ -164,8 +181,9 @@ def warm_up_hours(settings: Settings) -> int:
     The longest lag looks ``max(lags)`` hours back. The longest window ends ``horizon``
     hours back and is ``max(rolling_windows)`` long, so its oldest value is
     ``horizon + max(rolling_windows) - 1`` hours back. The larger of the two decides:
-    with lags up to 168 h and a 168 h window shifted by 24 h it is 191 hours, so the
-    first 191 hours of every zone (almost eight days) cannot become training rows.
+    with lags up to 168 h and a 168 h window that ends 48 h back it is
+    48 + 168 - 1 = 215 hours, so the first 215 hours of every zone (one hour short of
+    nine days) cannot become training rows.
     """
     features = settings.features
     return max(max(features.lags), features.horizon_hours + max(features.rolling_windows) - 1)

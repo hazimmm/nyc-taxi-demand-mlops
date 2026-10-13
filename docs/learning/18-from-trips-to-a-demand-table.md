@@ -67,7 +67,7 @@ A **complete grid** is a table that has one row for every combination of zone an
 
 First, a missing row is a wrong target. Without the three rows, the model never sees that demand at LaGuardia can be zero at night, and every average of that zone is too high.
 
-Second, a missing row moves every row after it. Chapter 2 wrote a lag as `shift(24)`: "24 rows up". That equals "24 hours earlier" only if no row is missing in between. In the middle column of Figure 18.2, 24 rows above 08:00 is not 08:00 of the day before. It is 05:00 of the day before, three hours too early, and no error is raised.
+Second, a missing row moves every row after it. Chapter 2 wrote a lag as `shift(48)`: "48 rows up". That equals "48 hours earlier" only if no row is missing in between. In the middle column of Figure 18.2, 48 rows above 08:00 is not 08:00 two days before. It is 00:00 two days before, eight hours too early, and no error is raised.
 
 [`src/demand/data/aggregate.py`](../../src/demand/data/aggregate.py)
 
@@ -126,7 +126,11 @@ The definition has three parts.
 
 **Why not one slot per day of the week?** That would give 168 slots per zone and sounds more exact. But the training period has 17 weeks, so most slots would hold 17 values. Take 16 equal values and one that is enormous. The enormous value pulls the mean towards itself, and it makes the standard deviation large. Because of both effects, one value among *n* can never be more than (*n* − 1) / √*n* standard deviations away from their mean. For 17 values that is 16 / 4.12 = 3.88. A threshold of 4.0 could never fire. With the two kinds of day, a slot holds 86 values for working days and up to 34 for weekends, and the limits are 9.2 and 5.7.
 
-**What is flagged?** 398 hours, 0.46% of the table. The four busiest dates are New Year's Day (107 hours), Juneteenth on 19 June (31), Memorial Day on 26 May (19) and 14 May (14). The 9 March has 12, all from 03:00 to 05:00: the night was one hour shorter, so the clock was ahead of the people. The three largest groups are holidays that fell on a working day. These flags mark real events, not bad data.
+**What is flagged?** 398 hours of the six months, 0.46% of the table. New Year's Day alone has 107, so it is easy to conclude that the flag marks holidays. For the rows a model learns from, that is wrong. The training period has 165 flagged hours. New Year's Day lies in the warm-up rows of Chapter 19, which never reach a model. The training rows of the feature table hold 56 flagged hours on 26 dates, and only 3 of them fall on a federal holiday.
+
+The largest group among the 56 is 9 March with 12 hours, all from 03:00 to 05:00, after the clocks went forward. The code explains a part of it. A slot is defined by the hour on the clock. That night had no 02:00, so the hour named 03:00 was the third hour after midnight, which on other nights is named 02:00 and is busier. In the East Village (zone 79), the hour named 04:00 had 369 pickups. The mean of its slot is 136, and the mean of 03:00 on the other Sundays is 355. The counts at 03:00 are higher than a usual Sunday at 02:00 too, which the code does not explain.
+
+In the replay months the leading dates are Juneteenth (31 hours), Memorial Day (19) and 14 May (14). The flag means "far from the usual value of its slot". It does not name the cause.
 
 > [!WARNING]
 > The flag is calculated from the pickups of its own hour, the value the model must predict. It may be used to leave strange hours out of training or out of a score. It must never be a model input. It is not in `feature_columns`, and a test checks that.
@@ -180,7 +184,7 @@ The second line is already in the config. Now build the gold layer.
 After about three seconds you should see one line like this:
 
 ```text
-{"time": "2026-10-13T07:16:10.011474+00:00", "level": "INFO", "logger": "demand.data.gold", "message": "gold finished", "gold_dir": "data\\gold", "zones": 20, "hours": 4343, "demand_rows": 86860, "pickups": 13553058, "pickups_outside_grid": 0, "zero_pickup_share": 0.0066, "outlier_hours": 398, "feature_rows": 83040, "rows_dropped_for_history": 3820, "seconds": 3.06}
+{"time": "2026-10-13T14:56:30.393648+00:00", "level": "INFO", "logger": "demand.data.gold", "message": "gold finished", "gold_dir": "data\\gold", "zones": 20, "hours": 4343, "demand_rows": 86860, "pickups": 13553058, "pickups_outside_grid": 0, "zero_pickup_share": 0.0066, "outlier_hours": 398, "feature_rows": 82560, "rows_dropped_for_history": 4300, "seconds": 2.14}
 ```
 
 Count the rows and the zeros.
@@ -230,7 +234,7 @@ Run the tests of this chapter.
 .venv\Scripts\python.exe -m pytest tests/unit/data/test_gold.py -q
 ```
 
-You should see `31 passed` and then `24 passed`.
+You should see `31 passed` and then `25 passed`.
 
 ## Key takeaways
 

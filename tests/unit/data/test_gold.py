@@ -34,6 +34,7 @@ from demand.schemas import (
     gold_features_schema,
     lag_column,
 )
+from tests.conftest import with_features
 from tests.unit.data.conftest import silver_trips_frame
 
 # February and March 2025: two silver files, and March contains the 23-hour day.
@@ -51,7 +52,7 @@ FEBRUARY = [
 MARCH = [
     ("2025-03-09 01:30:00-05:00", 161),
     ("2025-03-09 03:30:00-04:00", 161),
-    ("2025-03-11 08:15:00-04:00", 161),  # 24 real hours before the next one
+    ("2025-03-11 08:15:00-04:00", 161),  # the pickup the lag test reads back
     ("2025-03-12 08:20:00-04:00", 237),
     *[("2025-03-20 12:00:00-04:00", 50)] * 30,  # busy, but only after the training period
 ]
@@ -212,16 +213,28 @@ def test_stored_features_lack_only_the_warm_up_hours(two_months: Settings) -> No
     assert features[HOUR_START].min() == first_hour
 
 
-def test_stored_lag_is_the_pickup_count_of_24_hours_earlier(two_months: Settings) -> None:
-    run_gold(two_months)
+@pytest.mark.parametrize(
+    ("lag", "later_hour"),
+    [
+        # Zone 161 has one pickup in the hour of Tuesday 11 March 08:00 and none in the
+        # two days after it.
+        (24, "2025-03-12 08:00:00-04:00"),
+        (48, "2025-03-13 08:00:00-04:00"),
+    ],
+)
+def test_stored_lag_is_the_pickup_count_of_that_many_hours_earlier(
+    two_months: Settings, lag: int, later_hour: str
+) -> None:
+    with_lag = with_features(two_months, horizon_hours=lag, lags=[lag, 168])
 
-    features = _features(two_months)
-    next_day = features[
-        (features[ZONE_ID] == 161)
-        & (features[HOUR_START] == pd.Timestamp("2025-03-12 08:00:00-04:00"))
+    run_gold(with_lag)
+
+    features = _features(with_lag)
+    later = features[
+        (features[ZONE_ID] == 161) & (features[HOUR_START] == pd.Timestamp(later_hour))
     ]
-    assert next_day[lag_column(24)].tolist() == [1.0]
-    assert next_day[TARGET].tolist() == [0]
+    assert later[lag_column(lag)].tolist() == [1.0]
+    assert later[TARGET].tolist() == [0]
 
 
 # --- logging ----------------------------------------------------------------------------
@@ -301,15 +314,16 @@ def test_table_that_breaks_its_schema_stops_the_stage_and_nothing_is_written(
     two_months: Settings, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     real_build_feature_table = gold.build_feature_table
+    broken_column = lag_column(two_months.features.lags[0])
 
     def build_feature_table_with_a_bug(*args: object) -> object:
         table, rows_dropped = real_build_feature_table(*args)  # type: ignore[arg-type]
-        table[lag_column(24)] = -1.0
+        table[broken_column] = -1.0
         return table, rows_dropped
 
     monkeypatch.setattr(gold, "build_feature_table", build_feature_table_with_a_bug)
 
-    with pytest.raises(pandera.errors.SchemaError, match=lag_column(24)):
+    with pytest.raises(pandera.errors.SchemaError, match=broken_column):
         run_gold(two_months)
 
     assert not two_months.paths.gold.exists()
