@@ -4,7 +4,7 @@ This book explains this project from the beginning, one idea at a time. It is wr
 
 ## How to read it
 
-Read the chapters in order. Each one builds on the one before. A chapter takes about 10 to 15 minutes and always has the same shape: a question to start from, the explanation, a worked example from the code, commands to run yourself, the key points, and exercises with hidden answers.
+Read the chapters in order. Each one builds on the one before. A chapter takes about 10 to 20 minutes and always has the same shape: a question to start from, the explanation, a worked example from the code, commands to run yourself, the key points, and exercises with hidden answers.
 
 Keep a PowerShell window open in the repository root and run the commands. They all use `.venv\Scripts\python.exe`, so they work whether or not the virtual environment is activated. If `.venv` does not exist yet, follow the setup steps in the [project README](../../README.md) first.
 
@@ -35,13 +35,21 @@ The book grows with the project. New chapters are added when new code arrives. T
 | [12. Working with git](12-working-with-git.md) | Line endings, what stays out of the repository, commit messages, the `dev` branch | 10 min |
 | [13. A code review of our own foundation](13-a-code-review-of-our-own-foundation.md) | Five real problems found by reading this code, and what each one teaches | 13 min |
 
+### Part III – The data pipeline
+
+This part is being written. More chapters follow when cleaning, aggregation, features and data versioning are built.
+
+| Chapter | What it covers | Time |
+|---|---|---|
+| [14. Getting the data: downloads you can trust](14-getting-the-data.md) | The raw layer, half files and error pages, atomic rename, retries with backoff, testing without a network | 18 min |
+| [15. Knowing what you have: the manifest and idempotency](15-knowing-what-you-have.md) | Checksums, the manifest, skip or download, the weather source, UTC and padding, a first look at the raw data | 20 min |
+
 ### Later parts
 
 These parts have no chapters yet. They are written when their code is added.
 
 | Part | Topic | Arrives with |
 |---|---|---|
-| III | The data pipeline: ingestion, cleaning, aggregation, features, DVC | Phase 1 |
 | IV | Modelling: baseline, LightGBM, backtesting, tuning, MLflow | Phase 2 |
 | V | Serving: the FastAPI prediction service | Phase 3 |
 | VI | Containers: Docker and Docker Compose | Phase 4 |
@@ -63,3 +71,4 @@ These parts have no chapters yet. They are written when their code is added.
 |---|---|---|
 | 1 – Project foundation (Phase 0) | Packaging, settings, data contracts, CLI skeleton, logging, tests, quality tools | 1 to 12, appendices A to C |
 | 2 – Foundation fixes found in review | `.env` file is read; the gold zone gate fails closed; coverage is opt-in; pre-commit is installed | 13 added; 7, 8, 10 and 11 describe the fixed behaviour |
+| 3 – Ingestion into the raw layer (Phase 1) | `python -m demand ingest` downloads trips, zones and weather safely and records them in a manifest; new `data.download` settings | 14 and 15 added; 1, 2, 4, 5, 9, 10 and 11 updated; appendices A to C extended |

@@ -215,4 +215,4 @@ Examples. Lock file: compare an installed version with the pinned one, as in Cha
 
 ---
 
-[Previous: Chapter 12 – Working with git](12-working-with-git.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 12 – Working with git](12-working-with-git.md) | [Contents](README.md) | [Next: Chapter 14 – Getting the data](14-getting-the-data.md)

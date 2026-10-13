@@ -59,8 +59,8 @@ nyc-taxi-demand-mlops/
 │       ├── config.py       the settings object
 │       ├── schemas.py      the data contracts
 │       ├── logs.py         logging
-│       ├── data/           empty for now: one sub-package per later part
-│       ├── models/
+│       ├── data/           the data pipeline (Part III)
+│       ├── models/         this and the next three: empty until their part is built
 │       ├── serving/
 │       ├── monitoring/
 │       └── flows/

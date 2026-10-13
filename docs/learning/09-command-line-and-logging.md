@@ -60,14 +60,20 @@ def _run_stage(module: str, function: str, *args: object) -> None:
     if importlib.util.find_spec(module) is None:
         raise _not_implemented(module)
     configure_logging()
-    getattr(importlib.import_module(module), function)(get_settings(), *args)
+    try:
+        getattr(importlib.import_module(module), function)(get_settings(), *args)
+    except NotImplementedError as error:
+        # The module exists but this stage is still a placeholder.
+        raise _not_implemented(str(error) or f"{module}.{function}") from error
 ```
 
 Line 3 asks Python whether a module with this name exists, without loading it. If it does not exist, line 4 stops the command with the message "Not implemented yet" and a failure code.
 
 Line 5 sets up logging, which the second half of this chapter covers.
 
-Line 6 does three things, from the inside out. `importlib.import_module(module)` loads the module now. `getattr(..., function)` takes the function with the given name out of it. The final brackets call that function and give it the settings as its first argument.
+Line 7 does three things, from the inside out. `importlib.import_module(module)` loads the module now. `getattr(..., function)` takes the function with the given name out of it. The final brackets call that function and give it the settings as its first argument.
+
+The `try` and `except` around it handle a stage whose module exists while the stage itself is not written yet. Such a stage is a **placeholder**: a function that only raises `NotImplementedError`. Without the `except` block, the user would see a long error report with file names and line numbers. With it, the user sees one line, "Not implemented yet", followed by the text of the placeholder, and the exit code is 1.
 
 This fixes a simple agreement for all stages, stated at the top of the file: every stage function takes the settings object first and returns nothing. The CLI needs to know nothing else about a stage.
 
@@ -79,7 +85,7 @@ The first is the dependency groups of Chapter 6. The training stage needs LightG
 
 The second is speed. Loading large libraries takes seconds. Printing a help text should not wait for them.
 
-The third is the order of building. The full list of commands exists today, and the stages do not. A missing module is not an import error that breaks the whole program. It is a clear message for that one command.
+The third is the order of building. The full list of commands existed before any stage did, and today only the `ingest` stage is written (Chapters 14 and 15). A missing module is not an import error that breaks the whole program. It is a clear message for that one command.
 
 ```mermaid
 flowchart TB
@@ -91,7 +97,7 @@ flowchart TB
     F --> G["exit code 0<br/>if no error was raised"]
 ```
 
-*Figure 9.1 – What happens when a stage command runs.*
+*Figure 9.1 – What happens when a stage command runs. A stage that is still a placeholder ends in the same way as a missing module: one line "Not implemented yet" and exit code 1.*
 
 ## Exit codes
 
@@ -201,7 +207,7 @@ Run the test that checks every stage command.
 .venv\Scripts\python.exe -m pytest tests/unit/test_cli.py -q -k "each_command"
 ```
 
-You should see `8 passed, 8 deselected`. The stages do not exist yet, so how can this be tested? Chapter 10 explains the method: the test puts a fake module in the place of the real one.
+You should see `8 passed, 9 deselected`. Most stages do not exist yet, so how can their commands be tested? Chapter 10 explains the method: the test puts a fake module in the place of the real one.
 
 ## Key takeaways
 

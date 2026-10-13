@@ -67,11 +67,11 @@ Each box is one step.
 
 ## What exists today
 
-Only the foundation exists. No data is downloaded yet and no model is trained.
+The foundation exists, and the first step of the path: the download. No data is cleaned yet and no model is trained.
 
-This order is deliberate. Every later step needs the same basic things: one place for settings, one definition of the column names, one way to start a command, one way to write a log line, and a way to test all of it. If these are built first, every later step uses them. If each step invents its own, they will not fit together.
+The foundation was built before any step of the pipeline. This order is deliberate. Every later step needs the same basic things: one place for settings, one definition of the column names, one way to start a command, one way to write a log line, and a way to test all of it. If these are built first, every later step uses them. If each step invents its own, they will not fit together.
 
-So the repository now contains the project packaging, the settings, the data contracts (rules that tables must satisfy), a command-line program, logging and tests. Part II of this book explains each of them. Part I, where you are now, explains the forecasting ideas that the foundation was designed around.
+So the repository contains the project packaging, the settings, the data contracts (rules that tables must satisfy), a command-line program, logging and tests. Part II of this book explains each of them. Part I, where you are now, explains the forecasting ideas that the foundation was designed around. Part III follows the pipeline step by step, starting with the download.
 
 ## Try it yourself
 
@@ -81,7 +81,7 @@ Ask the program which commands it has.
 .venv\Scripts\python.exe -m demand --help
 ```
 
-You should see a short description and a list of eleven commands: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `train`, `forecast`, `monitor`, `retrain`, `serve`. Compare the list with Figure 1.1: almost every box has a command. This shows that the shape of the whole system was fixed before the steps were written. Only `config` does real work today.
+You should see a short description and a list of eleven commands: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `train`, `forecast`, `monitor`, `retrain`, `serve`. Compare the list with Figure 1.1: almost every box has a command. This shows that the shape of the whole system was fixed before the steps were written. Two of them do real work today: `config` and `ingest`. The others answer with "Not implemented yet".
 
 Now ask for the three dates that define the project.
 

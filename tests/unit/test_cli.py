@@ -105,6 +105,20 @@ def test_unimplemented_stage_exits_with_an_error(monkeypatch: pytest.MonkeyPatch
     assert "Not implemented yet" in result.output
 
 
+def test_placeholder_stage_exits_with_an_error_instead_of_a_traceback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def placeholder(*args: object) -> None:
+        raise NotImplementedError("silver arrives later")
+
+    _fake_module(monkeypatch, "demand.data.pipeline", run_silver=placeholder)
+
+    result = runner.invoke(app, ["silver"])
+
+    assert result.exit_code == 1
+    assert "Not implemented yet: silver arrives later" in result.output
+
+
 def test_serve_exits_with_an_error_until_the_api_exists(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("demand.cli.importlib.util.find_spec", lambda name: None)
 

@@ -77,6 +77,15 @@ class WeatherConfig(_Section):
     variables: list[str] = Field(min_length=1)
 
 
+class DownloadConfig(_Section):
+    """Retry and timeout limits for downloads into the raw layer."""
+
+    max_attempts: int = Field(default=4, gt=0)
+    backoff_base_seconds: float = Field(default=1.0, ge=0)
+    connect_timeout_seconds: float = Field(default=10.0, gt=0)
+    read_timeout_seconds: float = Field(default=60.0, gt=0)
+
+
 class DataConfig(_Section):
     """What to ingest and where the training period ends."""
 
@@ -85,6 +94,7 @@ class DataConfig(_Section):
     start_month: Month
     end_month: Month
     train_end_date: date
+    download: DownloadConfig = DownloadConfig()
     n_zones: int = Field(gt=0)
     zones: list[int] = Field(default_factory=list)
     weather: WeatherConfig

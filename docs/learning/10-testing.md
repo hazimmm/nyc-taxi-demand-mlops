@@ -108,7 +108,7 @@ Line 2 sets an environment variable for this test only. Then the settings are lo
 
 ## Testing code that does not exist yet
 
-Chapter 9 ended with a question: how can the stage commands be tested when no stage exists? The answer uses `monkeypatch` again.
+Chapter 9 ended with a question: how can the stage commands be tested when most stages do not exist? The answer uses `monkeypatch` again.
 
 [`tests/unit/test_cli.py`](../../tests/unit/test_cli.py)
 
@@ -188,7 +188,7 @@ The first line of `conftest.py` states a rule: "Tests never touch the network or
 
 Imagine a test that downloads a real TLC file. It takes minutes. It fails when the website is slow or your connection is down. It gives a different result when the file is corrected at the source. A failed test then no longer means "the code is broken", and after a few false alarms people stop reading failures. Tests are only useful if a failure can be trusted.
 
-So the tests build tiny tables in memory, as `_silver_trips()` does with two rows, and replace outside services with test doubles. The complete suite runs in a few seconds.
+So the tests build tiny tables in memory, as `_silver_trips()` does with two rows, and replace outside services with test doubles. The complete suite runs in a few seconds. Chapter 14 shows how the download code, which does almost nothing except use the network, is tested under the same rule.
 
 ## Try it yourself
 
@@ -214,7 +214,7 @@ Run everything with coverage.
 .venv\Scripts\python.exe -m pytest --cov -q
 ```
 
-You should see `61 passed`, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.69%`. The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
+You should see `132 passed`, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.56%`. The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
 
 ## Key takeaways
 

@@ -81,7 +81,7 @@ The decision: train on archived weather *forecasts*, which is what the model wil
     archive_url: "https://archive-api.open-meteo.com/v1/archive"
 ```
 
-The first address returns past forecasts. The second returns observed weather and is only a fallback. If forecast data is missing for some period, the plan is to use observed weather there and to write that down as a known limitation. A limitation that is written down is acceptable. One that is hidden is a leak.
+The first address returns past forecasts. The second returns observed weather and is only a fallback. If the forecast service fails or its answer is incomplete, the download uses observed weather and records that fact next to the file. A limitation that is written down is acceptable. One that is hidden is a leak. Chapter 15 shows the code.
 
 ## A third leak: choosing the zones
 
@@ -89,7 +89,7 @@ The project forecasts only the 20 busiest zones. Which are they? The obvious met
 
 This also leaks, and no feature is involved. The six months include May and June, which are kept for testing. If a zone became busy only in June, it enters the list because of data the model is not allowed to see. The choice itself carries information from the future into the project.
 
-The decision: the zones are chosen from the training months only, then written into the config file as a fixed list that is never calculated again. At the moment the list is empty, because the selection needs data and the data pipeline is not built yet:
+The decision: the zones are chosen from the training months only, then written into the config file as a fixed list that is never calculated again. At the moment the list is empty, because the selection needs cleaned data and that step of the pipeline is not built yet:
 
 ```yaml
   n_zones: 20

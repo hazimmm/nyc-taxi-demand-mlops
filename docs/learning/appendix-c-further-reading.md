@@ -16,6 +16,14 @@ Official documentation for the tools that the repository uses today. Entries for
 - **Pandera documentation** – schemas, checks, strict mode. <https://pandera.readthedocs.io>
 - **pandas documentation** – time series and time zones. <https://pandas.pydata.org>
 
+## Getting data
+
+- **HTTPX documentation** – clients, timeouts, streaming responses, and mock transports for tests. <https://www.python-httpx.org>
+- **Apache Arrow documentation** – the Python library pyarrow and the Parquet format. <https://arrow.apache.org>
+- **DuckDB documentation** – reading Parquet files with SQL. <https://duckdb.org>
+- **Open-Meteo documentation** – the historical forecast API and the historical weather (archive) API. <https://open-meteo.com>
+- **NYC Taxi and Limousine Commission, TLC Trip Record Data** – the page that lists the monthly files and the data dictionary of the columns.
+
 ## Command line, tests and code quality
 
 - **Typer documentation** – commands, arguments, testing a CLI. <https://typer.tiangolo.com>

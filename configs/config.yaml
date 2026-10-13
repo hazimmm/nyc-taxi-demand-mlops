@@ -19,6 +19,12 @@ data:
   # Last day the model is allowed to learn from. Everything after it is replayed
   # as "production" by the simulated clock.
   train_end_date: 2025-04-30
+  # Download behaviour. A timeout limits one network operation, not a whole file.
+  download:
+    max_attempts: 4            # tries per file for transient failures (network, 5xx, 429)
+    backoff_base_seconds: 1.0  # wait 1 s, 2 s, 4 s ... between tries
+    connect_timeout_seconds: 10.0
+    read_timeout_seconds: 60.0
   n_zones: 20
   # Frozen list of pickup zone IDs, chosen from the training period only.
   # Empty until `python -m demand select-zones` has been run and its output pasted here.

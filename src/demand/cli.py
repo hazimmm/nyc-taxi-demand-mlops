@@ -42,7 +42,11 @@ def _run_stage(module: str, function: str, *args: object) -> None:
     if importlib.util.find_spec(module) is None:
         raise _not_implemented(module)
     configure_logging()
-    getattr(importlib.import_module(module), function)(get_settings(), *args)
+    try:
+        getattr(importlib.import_module(module), function)(get_settings(), *args)
+    except NotImplementedError as error:
+        # The module exists but this stage is still a placeholder.
+        raise _not_implemented(str(error) or f"{module}.{function}") from error
 
 
 @app.command()

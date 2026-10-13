@@ -129,7 +129,7 @@ Print the layer folders.
 .venv\Scripts\python.exe -c "from demand.config import get_settings; p = get_settings().paths; print(p.raw, p.silver, p.gold, p.predictions)"
 ```
 
-You should see `data\raw data\silver data\gold data\predictions`. The folders do not exist yet. Their locations are already fixed, so every later step agrees on them.
+You should see `data\raw data\silver data\gold data\predictions`. Their locations were fixed before any of them existed, so every step agrees on them. The first folder, `data\raw`, is created and filled by the ingest stage (Chapters 14 and 15). The other three do not exist yet.
 
 ## Key takeaways
 

@@ -31,7 +31,7 @@ python -m pytest --cov
 ## Learning book as a PDF
 
 ```powershell
-python toolsuild_book.py
+python tools\build_book.py
 ```
 
 Builds `docs/learning/nyc-taxi-demand-mlops-textbook.pdf` from the Markdown chapters. It needs Chrome or Edge installed, and downloads the Mermaid diagram library once on the first run. The PDF is not committed; the Markdown is the source.

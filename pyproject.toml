@@ -101,6 +101,7 @@ module = [
     "lightgbm.*",
     "mlflow.*",
     "prometheus_client.*",
+    "pyarrow.*",
     "shap.*",
     "sklearn.*",
 ]

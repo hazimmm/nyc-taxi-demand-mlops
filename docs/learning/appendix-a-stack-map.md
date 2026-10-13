@@ -29,15 +29,15 @@ The **Status** column has three values.
 
 ## Data pipeline (Phase 1)
 
-| Tool | What it is | Problem it solves here | Status |
-|---|---|---|---|
-| NYC TLC trip records | Public monthly files of taxi trips | The demand data | Planned (addresses are in the config) |
-| Open-Meteo | Free weather service, no key needed | Weather features | Planned (addresses are in the config) |
-| DuckDB | A database engine that runs inside the Python process | Reads and counts large files without loading everything into memory | Declared |
-| pyarrow | Reader and writer for Parquet files | The file format of every data layer | Declared |
-| httpx | Library for web requests | Downloads with time limits and retries | Declared |
-| holidays | Library of public holidays | The `is_holiday` feature | Declared |
-| DVC | Data Version Control: versions data files and pipeline steps next to git | A pipeline that can be repeated; data versions without data in git | Declared |
+| Tool | What it is | Problem it solves here | Status | Chapter |
+|---|---|---|---|---|
+| NYC TLC trip records | Public monthly files of taxi trips | The demand data | In use (downloaded by the ingest stage) | 14, 15 |
+| Open-Meteo | Free weather service, no key needed | Weather features | In use (downloaded by the ingest stage) | 15 |
+| httpx | Library for web requests | Downloads with time limits and retries; `MockTransport` for tests without a network | In use | 14 |
+| pyarrow | Reader and writer for Parquet files | The file format of the trip data; the footer check before a file is accepted | In use | 14 |
+| DuckDB | A database engine that runs inside the Python process | Reads and counts large files without loading everything into memory | Declared (used in this book to look at the raw data) | 15 |
+| holidays | Library of public holidays | The `is_holiday` feature | Declared | |
+| DVC | Data Version Control: versions data files and pipeline steps next to git | A pipeline that can be repeated; data versions without data in git | Declared | |
 
 ## Modelling (Phase 2)
 
@@ -90,4 +90,4 @@ The **Status** column has three values.
 
 ---
 
-[Previous: Chapter 13 – A code review of our own foundation](13-a-code-review-of-our-own-foundation.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)
+[Previous: Chapter 15 – Knowing what you have](15-knowing-what-you-have.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)
