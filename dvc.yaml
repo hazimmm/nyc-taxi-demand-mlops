@@ -1,8 +1,8 @@
-# The pipeline as DVC stages: the data stages of phase 1 and the backtest of phase 2.
+# The pipeline as DVC stages: the data stages of phase 1 and the training of phase 2.
 # Run it with `dvc repro` from the project folder, with the virtual environment active
 # (the commands call `python`).
 #
-#   ingest_raw -> build_silver -> validate_silver -> build_gold -> validate_gold -> backtest
+#   ingest_raw -> build_silver -> validate_silver -> build_gold -> validate_gold -> train
 #
 # DVC runs a stage again only when something it depends on has changed:
 #
@@ -16,7 +16,7 @@
 # and modules a stage imports only a path helper from. The pipeline.py of the data
 # package is a dependency of ingest_raw only, because the ingest loop lives there; for
 # the other data stages it holds a one-line call. The pipeline.py of the models package
-# is a dependency of backtest, because it decides which forecasters are compared.
+# is a dependency of train, because it decides which forecasters are compared.
 #
 # The order of the stages comes from these lists, not from the order in this file. A
 # quality gate stands between two stages because the next stage depends on the report
@@ -147,13 +147,21 @@ stages:
     outs:
       - reports/gold_validation_report.json
 
-  backtest:
-    cmd: python -m demand backtest
+  # The backtest and the final fit are one stage. Both would write the backtest report,
+  # and a model must be recorded with the scores of the config it was trained with.
+  # `python -m demand backtest` is still there as a command that does not use MLflow.
+  train:
+    cmd: python -m demand train
     deps:
       - data/gold/features.parquet
-      # The gate: only a gold layer that passed validate_gold is scored.
+      # The gate: only a gold layer that passed validate_gold is trained on.
       - reports/gold_validation_report.json
+      # Stored with the MLflow run.
+      - reports/silver_cleaning_report.json
       - src/demand/models/pipeline.py
+      - src/demand/models/training.py
+      - src/demand/models/tracking.py
+      - src/demand/models/gbm.py
       - src/demand/models/backtest.py
       - src/demand/models/baseline.py
       - src/demand/models/metrics.py
@@ -162,12 +170,20 @@ stages:
       - src/demand/schemas.py
     params:
       - configs/config.yaml:
+          - project.seed
           - project.timezone
           - data.train_end_date
+          - data.zones
           - data.weather.variables
-          - features.horizon_hours
-          - features.lags
-          - features.rolling_windows
+          - features
+          - model.params
           - backtest
+          - mlflow.tracking_uri
+          - mlflow.experiment_name
+          - mlflow.registered_model_name
     metrics:
       - reports/backtest_report.json
+      # The MLflow database is not an output of this stage: DVC tracks this small report
+      # instead. If mlflow.db is deleted, DVC still calls the stage up to date; record
+      # the model again with: dvc repro --force train
+      - reports/training_report.json

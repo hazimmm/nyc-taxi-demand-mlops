@@ -30,7 +30,7 @@ a feature of hour ``t`` never looks closer than ``features.horizon_hours`` (see
 
 **The interface.** ``Forecaster`` has two methods, ``fit`` on a table of past rows and
 ``predict`` on a table of rows to forecast. A baseline ignores ``fit``. A fitted model
-(LightGBM, in the next feature) learns in ``fit``. The backtest only knows the two
+(LightGBM, in ``gbm.py``) learns in ``fit``. The backtest only knows the two
 methods, so it treats both kinds the same way and does not change when a model is added.
 It is a ``Protocol``: a class satisfies it by having the two methods, without inheriting
 from anything.

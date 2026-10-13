@@ -5,6 +5,8 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Term | Meaning | Ch. |
 |---|---|---|
 | Actuals | The real observed values, here the real pickups, known only after the hour has passed. | 3 |
+| Alias (model registry) | A label, such as `champion`, that points to one version of a registered model. None is set yet. | 26 |
+| Artifact | A file that is stored with a training run, such as a report or the model. | 26 |
 | Atomic | Said of an operation that happens completely or not at all, with no state in between. Renaming a file inside one folder is atomic. | 14 |
 | Automated test | A small function that runs a piece of code and checks the result with `assert`. | 10 |
 | Backtest | Testing a forecasting model on the past as if it had been used then. Here: four test weeks in April 2025, scored by `python -m demand backtest`. | 3, 23 |
@@ -14,6 +16,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Branch coverage | Coverage that also requires both outcomes of every `if` to be executed. | 10 |
 | Build backend | The tool that turns a source folder into something installable. Here: hatchling. | 5 |
 | Cache (DVC) | The folder `.dvc/cache`, in which DVC keeps a copy of every output of a stage. | 21 |
+| Categorical feature | An input whose values are labels from a fixed list, not amounts. Here: `zone_id`. A tree can put any group of labels on one side of a question. | 24 |
 | Champion / challenger | The model in use / a new model that must beat it to replace it. | 1 |
 | Cleaning report | The record of a cleaning run: rows in, rows removed by each rule, rows out. Here: `reports/silver_cleaning_report.json`. | 16 |
 | Cleaning rule | A condition that marks a row as not valid, with a name and a fixed place in the order of the rules. | 16 |
@@ -34,10 +37,12 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Data leakage | Training or testing with information that is not available when the model is really used. | 2, 19 |
 | Daylight saving time | The summer clock, one hour ahead of the winter clock. The change skips one local hour in spring and repeats one in autumn. | 17 |
 | Day-ahead forecast | A forecast for all hours of a day, issued on the day before. Here it can be issued at 00:00 on the day before. | 1, 2 |
+| Decision tree | A model that asks yes-or-no questions about the inputs of a row and ends in a number. The place where it ends is a leaf. | 24 |
 | Decorator | A marker above a function, starting with `@`, that changes how the function is used. | 9 |
 | Dependency | A library that the code needs in order to run. | 6 |
 | Dependency injection | Giving a function the things it depends on, such as a network client, as arguments, so that a test can pass different ones. | 14 |
 | `deps`, `params`, `outs` | The three lists of a stage in `dvc.yaml`: the files the stage reads, the config keys it uses, and what it writes. `deps` is short for dependencies, here in the sense of files, not libraries. | 21 |
+| Deterministic | Said of a process that gives the same output for the same input, every time. | 25 |
 | Docstring | A text at the start of a file, class or function that documents it. | 5 |
 | Drift | A change in the data compared with the training period. | 3 |
 | DVC | Data Version Control: a tool next to git that runs a pipeline of stages and repeats only the stages for which something changed. It can also store versions of data files. | 21 |
@@ -51,10 +56,13 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Exit code | The number a program returns when it ends. Zero is success. | 9 |
 | Expanding window | A way to cut the training rows of a backtest: every fold trains from the first row of the table, so later folds have more training rows. | 23 |
 | Expected failure | A failure that is not a mistake in the code, such as a missing input file or a failed quality gate. It is printed as one line that says what to do next. Here: every `PipelineError`. | 20 |
+| Experiment tracking | Recording every training run with its settings, scores and origin, so that runs can be found and compared later. Here: MLflow. | 26 |
 | Exponential backoff | Waiting twice as long after every failed attempt before trying again. | 14 |
 | Extra | See *optional dependency group*. | 6 |
 | Fail closed / fail open | What a check does when it cannot do its job. Fail closed: stop with an error. Fail open: let everything pass. | 8 |
 | Feature | An input column of a model. | 1, 19 |
+| Feature importance (gain) | For each input, the share of the improvement during training that came from tree questions about that input. It shows what the trees used, not a direction or a cause. | 24 |
+| Final fit | Fitting the chosen recipe once more on all training rows, after the backtest. The result is the model that is stored. | 26 |
 | Fit | To let a forecaster learn from past rows. A baseline has the method and learns nothing. | 22 |
 | Fixture | A function that prepares something for tests. A test asks for it by parameter name. | 10 |
 | Fold | One repetition of a backtest, with its own training and test period. | 3, 23 |
@@ -67,6 +75,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Gap (backtest) | The hours between the last training hour of a fold and its first test hour, used for neither. Here 47 hours per zone, so that no model learns from pickups that did not exist when its first forecast was issued. | 23 |
 | Git hook | A script that git runs automatically at a certain moment, for example before a commit. | 11 |
 | Gold layer | Data in the form its users need: one row per zone and hour, and the table of model inputs. | 4, 18 |
+| Gradient boosting | Building many decision trees in a row, where each new tree is trained on what the trees before it still get wrong. The forecast is the sum of all trees. | 24 |
 | Ground truth | The real value that a prediction tried to match. | 3 |
 | Hard-coded | Said of a value written directly in the code. | 7 |
 | Idempotent | Said of an operation that gives the same result when it is run again. | 15, 17 |
@@ -74,11 +83,13 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Imputation | Filling a missing value with a calculated one, for example the average. | 16 |
 | Import path | The list of folders where Python searches for code to import. | 5 |
 | Ingest | To bring data from outside sources into the project. The first stage of the pipeline. | 14 |
+| Input example | A few rows of valid model inputs, stored next to the model. Here: the first five training rows. | 26 |
 | JSON | A standard text format for structured data. | 9 |
 | Lag feature | A past value of the target used as an input. | 2, 19 |
 | Lazy import | Importing a module at the moment it is needed, not at the top of the file. | 9 |
 | Lazy validation | Checking a table against a schema in a way that runs every rule and reports all failures together, where the normal way stops at the first. | 20 |
 | Leakage test | A test that changes the target at one hour, builds the features again, and checks that no row earlier than that hour plus the horizon changed. | 19 |
+| LightGBM | A library for gradient boosting. Here: the forecasting model, wrapped in the class `LightGbmForecaster`. | 24 |
 | Linear interpolation | Filling missing values on a straight line between the known value before the gap and the known value after it. | 17 |
 | Linter | A tool that reads code and reports likely mistakes and bad habits. | 11 |
 | Localize | To attach a timezone to a timestamp that was recorded without one. The clock time stays the same. | 17 |
@@ -90,16 +101,22 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Medallion architecture | Storing data in layers of increasing quality: raw (bronze), silver, gold. | 4 |
 | Metric | A rule that turns the errors of many forecasts into one number. | 22 |
 | Missing value | A value that is not there: it was never recorded, or it was lost. Stored as an empty cell, not as a number. | 15, 16 |
-| Model registry | A place that keeps every version of a model with a label. | 1 |
+| MLflow | A tool for experiment tracking with a model registry. Here it writes to `mlflow.db` and `mlruns`. | 26 |
+| Model registry | A place that keeps every version of a model with a label. Here: the name `taxi-demand` in MLflow. | 1, 26 |
+| Model signature | The names and types of the input columns of a stored model, in order, and the type of its output. MLflow checks every table against it when the model is loaded. | 26 |
+| Model version | The number the registry gives a model each time one is registered under the same name: 1, 2, 3. | 26 |
 | monkeypatch | A pytest fixture that changes something for one test and restores it afterwards. | 10 |
 | Naive timestamp | A date and time without a timezone. | 17 |
 | NaT | "Not a time": the missing value for timestamps in pandas. | 17 |
+| Noise (of a score) | Movement of a score that comes from chance, such as another seed, and not from a difference in the model. Here about 0.2 pickups of MAE. | 25 |
+| Objective | The measure of error that training makes small. Here: `poisson`, which is made for counts. | 24 |
 | Optional dependency group | A named set of additional libraries, installed only where needed. | 6 |
 | Outlier flag | A true/false column that marks an hour whose pickups are far from normal for its slot. The hour is kept. Here: `is_outlier`. | 18 |
 | Package | A folder of Python files that can be imported by its name. | 5 |
 | Parametrised test | One test function that runs once for each entry in a list of inputs. | 10 |
 | Parquet | A compact file format for tables. | 12 |
 | Persist (DVC) | The option `persist: true` of an output. It tells DVC not to delete the output before it runs the stage. | 21 |
+| Pickle | Python's own format for saving objects to a file. It can only be loaded where the classes are installed, and only from a trusted source. | 26 |
 | Pin | To fix a library to one exact version. | 6 |
 | Placeholder | A function that exists by name and only raises `NotImplementedError` until the real one is written. | 9 |
 | Placeholder value | A value such as zero, or a copy of another field, that a source writes where it has no measurement. | 16 |
@@ -114,8 +131,10 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | RMSE | Root mean squared error: like the MAE, with large errors counted much more. It is never smaller than the MAE. | 22 |
 | Rolling statistic | A summary, such as the mean, over a moving window of time. Here every window ends one horizon before the target hour. | 2, 19 |
 | Rolling-origin backtest | A backtest repeated with a training end date that moves forward. | 3 |
+| Run (MLflow) | One recorded execution of the training, with an id. It holds parameters (settings chosen before), metrics (numbers produced), tags (where it came from) and artifacts (files). | 26 |
 | Schema | The formal definition of a table: columns, types and rules. | 8 |
 | Seasonal naive forecast | The forecast "the same as one season ago". Here the season is a week. See *baseline*. | 22 |
+| Seed | The number from which a computer starts its sequence of random-looking numbers. The same seed gives the same random choices. Here: `project.seed`. | 25 |
 | SHA-256 | A method for calculating a checksum of 64 characters. | 15 |
 | Silver layer | Cleaned data: valid rows, fixed types, no duplicates. One row is one valid trip, or one hour of weather. | 4, 16 |
 | Simulated clock | Replaying unseen historical data one day at a time, as if it were happening now. | 3 |
@@ -138,6 +157,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Timezone-aware timestamp | A timestamp that carries its timezone, so that it names exactly one moment. | 17 |
 | `tmp_path` | A pytest fixture that gives each test a new empty folder. | 10 |
 | Traceback | The report of files and line numbers that Python prints when an error is not handled. It is made for finding a mistake in the code. | 20 |
+| Training report | The short record of a training run on disk: the MLflow run, the model version, the data version and the headline scores. Here: `reports/training_report.json`. | 26 |
 | Training/serving skew | A difference between how features are calculated for training and for prediction. | 4, 19 |
 | Transient error | A failure that may go away on its own, such as a short network problem. Worth a retry. | 14 |
 | Transitive dependency | A library that is installed because one of your dependencies needs it. | 6 |

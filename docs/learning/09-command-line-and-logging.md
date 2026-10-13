@@ -77,7 +77,7 @@ Line 5 sets up logging, which the second half of this chapter covers.
 
 Line 7 does three things, from the inside out. `importlib.import_module(module)` loads the module now. `getattr(..., function)` takes the function with the given name out of it. The final brackets call that function and give it the settings as its first argument.
 
-The first `except` block handles a stage whose module exists while the stage itself is not written yet. Such a stage is a **placeholder**: a function that only raises `NotImplementedError`. Without the `except` block, the user would see a long error report with file names and line numbers. With it, the user sees one line, "Not implemented yet", followed by the text of the placeholder, and the exit code is 1. The `train` command is such a stage today: its module exists, because the backtest of Chapter 23 lives in it, and the training function is not written yet.
+The first `except` block handles a stage whose module exists while the stage itself is not written yet. Such a stage is a **placeholder**: a function that only raises `NotImplementedError`. Without the `except` block, the user would see a long error report with file names and line numbers. With it, the user sees one line, "Not implemented yet", followed by the text of the placeholder, and the exit code is 1. No command is in this state today. The last one was `train`, which became a real stage in Chapter 26. The block stays for the next stage that is added in two steps, and a test keeps it working.
 
 The second `except` block handles a failure that the program expects, such as an input file that is missing. Every error of this kind belongs to the class `PipelineError`. The user sees one line that begins with "Error:", and the exit code is 1. Any other error is a mistake in the code and keeps its long report. Chapter 20 explains the difference and the class.
 
@@ -91,7 +91,7 @@ The first is the dependency groups of Chapter 6. The training stage needs LightG
 
 The second is speed. Loading large libraries takes seconds. Printing a help text should not wait for them.
 
-The third is the order of building. The full list of commands existed before any stage did, and today six stages are written: `ingest`, `select-zones`, `silver`, `gold`, `validate` and `backtest` (Chapters 14 to 23). A missing module is not an import error that breaks the whole program. It is a clear message for that one command.
+The third is the order of building. The full list of commands existed before any stage did, and today seven stages are written: `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest` and `train` (Chapters 14 to 26). A missing module is not an import error that breaks the whole program. It is a clear message for that one command.
 
 ```mermaid
 flowchart TB
@@ -217,14 +217,13 @@ $LASTEXITCODE
 
 You should see `Not implemented yet: demand.flows.forecast_flow` and then the number `1`. This is the branch "no" of Figure 9.1: the module of the forecast stage is not written, and the command says so in one line, without a long error report, and with a failure code.
 
-Run a command whose module exists while its stage is a placeholder.
+No real command is a placeholder today, so the other way to this message cannot be shown with a command. A test shows it. It puts a fake stage in the place of a real one, and the fake only raises `NotImplementedError("validate arrives later")`.
 
 ```powershell
-.venv\Scripts\python.exe -m demand train
-$LASTEXITCODE
+.venv\Scripts\python.exe -m pytest tests/unit/test_cli.py -q -k "placeholder"
 ```
 
-You should see `Not implemented yet: demand.models.pipeline.run_training (training arrives later)` and then `1`. The text after the colon comes from the placeholder function.
+You should see `1 passed, 19 deselected`. The test checks that the command prints `Not implemented yet: validate arrives later` and that the exit code is 1.
 
 Run the test that checks every stage command.
 

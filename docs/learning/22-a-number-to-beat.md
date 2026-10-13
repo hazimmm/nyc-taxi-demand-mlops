@@ -47,7 +47,7 @@ class LagBaseline:
 
 The class has two methods. `fit` receives past rows and does nothing with them. `predict` receives the rows to forecast and returns one column of them. To **fit** a forecaster means to let it learn from past rows. This one learns nothing, and it still has the method.
 
-The reason is in the same file. A **forecaster** is defined there as anything that has these two methods, `fit` and `predict`. The code that scores forecasts (Chapter 23) knows only the two methods. A LightGBM model will learn in `fit` and calculate in `predict`. It will be scored by the same code, on the same rows, without any change to that code.
+The reason is in the same file. A **forecaster** is defined there as anything that has these two methods, `fit` and `predict`. The code that scores forecasts (Chapter 23) knows only the two methods. The LightGBM model of Chapter 24 learns in `fit` and calculates in `predict`. It is scored by the same code, on the same rows, and that code did not change when the model was added.
 
 ## Why not a more recent hour?
 

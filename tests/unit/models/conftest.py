@@ -3,13 +3,16 @@
 ``feature_table`` builds a gold feature table whose pickups rise by one every hour, so
 the error of a lag baseline is known without a calculator: a forecast that copies the
 value of ``k`` hours ago is wrong by exactly ``k``. ``Lookup`` forecasts whatever a test
-tells it to, and ``Spy`` records what the backtest hands to a forecaster.
+tells it to, and ``Spy`` records what the backtest hands to a forecaster. ``ONE_TREE`` and
+``FEW_TREES`` are LightGBM parameters for tests: a model small enough to check by hand,
+and a quick one that still draws random rows and columns.
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 
@@ -126,3 +129,50 @@ class Spy:
         self.asked_for.append(rows)
         forecast: FloatArray = rows[ZONE_ID].to_numpy(dtype="float64") * 0
         return forecast
+
+
+# One tree with a learning rate of 1 and no minimum leaf size: the forecast of a row is
+# the mean target of the training rows in its leaf, which can be checked by hand.
+# (LightGBM stores a leaf value with seven digits, so compare with ``pytest.approx``.)
+ONE_TREE = {
+    "objective": "regression",
+    "n_estimators": 1,
+    "learning_rate": 1.0,
+    "num_leaves": 4,
+    "min_child_samples": 1,
+    "verbosity": -1,
+}
+
+# The parameters of the config with few trees: random rows and columns for every tree,
+# as in a real run, and fast enough for a unit test.
+FEW_TREES = {
+    "objective": "poisson",
+    "learning_rate": 0.05,
+    "n_estimators": 20,
+    "num_leaves": 63,
+    "min_child_samples": 20,
+    "subsample": 0.8,
+    "subsample_freq": 1,
+    "colsample_bytree": 0.8,
+    "verbosity": -1,
+}
+
+
+def with_model_params(settings: Settings, params: dict[str, object]) -> Settings:
+    """The same settings with other LightGBM parameters."""
+    return settings.model_copy(
+        update={"model": settings.model.model_copy(update={"params": dict(params)})}
+    )
+
+
+def with_levels(table: pd.DataFrame, levels: dict[int, float]) -> pd.DataFrame:
+    """``table`` with the same pickups in every hour of a zone: ``levels[zone]``."""
+    return table.assign(**{TARGET: table[ZONE_ID].map(levels)})
+
+
+def with_mlflow_store(settings: Settings, folder: Path) -> Settings:
+    """The same settings with an MLflow database in ``folder``, never the one of the repo."""
+    uri = f"sqlite:///{(folder / 'mlflow.db').as_posix()}"
+    return settings.model_copy(
+        update={"mlflow": settings.mlflow.model_copy(update={"tracking_uri": uri})}
+    )

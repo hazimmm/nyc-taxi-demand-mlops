@@ -63,7 +63,7 @@ nyc-taxi-demand-mlops/
 │       ├── logs.py         logging
 │       ├── errors.py       failures that are reported in one line (Chapter 20)
 │       ├── data/           the data pipeline (Part III)
-│       ├── models/         the baseline and the backtest (Part IV)
+│       ├── models/         the baseline, the backtest, the model and its training (Part IV)
 │       ├── serving/        this and the next two: empty until their part is built
 │       ├── monitoring/
 │       └── flows/

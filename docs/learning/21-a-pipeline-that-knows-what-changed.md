@@ -1,6 +1,6 @@
 # Chapter 21 – A pipeline that knows what changed
 
-You change `outlier_zscore` in the config from 4.0 to 3.5. The pipeline has six commands: `ingest`, `silver`, `validate silver`, `gold`, `validate gold`, `backtest`. Which of them must run again? The honest answer of most people is "I am not sure, so I run all of them", or "only gold, I think". The first answer costs time. The second is a risk: if it is wrong, a layer on disk no longer matches the config, and nothing says so. This chapter gives the question to a tool.
+You change `outlier_zscore` in the config from 4.0 to 3.5. The pipeline has six commands: `ingest`, `silver`, `validate silver`, `gold`, `validate gold`, `train`. Which of them must run again? The honest answer of most people is "I am not sure, so I run all of them", or "only gold, I think". The first answer costs time. The second is a risk: if it is wrong, a layer on disk no longer matches the config, and nothing says so. This chapter gives the question to a tool.
 
 ## What you will learn
 
@@ -60,7 +60,7 @@ This is one of the six stages. It has four parts.
 
 `outs` (outputs) are what the stage writes.
 
-Now the opening has an answer. `features` is in the `params` of `build_gold`, so that stage runs. Its output `data/gold` changes, and `data/gold` is in the `deps` of `validate_gold`, so the gate runs too. The last stage, `backtest`, reads the feature table `data/gold/features.parquet`, which holds the column `is_outlier`. If one flag changes, that file changes, and the backtest runs as well. The first three stages list neither the key nor anything that changed. They are skipped.
+Now the opening has an answer. `features` is in the `params` of `build_gold`, so that stage runs. Its output `data/gold` changes, and `data/gold` is in the `deps` of `validate_gold`, so the gate runs too. The last stage, `train`, runs for two reasons. It lists `features` among its own `params`, because the model inputs are defined there. And it reads the feature table `data/gold/features.parquet`, which holds the column `is_outlier`. The first three stages list neither the key nor anything that changed. They are skipped.
 
 ## What "changed" means: dvc.lock
 
@@ -85,7 +85,7 @@ After a stage has run, DVC writes down what it saw. The record is the file [`dvc
 
 For every key under `params` it stores the value. For every entry under `deps` and `outs` it stores a checksum, calculated with **MD5**, a method like the SHA-256 of Chapter 15 with a shorter result. A folder gets one checksum for all its files together, marked with `.dir`.
 
-`dvc repro` (reproduce) is the command that runs the pipeline. For every stage it calculates the checksums and reads the config keys again, and compares them with `dvc.lock`. If all are equal, the stage is skipped. A run in which the five data stages were forced took about 46 seconds here, and the backtest adds about one second. A second `dvc repro` takes about one second and prints `Data and pipelines are up to date.`
+`dvc repro` (reproduce) is the command that runs the pipeline. For every stage it calculates the checksums and reads the config keys again, and compares them with `dvc.lock`. If all are equal, the stage is skipped. A run in which the five data stages were forced took about 46 seconds here. The sixth stage, `train`, adds the time to fit five models (Chapter 26). A second `dvc repro` takes about one second and prints `Data and pipelines are up to date.`
 
 `dvc.yaml` and `dvc.lock` are stored in git. The data is not: `.gitignore` still excludes `data/` and `reports/` (Chapter 12). `requirements.lock` records the exact libraries of a commit (Chapter 6). `dvc.lock` does the same for the data: it records the exact content that the pipeline produced.
 
@@ -107,12 +107,12 @@ flowchart TD
     C --> GO[("data/gold")]
     GO --> G2{{"validate_gold"}}
     G2 --> P2["gold validation<br/>report"]
-    GO --> BT["backtest"]
-    P2 --> BT
-    BT --> P3["backtest<br/>report"]
+    GO --> TR["train"]
+    P2 --> TR
+    TR --> P3["backtest and<br/>training reports"]
 ```
 
-*Figure 21.1 – The six stages. `build_gold` depends on the silver layer and on the report of the silver gate. `backtest` depends on the feature table and on the report of the gold gate.*
+*Figure 21.1 – The six stages. `build_gold` depends on the silver layer and on the report of the silver gate. `train` depends on the feature table and on the report of the gold gate.*
 
 When the gate fails, its command ends with exit code 1 (Chapter 9). DVC stops and does not run the stages that come after it.
 
@@ -123,7 +123,7 @@ The data engineer of this project tested the gate inside the pipeline once. One 
 The option was needed for a reason that is worth knowing. A plain `dvc repro` first sees that an output of `build_silver` no longer matches `dvc.lock`, and it repairs that output before any gate runs. `--downstream validate_silver` starts at the named stage and does not touch the stages before it.
 
 > [!NOTE]
-> The stage `backtest` of Chapter 23 is connected to the gold gate in the same way. It lists `reports/gold_validation_report.json` under its `deps`, so a forecaster is scored only on a gold layer that passed its gate. Its own report is listed under `metrics`, like the cleaning report of the silver stage: an output whose numbers the command `dvc metrics show` can print. A training stage must list the gold report too when it is added.
+> The stage `train` of Chapter 26 is connected to the gold gate in the same way. It lists `reports/gold_validation_report.json` under its `deps`, so a model is scored and trained only on a gold layer that passed its gate. Its two reports are listed under `metrics`, like the cleaning report of the silver stage: an output whose numbers the command `dvc metrics show` can print. Until Chapter 26 this stage was named `backtest` and ran only the backtest of Chapter 23.
 
 ## The raw layer keeps its files
 
@@ -151,13 +151,14 @@ A DVC **remote** is a shared storage place, to which the cache can be sent so th
 
 ## What DVC does not see
 
-DVC compares what it was told to compare. Three things are outside its view here.
+DVC compares what it was told to compare. Four things are outside its view here.
 
 - **A source that publishes a file again.** The warning above explains it.
 - **Files that are not listed.** The comment at the top of `dvc.yaml` says that `config.py`, `cli.py`, `logs.py` and `errors.py` are left out on purpose, because every stage uses them and most changes to them cannot alter the data. "Most" is not "all". `config.py` holds the code that turns `start_month` and `end_month` into the list of months. A change there could alter every layer, and DVC would report that everything is up to date.
 - **The installed libraries.** `requirements.lock` is not in the `deps` of any stage. A new version of pandas does not start a rebuild.
+- **The record of trained models.** The MLflow database of Chapter 26 is not an output of any stage. If it is deleted, DVC still reports that everything is up to date.
 
-For the second and the third case there is `dvc repro --force`, which runs every stage again whatever `dvc.lock` says.
+For the second and the third case there is `dvc repro --force`, which runs every stage again whatever `dvc.lock` says. For the fourth, `dvc repro --force train` runs the last stage alone.
 
 ## A real mistake: the date without quotes
 
@@ -197,7 +198,7 @@ Stage 'build_silver' didn't change, skipping
 Stage 'validate_silver' didn't change, skipping
 Stage 'build_gold' didn't change, skipping
 Stage 'validate_gold' didn't change, skipping
-Stage 'backtest' didn't change, skipping
+Stage 'train' didn't change, skipping
 Data and pipelines are up to date.
 ```
 
@@ -231,7 +232,7 @@ build_silver     Outputs data/silver; Reports reports/silver_cleaning_report.jso
 validate_silver  Outputs reports/silver_validation_report.json
 build_gold       Outputs data/gold
 validate_gold    Outputs reports/gold_validation_report.json
-backtest         Reports reports/backtest_report.json
+train            Reports reports/backtest_report.json, reports/training_report.json
 ```
 
 `dvc dag` draws the same stages as a graph of boxes.
@@ -267,7 +268,7 @@ You should see `str`.
 <details>
 <summary>Answer</summary>
 
-`build_silver` runs, because it lists the whole section `cleaning`. Its output `data/silver` changes, because 31 trips of January alone are longer than 80 miles (Chapter 20). `validate_silver` runs: it lists the key, and `data/silver` is in its `deps`. `build_gold` runs because `data/silver` changed. `validate_gold` runs only if `data/gold` changed, which depends on whether one of the removed trips started in one of the 20 zones. The same is true for `backtest` and the feature table. `ingest_raw` is skipped. The stale silver layer of the opening of Chapter 20 cannot happen when the pipeline is run through DVC.
+`build_silver` runs, because it lists the whole section `cleaning`. Its output `data/silver` changes, because 31 trips of January alone are longer than 80 miles (Chapter 20). `validate_silver` runs: it lists the key, and `data/silver` is in its `deps`. `build_gold` runs because `data/silver` changed. `validate_gold` runs only if `data/gold` changed, which depends on whether one of the removed trips started in one of the 20 zones. `train` runs in any case: the cleaning report has changed, and it is among the `deps` of `train`, because it is stored with the record of the model (Chapter 26). `ingest_raw` is skipped. The stale silver layer of the opening of Chapter 20 cannot happen when the pipeline is run through DVC.
 
 </details>
 

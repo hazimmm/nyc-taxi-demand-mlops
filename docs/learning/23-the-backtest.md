@@ -100,7 +100,7 @@ flowchart TB
 
 *Figure 23.3 – The backtest. The overall score is one mean over all 13,440 test rows, not the mean of four fold scores.*
 
-The command is `python -m demand backtest`, and it is the sixth stage in `dvc.yaml`. The report holds no time and every score is rounded to six decimals, so the same table and config give the same bytes (Chapter 21).
+The command is `python -m demand backtest`. In `dvc.yaml` the sixth stage is `train`, which runs this backtest as its first step (Chapter 26). The report holds no time and every score is rounded to six decimals, so the same table and config give the same bytes (Chapter 21).
 
 ## Reading the result
 
@@ -133,29 +133,31 @@ Good Friday and Easter Sunday, 20 April, are not federal holidays. So `is_holida
 - **Pickups are assumed to be known when the hour ends.** A real data feed is late. This project has no feed at all (Chapter 3).
 - **The weather column is assumed to be what a forecast would have said up to 47 hours ahead.** This is not verified. The archive of past forecasts may hold forecasts made closer to the hour, which are more accurate (Chapter 2).
 - **The folds lie inside the period that also chose the 20 zones** and gave the outlier flag its yardstick. This is the same for every forecaster, so comparisons between forecasters stay fair.
-- **The folds stop being a clean test once they are used to choose.** Later chapters tune a model on these four weeks. The score of the chosen settings is then too good, by an unknown amount. May and June remain the clean test.
+- **The folds stop being a clean test once they are used to choose.** Chapter 25 makes four choices on these four weeks, and a later feature tunes the model on them. The score of the chosen settings is then too good, by an unknown amount. May and June remain the clean test.
 
-## What to expect from a model
+## What a model adds
 
-One result from outside the repository sets the expectation. For this chapter a LightGBM model with the parameters in the config, and no tuning, was run in a scratch script on the same folds. Its MAE was 25.96, the mean of three random seeds that lie within 0.27 of each other. That is about 6% better than 27.70. In the fourth week the two were almost equal: between 28.3 and 28.4 against 28.70.
+This chapter read the result of the baseline only. The same command now scores a second forecaster, the LightGBM model of Chapter 24, on the same rows. Its MAE is 24.93, which is 10.0% better than 27.70.
 
-A small gain from a model without tuning is normal, because the weekly copy is a strong forecast. This is the reason to have a baseline: without it, 25.96 would look like a result. With it, it is a first small step.
+An earlier version of this section reported 25.96 from a scratch script. That was the same model with the zone read as a number (Chapter 25).
+
+The gain is only a tenth, because the weekly copy is a strong forecast. Without the baseline, 24.93 would look like a result. With it, it is a first step.
 
 ## Try it yourself
 
-These commands need the gold layer of Chapter 18. Run the backtest. It only reads the feature table and writes the report.
+These commands need the gold layer of Chapter 18. Run the backtest. It reads the feature table, fits the model of Chapter 24 four times, and writes the report in about seven seconds.
 
 ```powershell
 .venv\Scripts\python.exe -m demand backtest
 ```
 
-You should see two lines. The first is like this:
+You should see three lines. The first is like this:
 
 ```text
 {"time": "2026-10-13T14:56:20.566882+00:00", "level": "INFO", "logger": "demand.models.backtest", "message": "forecaster scored", "forecaster": "weekly_naive", "mae": 27.70067, "rmse": 44.509467, "smape": 24.637605, "rows": 13440, "mae_without_outliers": 27.684783, "mae_per_fold": {"1": 27.614583, "2": 26.572619, "3": 27.91756, "4": 28.697917}}
 ```
 
-The second has the message `backtest finished` and the path of the report.
+The second has the same form for the forecaster `lightgbm`. The third has the message `backtest finished` and the path of the report.
 
 Print the folds from the report.
 
@@ -274,4 +276,4 @@ No. The best of thirty is partly good and partly lucky on these four weeks, and 
 
 ---
 
-[Previous: Chapter 22 – A number to beat: the baseline and three metrics](22-a-number-to-beat.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 22 – A number to beat: the baseline and three metrics](22-a-number-to-beat.md) | [Contents](README.md) | [Next: Chapter 24 – A model behind the same two methods: LightGBM as a forecaster](24-a-model-behind-the-same-two-methods.md)

@@ -34,7 +34,7 @@ python -m pytest --cov
 dvc repro
 ```
 
-Runs six stages in order: download the raw files, clean them into silver, check silver, build gold, check gold, and score the baseline forecast on four past weeks (the backtest). A stage is skipped when nothing it depends on has changed, so a second run does nothing. If a check fails, the pipeline stops before the next stage and the details are in `reports/`.
+Runs six stages in order: download the raw files, clean them into silver, check silver, build gold, check gold, and train: score the forecasters on four past weeks (the backtest), fit the final model and record it in MLflow. A stage is skipped when nothing it depends on has changed, so a second run does nothing. If a check fails, the pipeline stops before the next stage and the details are in `reports/`.
 
 Activate the venv first, because the stages call `python`. The first run downloads about 390 MB from public servers. The data is not stored in git and no DVC remote is needed: the pipeline rebuilds everything from the sources.
 

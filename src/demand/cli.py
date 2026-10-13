@@ -98,7 +98,7 @@ def backtest() -> None:
 
 @app.command()
 def train() -> None:
-    """Backtest, train and register a challenger model."""
+    """Backtest the forecasters, fit the final model and record it in MLflow."""
     _run_stage("demand.models.pipeline", "run_training")
 
 

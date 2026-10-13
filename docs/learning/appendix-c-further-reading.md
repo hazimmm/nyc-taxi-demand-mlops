@@ -35,6 +35,12 @@ Official documentation for the tools that the repository uses today, and one tex
 ## Forecasting and its evaluation
 
 - **Forecasting: Principles and Practice** by Rob Hyndman and George Athanasopoulos – a free online textbook. Read the sections on simple forecasting methods (the seasonal naive method is the baseline of Chapter 22), on the accuracy of point forecasts (MAE, RMSE and the problems of percentage errors), and on time series cross-validation, which is the backtest of Chapter 23. <https://otexts.com/fpp3/>
+- **The Elements of Statistical Learning** by Trevor Hastie, Robert Tibshirani and Jerome Friedman – a textbook that its authors offer as a free PDF. The chapter on boosting and additive trees explains the method behind Chapter 24 in full.
+
+## The model and its record
+
+- **LightGBM documentation** – the list of parameters (`objective`, `num_leaves`, `learning_rate`, `deterministic`), the page on categorical features, and the Python class `LGBMRegressor`. <https://lightgbm.readthedocs.io>
+- **MLflow documentation** – tracking (runs, parameters, metrics, tags, artifacts), models (the `pyfunc` flavour, signatures and input examples), and the model registry (versions and aliases). <https://mlflow.org/docs/latest/>
 
 ## Command line, tests and code quality
 

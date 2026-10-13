@@ -83,7 +83,7 @@ Ask the program which commands it has.
 .venv\Scripts\python.exe -m demand --help
 ```
 
-You should see a short description and a list of twelve commands: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest`, `train`, `forecast`, `monitor`, `retrain`, `serve`. Compare the list with Figure 1.1: almost every box has a command. This shows that the shape of the whole system was fixed before the steps were written. Seven of them do real work today: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate` and `backtest`. The others answer with "Not implemented yet".
+You should see a short description and a list of twelve commands: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest`, `train`, `forecast`, `monitor`, `retrain`, `serve`. Compare the list with Figure 1.1: almost every box has a command. This shows that the shape of the whole system was fixed before the steps were written. Eight of them do real work today: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest` and `train`. The others answer with "Not implemented yet".
 
 Now ask for the three dates that define the project.
 
