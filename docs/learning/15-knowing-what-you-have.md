@@ -147,28 +147,44 @@ Chapter 2 explained the weather leak. The real system will only have a weather f
 ```python
     source: WeatherSource = "forecast"
     try:
-        download = download_file(client, urls[source], path, retry=retry, sleep=sleep, check=check)
+        download = fetch(source)
+    except RejectedRequestError as error:
+        # The observed weather would hide a wrong setting, so there is no fallback here.
+        raise RejectedRequestError(f"{error} {WEATHER_REJECTED_HINT}") from error
     except DownloadError as error:
-        log.warning(
-            "weather forecast unavailable, falling back to observed weather",
-            extra={"url": urls[source], "error": str(error)},
-        )
+        extra = {"url": urls[source], "error": str(error)}
+        if has_observed:
+            log.warning("weather forecast still unavailable, keeping observed weather", extra=extra)
+            return skipped(raw_dir, manifest, path)
+        log.warning("weather forecast unavailable, falling back to observed weather", extra=extra)
         source = "archive"
-        download = download_file(client, urls[source], path, retry=retry, sleep=sleep, check=check)
+        download = fetch(source)
     return record_download(raw_dir, manifest, path, urls[source], download, weather_source=source)
 ```
 
 The first line names the preferred source: the forecast service.
 
-The `try` block downloads from it. The `check` that is passed in rejects an incomplete answer: it requires the expected number of hours for every weather variable and no missing value. An answer with gaps counts as a failure, like a network error.
+The `try` block downloads from it. `fetch` is a small helper defined just above: it downloads from one source and checks the answer. The check rejects an incomplete answer: it requires the expected number of hours for every weather variable and no missing value. An answer with gaps counts as a failure, like a network error.
 
-If the forecast service fails, the `except` block writes a warning to the log, changes the source to `"archive"`, which is the observed weather, and downloads from there.
+The first `except` block handles a request that the forecast service refused, the 4xx codes of Chapter 14. A refusal means a setting is wrong, for example a misspelled variable name. The service is not down. Using observed weather here would hide the mistake behind data that looks fine, so the run stops and the message points to the weather settings.
+
+The second `except` block handles every other failure: the service did not answer after all retries, or its answer was incomplete. Ignore the `if` for a moment. The block writes a warning to the log, changes the source to `"archive"`, which is the observed weather, and downloads from there.
 
 The last line records the download, and with it the source that was really used.
 
 The fallback is the weaker choice, and the code does not hide it. The manifest entry of the weather file has a field `weather_source`. On the machine of this chapter it says `"forecast"`. If it ever says `"archive"`, anyone who reads the manifest knows that the weather features of that data contain information a real forecast would not have, and can judge the model results with that in mind.
 
-One consequence follows from the skip rule above. Both addresses, forecast and archive, count as accepted sources for the weather file. So a file that came from the archive is skipped by later runs, like any other valid file. The stage does not try the forecast service again on its own. To get forecast weather after a fallback, delete the weather file and run the stage again. This makes the record in the manifest more important: it is the only sign that the weaker source is in use.
+A fallback should also not last longer than its cause. Both addresses, forecast and archive, count as accepted sources for the weather file, so by the skip rule above a file from the archive would be skipped by every later run, and one bad hour of the forecast service would decide the weather data for good. The stage therefore treats observed weather as temporary. A few lines earlier it looks at the manifest:
+
+```python
+    has_observed = reason is None and manifest.files[key].weather_source == "archive"
+    if reason is None and not has_observed:
+        return skipped(raw_dir, manifest, path)
+```
+
+A valid file of forecast weather is skipped, like any other file. A valid file of observed weather is not: the stage asks the forecast service again. If the service answers, the forecast replaces the file and the manifest says `"forecast"`. If it still fails, the `if has_observed` branch in the code above keeps the file that is already there, writes a warning, and the run goes on. The price is one request to the forecast service on every run while the weaker source is in use, which is also a reminder that it is.
+
+The first version of this stage did not do this. It kept the archive file until someone deleted it, and it fell back for a wrong setting as well. Both were found when the code was read again for this book.
 
 > [!WARNING]
 > A fallback that happens silently is a hidden change of your data. When code takes the second-best path, it must leave a record in a place that people will read later, not only a log line that scrolls away.
@@ -302,7 +318,9 @@ Run the tests of the decision and of the fallback.
 .venv\Scripts\python.exe -m pytest tests/unit/data/test_weather.py -q -k "falls_back"
 ```
 
-You should see `5 passed, 7 deselected` and `2 passed, 13 deselected`. The first group has one test for each path in Figure 15.1. The second group makes the forecast service fail in two ways, with a server error and with an answer that has a missing value, and checks that the manifest then says `archive`.
+You should see `5 passed, 7 deselected` and `2 passed, 15 deselected`. The first group has one test for each path in Figure 15.1. The second group makes the forecast service fail in two ways, with a server error and with an answer that has a missing value, and checks that the manifest then says `archive`.
+
+Three more tests in the same file cover what happens afterwards. Run them with `-k "observed or refused"` in place of `-k "falls_back"`. You should see `3 passed, 14 deselected`: observed weather is replaced when the forecast service works again, it is kept while the service stays down, and a refused request stops the run without a fallback.
 
 ## Key takeaways
 
@@ -311,7 +329,8 @@ You should see `5 passed, 7 deselected` and `2 passed, 13 deselected`. The first
 - An idempotent stage can be run again safely. The ingest stage skips a file only when its content matches the manifest.
 - The decision function returns a reason, and the reason is logged.
 - The manifest is saved after every file, so an interrupted run continues where it stopped.
-- Forecast weather is preferred. If observed weather is used, the manifest says so.
+- Forecast weather is preferred. If observed weather is used, the manifest says so, and every later run tries the forecast again.
+- A fallback is for an outage. A request that the server refuses is a wrong setting and must stop the run.
 - Mixing UTC and local time needs care at the edges of a period. One day of padding covers the difference.
 - Raw data is not cleaned. What you find in it becomes rules in the next step.
 

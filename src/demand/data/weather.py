@@ -14,6 +14,9 @@ Decisions, and why:
   *historical forecast* API (``forecast_url``) is therefore tried first. If it fails or
   its answer is incomplete, the *archive* API (``archive_url``, observed weather) is
   used, and the manifest records ``weather_source`` so this limitation stays visible.
+  A stored file of observed weather is not final: every later run asks the forecast
+  API again and replaces the file as soon as that works. A request that the forecast
+  API refuses (HTTP 4xx) is a wrong setting, not an outage, so it stops the run.
 * **Times in UTC** (``timezone=GMT``). Local time repeats an hour when daylight saving
   ends, which makes timestamps ambiguous. Converting to New York time is the job of the
   silver layer.
@@ -40,8 +43,10 @@ import httpx
 from demand.config import Settings, WeatherConfig
 from demand.data.ingest import (
     DEFAULT_RETRY,
+    Download,
     DownloadError,
     IngestedFile,
+    RejectedRequestError,
     RetryPolicy,
     Sleep,
     download_file,
@@ -60,6 +65,7 @@ WEATHER_FILE_NAME = "open_meteo_hourly.json"
 REQUEST_TIMEZONE = "GMT"
 PADDING_DAYS = 1
 _HOURS_PER_DAY = 24
+WEATHER_REJECTED_HINT = "The weather request is built from data.weather in the config."
 
 
 class UnusableWeatherError(DownloadError):
@@ -157,12 +163,18 @@ def ingest_weather(
 ) -> IngestedFile:
     """Make sure the weather file is present; prefer forecasts, fall back to observations.
 
+    A valid file of forecast weather is skipped. A valid file of observed weather is
+    kept only until the forecast API answers again.
+
     Raises:
+        RejectedRequestError: If the forecast API refuses the request, which points to
+            a wrong value under ``data.weather`` in the config.
         DownloadError: If neither API returns a complete response.
     """
     raw_dir = settings.paths.raw
     weather = settings.data.weather
     path = weather_path(raw_dir)
+    key = manifest_key(raw_dir, path)
     first_day, last_day = request_period(settings.data.start_date, settings.data.end_date)
     hours = expected_hours(first_day, last_day)
     urls: dict[WeatherSource, str] = {
@@ -171,21 +183,30 @@ def ingest_weather(
     }
 
     reason = find_reason_to_download(raw_dir, manifest, path, set(urls.values()))
-    if reason is None:
+    has_observed = reason is None and manifest.files[key].weather_source == "archive"
+    if reason is None and not has_observed:
         return skipped(raw_dir, manifest, path)
-    log.info("downloading", extra={"file": manifest_key(raw_dir, path), "reason": reason})
+    reason = reason or "stored weather is observed, asking for the forecast again"
+    log.info("downloading", extra={"file": key, "reason": reason})
 
-    def check(temp_path: Path) -> None:
-        check_weather_file(temp_path, weather.variables, hours)
+    def fetch(source: WeatherSource) -> Download:
+        def check(temp_path: Path) -> None:
+            check_weather_file(temp_path, weather.variables, hours)
+
+        return download_file(client, urls[source], path, retry=retry, sleep=sleep, check=check)
 
     source: WeatherSource = "forecast"
     try:
-        download = download_file(client, urls[source], path, retry=retry, sleep=sleep, check=check)
+        download = fetch(source)
+    except RejectedRequestError as error:
+        # The observed weather would hide a wrong setting, so there is no fallback here.
+        raise RejectedRequestError(f"{error} {WEATHER_REJECTED_HINT}") from error
     except DownloadError as error:
-        log.warning(
-            "weather forecast unavailable, falling back to observed weather",
-            extra={"url": urls[source], "error": str(error)},
-        )
+        extra = {"url": urls[source], "error": str(error)}
+        if has_observed:
+            log.warning("weather forecast still unavailable, keeping observed weather", extra=extra)
+            return skipped(raw_dir, manifest, path)
+        log.warning("weather forecast unavailable, falling back to observed weather", extra=extra)
         source = "archive"
-        download = download_file(client, urls[source], path, retry=retry, sleep=sleep, check=check)
+        download = fetch(source)
     return record_download(raw_dir, manifest, path, urls[source], download, weather_source=source)

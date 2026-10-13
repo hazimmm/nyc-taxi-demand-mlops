@@ -214,7 +214,7 @@ Run everything with coverage.
 .venv\Scripts\python.exe -m pytest --cov -q
 ```
 
-You should see `132 passed`, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.56%`. The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
+You should see `136 passed`, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.57%`. The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
 
 ## Key takeaways
 

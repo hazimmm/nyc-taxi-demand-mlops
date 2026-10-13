@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 from demand.config import Settings
-from demand.data.ingest import DownloadError
+from demand.data.ingest import DownloadError, RejectedRequestError
 from demand.data.manifest import Manifest, load_manifest
 from demand.data.weather import (
     build_weather_url,
@@ -162,17 +162,33 @@ def test_weather_falls_back_to_the_archive_when_the_forecast_has_nulls(
 
 
 def test_weather_fails_when_both_apis_fail_and_leaves_no_file(
-    settings: Settings, full_server: FakeServer
+    settings: Settings, full_server: FakeServer, waits: list[float]
 ) -> None:
     weather = settings.data.weather
-    full_server.add(weather.forecast_url, status(400))
+    full_server.add(weather.forecast_url, status(500))
     full_server.add(weather.archive_url, ok(b"not json"))
     manifest = Manifest()
 
     with pytest.raises(DownloadError, match="not valid JSON"):
-        ingest_weather(full_server.client(), settings, manifest)
+        ingest_weather(
+            full_server.client(), settings, manifest, retry=FAST_RETRY, sleep=waits.append
+        )
 
     assert list(weather_path(settings.paths.raw).parent.iterdir()) == []
+    assert manifest.files == {}
+
+
+def test_refused_forecast_request_stops_without_a_fallback(
+    settings: Settings, full_server: FakeServer
+) -> None:
+    weather = settings.data.weather
+    full_server.add(weather.forecast_url, status(400))
+    manifest = Manifest()
+
+    with pytest.raises(RejectedRequestError, match=r"HTTP 400 .* data\.weather"):
+        ingest_weather(full_server.client(), settings, manifest)
+
+    assert full_server.requests_to(weather.archive_url) == []
     assert manifest.files == {}
 
 
@@ -188,13 +204,52 @@ def test_second_weather_ingest_makes_no_request(
     assert not result.downloaded
 
 
-def test_archive_weather_is_not_requested_again_on_the_second_run(
-    settings: Settings, full_server: FakeServer
+def test_observed_weather_is_replaced_once_the_forecast_api_works_again(
+    settings: Settings, full_server: FakeServer, waits: list[float]
 ) -> None:
-    full_server.add(settings.data.weather.forecast_url, status(400))
-    ingest_weather(full_server.client(), settings, load_manifest(settings.paths.raw))
+    weather = settings.data.weather
+    forecast_reply = ok(complete_weather(settings))
+    full_server.add(weather.forecast_url, status(500))
+    ingest_weather(
+        full_server.client(),
+        settings,
+        load_manifest(settings.paths.raw),
+        retry=FAST_RETRY,
+        sleep=waits.append,
+    )
+    full_server.add(weather.forecast_url, forecast_reply)
     full_server.requests.clear()
 
-    ingest_weather(full_server.client(), settings, load_manifest(settings.paths.raw))
+    result = ingest_weather(full_server.client(), settings, load_manifest(settings.paths.raw))
 
-    assert full_server.requests == []
+    assert result.downloaded
+    assert full_server.requests_to(weather.archive_url) == []
+    assert weather_path(settings.paths.raw).read_bytes() == complete_weather(settings)
+    entry = load_manifest(settings.paths.raw).files["weather/open_meteo_hourly.json"]
+    assert entry.weather_source == "forecast"
+
+
+def test_observed_weather_is_kept_while_the_forecast_api_stays_down(
+    settings: Settings,
+    full_server: FakeServer,
+    waits: list[float],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    weather = settings.data.weather
+    full_server.add(weather.forecast_url, status(500))
+    client = full_server.client()
+    ingest_weather(
+        client, settings, load_manifest(settings.paths.raw), retry=FAST_RETRY, sleep=waits.append
+    )
+    full_server.requests.clear()
+
+    result = ingest_weather(
+        client, settings, load_manifest(settings.paths.raw), retry=FAST_RETRY, sleep=waits.append
+    )
+
+    assert not result.downloaded
+    assert full_server.requests_to(weather.archive_url) == []
+    assert len(full_server.requests_to(weather.forecast_url)) == FAST_RETRY.max_attempts
+    assert weather_path(settings.paths.raw).read_bytes() == complete_weather(settings, marker=2.0)
+    assert result.entry.weather_source == "archive"
+    assert "weather forecast still unavailable, keeping observed weather" in caplog.messages

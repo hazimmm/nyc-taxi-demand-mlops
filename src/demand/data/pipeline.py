@@ -13,6 +13,7 @@ import httpx
 
 from demand.config import Settings
 from demand.data.ingest import (
+    TRIP_NOT_PUBLISHED_HINT,
     IngestedFile,
     RetryPolicy,
     Sleep,
@@ -84,7 +85,18 @@ def run_ingest(
     for year, month in data.months:
         url = trip_url(data.tlc_url_template, year, month)
         path = trips_path(raw_dir, data.tlc_url_template, year, month)
-        results.append(ingest_file(client, raw_dir, manifest, path, url, retry=retry, sleep=sleep))
+        results.append(
+            ingest_file(
+                client,
+                raw_dir,
+                manifest,
+                path,
+                url,
+                retry=retry,
+                sleep=sleep,
+                rejected_hint=TRIP_NOT_PUBLISHED_HINT,
+            )
+        )
     results.append(
         ingest_file(
             client,

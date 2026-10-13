@@ -7,7 +7,9 @@ from pathlib import Path
 import pytest
 
 from demand.data.ingest import (
+    TRIP_NOT_PUBLISHED_HINT,
     DownloadError,
+    RejectedRequestError,
     RetryPolicy,
     backoff_seconds,
     download_file,
@@ -316,3 +318,26 @@ def test_error_page_served_as_parquet_never_reaches_the_raw_folder(
 
     assert _files_in(path.parent) == []
     assert manifest.files == {}
+
+
+def test_refused_request_adds_the_hint_of_the_source(tmp_path: Path, server: FakeServer) -> None:
+    server.add(URL, status(403))
+    path = trips_path(tmp_path, TEMPLATE, 2025, 1)
+
+    with pytest.raises(RejectedRequestError, match=r"HTTP 403 .* not published yet"):
+        ingest_file(
+            server.client(), tmp_path, Manifest(), path, URL, rejected_hint=TRIP_NOT_PUBLISHED_HINT
+        )
+
+
+def test_refused_request_without_a_hint_keeps_the_plain_message(
+    tmp_path: Path, server: FakeServer
+) -> None:
+    server.add(CSV_URL, status(404))
+
+    with pytest.raises(
+        RejectedRequestError, match=r"check the configured URL and its parameters\.$"
+    ):
+        ingest_file(
+            server.client(), tmp_path, Manifest(), tmp_path / "zones" / "lookup.csv", CSV_URL
+        )

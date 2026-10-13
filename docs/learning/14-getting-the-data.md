@@ -139,15 +139,26 @@ Every answer from a web server has a **status code**, a number that says how the
 
 Codes from 400 to 499, except 429, mean "your request is wrong": the address does not exist, or you are not allowed. Asking again gives the same answer. The comment at the top of the file says it well: "waiting does not create a file that is not there". The same test file confirms both groups: 429, 500, 502 and 503 are retried, and 400, 403 and 404 are not.
 
-One detail of the real source is worth knowing. The usual code for "not found" is 404. The TLC server answers 403 for a month that is not published yet. The error message of this project says so, because a person who sees "403" would otherwise look for a permission problem:
+A refused request gets its own kind of error, so that other code can tell it apart from a failure that was retried:
 
 ```python
-                raise DownloadError(
-                    f"HTTP {status} from {url}. The file does not exist there (the TLC "
-                    "server answers 403 for a month that is not published) or the "
-                    "request is wrong; check the configured months and URLs."
+                raise RejectedRequestError(
+                    f"HTTP {status} from {url}. The server refused the request, so "
+                    "trying again will not help; check the configured URL and its "
+                    "parameters."
                 )
 ```
+
+This message is true for every source, because the download function does not know which server it is talking to. One detail of the trip source is still worth telling the reader of the error. The usual code for "not found" is 404, but the TLC server answers 403 for a month that is not published yet. A person who sees "403" would look for a permission problem. So the code that downloads the trip files adds a hint to the message:
+
+```python
+TRIP_NOT_PUBLISHED_HINT = (
+    "The TLC server answers 403 for a month that is not published yet; "
+    "check data.start_month and data.end_month."
+)
+```
+
+The weather download adds a different hint, which points to the weather settings. The first version of this code had the TLC sentence inside the general message, so a failed weather request talked about taxi files. Advice that is specific to one source belongs to the code that knows the source.
 
 A good error message says what happened, where, and what to check.
 

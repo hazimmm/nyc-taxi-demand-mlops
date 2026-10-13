@@ -54,6 +54,10 @@ ZONES_DIR = "zones"
 PARQUET_SUFFIX = ".parquet"
 _DOWNLOAD_CHUNK_BYTES = 1024 * 1024
 _TOO_MANY_REQUESTS = 429
+TRIP_NOT_PUBLISHED_HINT = (
+    "The TLC server answers 403 for a month that is not published yet; "
+    "check data.start_month and data.end_month."
+)
 
 Sleep = Callable[[float], None]
 FileCheck = Callable[[Path], None]
@@ -61,6 +65,10 @@ FileCheck = Callable[[Path], None]
 
 class DownloadError(Exception):
     """A file could not be downloaded. The message names the URL."""
+
+
+class RejectedRequestError(DownloadError):
+    """The server refused the request, so repeating it gives the same answer."""
 
 
 class TransientDownloadError(DownloadError):
@@ -169,10 +177,10 @@ def _download_once(
             if is_retryable_status(status):
                 raise TransientDownloadError(f"HTTP {status} from {url}")
             if not response.is_success:
-                raise DownloadError(
-                    f"HTTP {status} from {url}. The file does not exist there (the TLC "
-                    "server answers 403 for a month that is not published) or the "
-                    "request is wrong; check the configured months and URLs."
+                raise RejectedRequestError(
+                    f"HTTP {status} from {url}. The server refused the request, so "
+                    "trying again will not help; check the configured URL and its "
+                    "parameters."
                 )
             with temp_path.open("wb") as file:
                 for chunk in response.iter_bytes(_DOWNLOAD_CHUNK_BYTES):
@@ -301,11 +309,15 @@ def ingest_file(
     *,
     retry: RetryPolicy = DEFAULT_RETRY,
     sleep: Sleep = time.sleep,
+    rejected_hint: str = "",
 ) -> IngestedFile:
     """Make sure one single-source file is present and matches the manifest.
 
     Nothing is downloaded if the file is already valid. A Parquet file is opened before
     it is accepted, so an error page saved as ``.parquet`` never reaches the raw layer.
+
+    ``rejected_hint`` is added to the error message when the server refuses the request;
+    use it for advice that is specific to the source.
     """
     reason = find_reason_to_download(raw_dir, manifest, path, {url})
     if reason is None:
@@ -316,5 +328,8 @@ def ingest_file(
         parquet_row_count(temp_path)
 
     check = check_parquet if path.suffix == PARQUET_SUFFIX else None
-    download = download_file(client, url, path, retry=retry, sleep=sleep, check=check)
+    try:
+        download = download_file(client, url, path, retry=retry, sleep=sleep, check=check)
+    except RejectedRequestError as error:
+        raise RejectedRequestError(f"{error} {rejected_hint}".rstrip()) from error
     return record_download(raw_dir, manifest, path, url, download)
