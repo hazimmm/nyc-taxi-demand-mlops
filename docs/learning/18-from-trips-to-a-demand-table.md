@@ -72,11 +72,15 @@ Second, a missing row moves every row after it. Chapter 2 wrote a lag as `shift(
 [`src/demand/data/aggregate.py`](../../src/demand/data/aggregate.py)
 
 ```python
-    grid = pd.MultiIndex.from_product([sorted(zones), hours], names=[ZONE_ID, HOUR_START])
+    return pd.MultiIndex.from_product([sorted(zones), hours], names=[ZONE_ID, HOUR_START])
+```
+
+```python
+    grid = grid_index(zones, hours)
     return counts.reindex(grid, fill_value=0).astype("int64").rename(TARGET).reset_index()
 ```
 
-This is the body of `to_complete_grid`. The first line builds every pair of zone and hour. The second puts the counts on that grid, and `fill_value=0` writes the zero where no count exists.
+The first block is the body of `grid_index`: it builds every pair of zone and hour. The second is the body of `to_complete_grid`. It puts the counts on that grid, and `fill_value=0` writes the zero where no count exists. The grid has a function of its own because the quality gate of Chapter 20 compares the stored table with the same pairs.
 
 The real table has 86,860 rows: 20 zones times 4,343 hours. 570 rows are zero, which is 0.66%. All of them lie in the hours from 00:00 to 06:00, and 391 belong to LaGuardia, where 9% of all hours are empty.
 
@@ -148,8 +152,8 @@ flowchart TB
 
 The ideas are those of Chapter 17: check the input first, validate before writing, write atomically, and give the same bytes on every run. Three limits should be stated plainly.
 
-- Gold trusts silver. It does not check the silver files again. The command `validate`, the quality gate between the layers, is the next feature and still answers "Not implemented yet".
-- There is no gold report file. The numbers of a run are in one log line, and a log line is easy to lose.
+- Gold trusts silver. It does not check the silver files again. That is the job of the quality gate between the layers, the command `validate` of Chapter 20, and the gold stage does not start it. Chapter 21 shows how the two are run in a fixed order.
+- There is no gold report with the numbers of a run. They are in one log line, and a log line is easy to lose. The gold gate writes a report, but it lists checks, not counts.
 - On the night the clocks go back, silver puts the pickups of two hours into one (Chapter 17). The grid will have 25 rows for that day, and one of them will be too high.
 
 ## Try it yourself

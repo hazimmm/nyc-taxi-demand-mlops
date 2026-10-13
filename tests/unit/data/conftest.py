@@ -4,7 +4,8 @@ Nothing here touches the network. ``FakeServer`` plugs into ``httpx.MockTranspor
 the code under test uses a real ``httpx.Client`` whose requests are answered in memory.
 The silver tests build their raw trips and weather with ``raw_trip`` and
 ``weather_payload``; the gold tests build silver trips with ``silver_trips_frame`` and
-hourly demand with ``demand_frame``.
+hourly demand with ``demand_frame``; the quality-gate tests also use
+``silver_weather_frame``.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from demand.config import Settings
+from demand.data.clean_weather import local_hours
 from demand.data.ingest import RetryPolicy, trip_url
 from demand.data.weather import expected_hours, request_period
 from demand.schemas import (
@@ -37,6 +39,7 @@ from demand.schemas import (
     TRIP_DISTANCE,
     ZONE_ID,
     silver_trips_schema,
+    silver_weather_schema,
 )
 
 Reply = Callable[[httpx.Request], httpx.Response]
@@ -253,6 +256,21 @@ def silver_trips_frame(
         }
     )
     return silver_trips_schema(settings).validate(trips)
+
+
+def silver_weather_frame(settings: Settings) -> pd.DataFrame:
+    """Silver weather for every hour of the configured period.
+
+    The value of every variable at position ``i`` is ``i / 10``. The result is checked
+    against the silver schema.
+    """
+    data = settings.data
+    hours = local_hours(data.start_date, data.end_date, settings.project.timezone)
+    values = [position / 10 for position in range(len(hours))]
+    weather = pd.DataFrame(
+        {HOUR_START: hours, **dict.fromkeys(settings.data.weather.variables, values)}
+    )
+    return silver_weather_schema(settings).validate(weather)
 
 
 def demand_frame(

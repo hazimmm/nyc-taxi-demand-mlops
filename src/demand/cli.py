@@ -16,6 +16,7 @@ from typing import Annotated
 import typer
 
 from demand.config import get_settings
+from demand.errors import PipelineError
 from demand.logs import configure_logging
 
 app = typer.Typer(
@@ -47,6 +48,10 @@ def _run_stage(module: str, function: str, *args: object) -> None:
     except NotImplementedError as error:
         # The module exists but this stage is still a placeholder.
         raise _not_implemented(str(error) or f"{module}.{function}") from error
+    except PipelineError as error:
+        # An expected failure: the message is enough, a traceback would only hide it.
+        typer.secho(f"Error: {error}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from error
 
 
 @app.command()

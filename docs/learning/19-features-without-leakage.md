@@ -265,4 +265,4 @@ The longest window now ends 48 hours back, so its oldest value is 48 + 168 − 1
 
 ---
 
-[Previous: Chapter 18 – From trips to a demand table](18-from-trips-to-a-demand-table.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 18 – From trips to a demand table](18-from-trips-to-a-demand-table.md) | [Contents](README.md) | [Next: Chapter 20 – Quality gates: checking the files on disk](20-quality-gates.md)

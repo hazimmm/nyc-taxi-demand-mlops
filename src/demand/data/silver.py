@@ -41,11 +41,18 @@ import pyarrow as pa
 from pydantic import BaseModel, ConfigDict
 
 from demand.config import Settings
-from demand.data.clean import RULE_ORDER, CleaningCounts, clean_trips, total_counts
+from demand.data.clean import (
+    RULE_ORDER,
+    CleaningCounts,
+    RawFormatError,
+    clean_trips,
+    total_counts,
+)
 from demand.data.clean_weather import WeatherSummary, clean_weather
 from demand.data.ingest import manifest_key, trips_path
 from demand.data.manifest import temp_path_for
 from demand.data.weather import weather_path
+from demand.errors import PipelineError
 from demand.logs import get_logger
 from demand.schemas import silver_trips_schema, silver_weather_schema
 
@@ -55,9 +62,13 @@ SILVER_TRIPS_DIR = "trips"
 SILVER_WEATHER_DIR = "weather"
 SILVER_WEATHER_FILE_NAME = "weather_hourly.parquet"
 CLEANING_REPORT_NAME = "silver_cleaning_report.json"
+RAW_FORMAT_HINT = (
+    "If the file is damaged, delete it and run `python -m demand ingest` again. If the "
+    "source changed its format, the cleaning code has to be changed to match."
+)
 
 
-class MissingRawFileError(FileNotFoundError):
+class MissingRawFileError(PipelineError, FileNotFoundError):
     """A raw file that the config asks for is not on disk."""
 
 
@@ -109,8 +120,11 @@ def required_raw_files(settings: Settings) -> list[Path]:
     return [*trip_files, weather_path(raw_dir)]
 
 
-def report_to_json(report: CleaningReport) -> str:
-    """Serialise the report. Rules keep their order of precedence, so keys are not sorted."""
+def report_to_json(report: BaseModel) -> str:
+    """Serialise a report. Its fields keep the order of the model, so keys are not sorted.
+
+    For the cleaning report that keeps the rules in their order of precedence.
+    """
     return json.dumps(report.model_dump(mode="json"), indent=2) + "\n"
 
 
@@ -159,16 +173,21 @@ def write_parquet(table: pd.DataFrame, path: Path) -> None:
         temp_path.unlink(missing_ok=True)
 
 
-def save_cleaning_report(reports_dir: Path, report: CleaningReport) -> Path:
-    """Write the report atomically and return its path."""
-    path = cleaning_report_path(reports_dir)
+def write_text(text: str, path: Path) -> None:
+    """Write a text file as UTF-8 atomically: to a temporary file first, then rename."""
     path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = temp_path_for(path)
     try:
-        temp_path.write_bytes(report_to_json(report).encode("utf-8"))
+        temp_path.write_bytes(text.encode("utf-8"))
         temp_path.replace(path)
     finally:
         temp_path.unlink(missing_ok=True)
+
+
+def save_cleaning_report(reports_dir: Path, report: CleaningReport) -> Path:
+    """Write the report atomically and return its path."""
+    path = cleaning_report_path(reports_dir)
+    write_text(report_to_json(report), path)
     return path
 
 
@@ -179,6 +198,7 @@ def build_silver_trips(settings: Settings) -> dict[str, CleaningCounts]:
         The cleaning counts per month, keyed like ``"2025-01"``.
 
     Raises:
+        RawFormatError: If a raw file lacks a column that silver is built from.
         pandera.errors.SchemaError: If cleaned trips break ``silver_trips_schema``.
     """
     data = settings.data
@@ -190,7 +210,12 @@ def build_silver_trips(settings: Settings) -> dict[str, CleaningCounts]:
         silver_path = silver_trips_path(settings.paths.silver, year, month)
 
         raw = read_raw_trips(raw_path)
-        trips, counts = clean_trips(raw, year, month, settings)
+        try:
+            trips, counts = clean_trips(raw, year, month, settings)
+        except RawFormatError as error:
+            # The pure function does not know the file; the person at the terminal
+            # needs its name and what to do about it.
+            raise RawFormatError(f"{raw_path.name}: {error}. {RAW_FORMAT_HINT}") from error
         # Free the raw month before validating; it is several times larger than silver.
         del raw
         schema.validate(trips)
@@ -223,8 +248,16 @@ def build_silver_weather(settings: Settings) -> WeatherSummary:
     raw_path = weather_path(settings.paths.raw)
     silver_path = silver_weather_path(settings.paths.silver)
 
-    payload = json.loads(raw_path.read_bytes())
-    weather, summary = clean_weather(payload, settings)
+    try:
+        payload = json.loads(raw_path.read_bytes())
+    except ValueError as error:
+        raise RawFormatError(
+            f"{raw_path.name}: not valid JSON ({error}). {RAW_FORMAT_HINT}"
+        ) from error
+    try:
+        weather, summary = clean_weather(payload, settings)
+    except RawFormatError as error:
+        raise RawFormatError(f"{raw_path.name}: {error}. {RAW_FORMAT_HINT}") from error
     silver_weather_schema(settings).validate(weather)
     write_parquet(weather, silver_path)
 

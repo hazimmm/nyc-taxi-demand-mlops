@@ -46,10 +46,12 @@ In this project the date is in [`configs/config.yaml`](../../configs/config.yaml
   end_month: "2025-06"
   # Last day the model is allowed to learn from. Everything after it is replayed
   # as "production" by the simulated clock.
-  train_end_date: 2025-04-30
+  # Quoted like the months above: without quotes YAML reads a date object, and DVC
+  # cannot store one in dvc.lock.
+  train_end_date: "2025-04-30"
 ```
 
-January to April are the training period. May and June are never used for learning. The comment mentions a "simulated clock", which this chapter explains below.
+January to April are the training period. May and June are never used for learning. The first comment mentions a "simulated clock", which this chapter explains below. The second comment, about the quotes, is the trace of a real mistake. Chapter 21 tells it.
 
 ## One split is one opinion: the backtest
 

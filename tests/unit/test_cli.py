@@ -10,6 +10,7 @@ from typer.testing import CliRunner
 
 from demand.cli import _run_stage, app
 from demand.config import CONFIG_FILE_ENV, Settings, get_settings
+from demand.errors import QualityGateError
 from tests.conftest import CONFIG_FILE
 
 runner = CliRunner()
@@ -117,6 +118,32 @@ def test_placeholder_stage_exits_with_an_error_instead_of_a_traceback(
 
     assert result.exit_code == 1
     assert "Not implemented yet: validate arrives later" in result.output
+
+
+def test_expected_failure_prints_one_line_instead_of_a_traceback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def failing_gate(*args: object) -> None:
+        raise QualityGateError("silver did not pass its quality gate: 2 checks failed")
+
+    _fake_module(monkeypatch, "demand.data.pipeline", run_validate=failing_gate)
+
+    result = runner.invoke(app, ["validate", "silver"])
+
+    assert result.exit_code == 1
+    assert "Error: silver did not pass its quality gate: 2 checks failed" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_unexpected_failure_is_not_hidden(monkeypatch: pytest.MonkeyPatch) -> None:
+    def bug(*args: object) -> None:
+        raise KeyError("a bug, not an expected failure")
+
+    _fake_module(monkeypatch, "demand.data.pipeline", run_gold=bug)
+
+    result = runner.invoke(app, ["gold"])
+
+    assert isinstance(result.exception, KeyError)
 
 
 def test_serve_exits_with_an_error_until_the_api_exists(monkeypatch: pytest.MonkeyPatch) -> None:

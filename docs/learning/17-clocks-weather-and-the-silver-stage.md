@@ -117,18 +117,25 @@ flowchart TB
 
 Each box is an idea from an earlier chapter.
 
-**Check the input first.** Before any work starts, the stage checks that every raw file the config asks for exists. If one is missing, the error names all missing files and tells you to run the ingest stage.
+**Check the input first.** Before any work starts, the stage checks that every raw file the config asks for exists. If one is missing, the error names all missing files and tells you to run the ingest stage. It is printed as one line (Chapter 20).
 
 **Validate before writing.** This is the centre of the loop over the months:
 
 ```python
         raw = read_raw_trips(raw_path)
-        trips, counts = clean_trips(raw, year, month, settings)
+        try:
+            trips, counts = clean_trips(raw, year, month, settings)
+        except RawFormatError as error:
+            # The pure function does not know the file; the person at the terminal
+            # needs its name and what to do about it.
+            raise RawFormatError(f"{raw_path.name}: {error}. {RAW_FORMAT_HINT}") from error
         # Free the raw month before validating; it is several times larger than silver.
         del raw
         schema.validate(trips)
         write_parquet(trips, silver_path)
 ```
+
+The `try` block is about a raw file that lacks a column. The cleaning function is pure and does not know which file its table came from. The stage knows, so it adds the file name and the next step to the message. Chapter 20 explains why such a message is printed as one line.
 
 `schema.validate(trips)` is the quality gate of Chapter 8, and `schema` is the silver contract. The rules and the contract read the same limits from the config, so the gate should never fail. It is there for the day when someone changes a rule and makes a mistake. A test does exactly that: it replaces the cleaning function with one that produces a negative total, and checks that the stage stops and no trip file exists.
 
@@ -138,7 +145,7 @@ Each box is an idea from an earlier chapter.
 
 **The same result on a second run.** The ingest stage was idempotent because it skipped work. This stage is idempotent in a simpler way: it has no memory of earlier runs. It rebuilds every file from the raw layer, and the same raw files and the same config give the same silver files, byte for byte. A test runs the stage twice and compares all files.
 
-Three limits should be stated plainly. If the stage stops at the fourth month, the first three are already replaced and the report is still the old one. If you make the period in the config shorter, the silver files of the months that are no longer asked for stay on disk. Nothing deletes them. And as Chapter 16 said, a trip of a neighbouring month is dropped, not moved.
+Three limits should be stated plainly. If the stage stops at the fourth month, the first three are already replaced and the report is still the old one. If you make the period in the config shorter, the silver files of the months that are no longer asked for stay on disk. Nothing deletes them when you run the command yourself. A run through DVC deletes the folder first (Chapter 21). And as Chapter 16 said, a trip of a neighbouring month is dropped, not moved.
 
 The silver layer is now complete: valid trips and hourly weather on the same clock. The next step counts the trips per zone and hour. Chapter 18 starts there.
 
@@ -215,7 +222,7 @@ Run the tests of the clocks, of the gaps and of the stage.
 .venv\Scripts\python.exe -m pytest tests/unit/data/test_silver.py -q
 ```
 
-You should see `6 passed, 56 deselected`, then `10 passed, 19 deselected`, then `14 passed`. The stage tests build two tiny months and a small weather file in a temporary folder, so they never touch the real data.
+You should see `6 passed, 56 deselected`, then `10 passed, 19 deselected`, then `17 passed`. The stage tests build two tiny months and a small weather file in a temporary folder, so they never touch the real data.
 
 ## Key takeaways
 

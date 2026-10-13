@@ -11,6 +11,7 @@ from demand.data import pipeline
 from demand.data.ingest import DownloadError, trip_url
 from demand.data.manifest import load_manifest
 from demand.data.pipeline import run_ingest
+from demand.errors import QualityGateError
 from tests.unit.data.conftest import FAST_RETRY, FakeServer, status
 
 
@@ -163,6 +164,17 @@ def test_select_zones_stage_prints_the_list_for_the_config(
     assert zones_line == "  zones: [161, 132]"
 
 
-def test_validate_says_it_is_not_built_yet(settings: Settings) -> None:
-    with pytest.raises(NotImplementedError, match="phase 1"):
-        pipeline.run_validate(settings, "silver")
+def test_validate_stage_hands_over_to_validate_layer(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[tuple[Settings, str]] = []
+    monkeypatch.setattr(pipeline, "validate_layer", lambda *args: calls.append(args))
+
+    pipeline.run_validate(settings, "silver")
+
+    assert calls == [(settings, "silver")]
+
+
+def test_validate_stage_fails_on_a_layer_that_is_not_there(settings: Settings) -> None:
+    with pytest.raises(QualityGateError, match="gold quality gate failed: 2 of 10 checks failed"):
+        pipeline.run_validate(settings, "gold")

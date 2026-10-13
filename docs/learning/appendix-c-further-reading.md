@@ -5,7 +5,7 @@ Official documentation for the tools that the repository uses today. Entries for
 ## Python and packaging
 
 - **Python Packaging User Guide** – `pyproject.toml`, the src layout, editable installs. <https://packaging.python.org>
-- **Python documentation** – the modules `venv`, `logging`, `pathlib` and `importlib`. <https://docs.python.org>
+- **Python documentation** – the modules `venv`, `logging`, `pathlib` and `importlib`, and the tutorial chapter on errors and exceptions, which explains tracebacks and error classes that inherit from each other. <https://docs.python.org>
 - **Hatch documentation** – the hatchling build backend. <https://hatch.pypa.io>
 - **uv documentation** – the command `uv pip compile`. <https://docs.astral.sh/uv/>
 
@@ -13,7 +13,8 @@ Official documentation for the tools that the repository uses today. Entries for
 
 - **Pydantic documentation** – models, validators, and the section on settings management. <https://docs.pydantic.dev>
 - **python-dotenv documentation** – the format of `.env` files.
-- **Pandera documentation** – schemas, checks, strict mode. <https://pandera.readthedocs.io>
+- **Pandera documentation** – schemas, checks, strict mode, and lazy validation. <https://pandera.readthedocs.io>
+- **PyYAML documentation** – which values YAML reads as a date, a number or true and false when they have no quotes. <https://pyyaml.org>
 - **pandas documentation** – time series, time zones (`tz_localize` and `tz_convert`, with their options for times that do not exist or exist twice), and `interpolate`. For the gold layer: `reindex`, `merge`, `groupby` with `transform`, and the windowing operations (`shift`, `rolling`). <https://pandas.pydata.org>
 - **NumPy documentation** – `sliding_window_view`, which the feature function uses to calculate every rolling window from its own values. <https://numpy.org>
 - **holidays documentation** – the list of countries and what "observed" holidays are. <https://holidays.readthedocs.io>
@@ -26,6 +27,10 @@ Official documentation for the tools that the repository uses today. Entries for
 - **Open-Meteo documentation** – the historical forecast API and the historical weather (archive) API. <https://open-meteo.com>
 - **NYC Taxi and Limousine Commission, TLC Trip Record Data** – the page that lists the monthly files and the data dictionary of the columns. Read the dictionary before you write a cleaning rule: it defines `fare_amount`, `total_amount` and the codes of `payment_type`.
 - **IANA Time Zone Database** – the source of names such as `America/New_York` and of the dates on which clocks change. <https://www.iana.org/time-zones>
+
+## Running the pipeline
+
+- **DVC documentation** – pipelines (`dvc.yaml`, `dvc.lock`, `dvc repro`, `dvc status`), the `params` and `persist` fields, the cache, and remotes. <https://dvc.org/doc>
 
 ## Command line, tests and code quality
 

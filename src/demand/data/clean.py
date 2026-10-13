@@ -73,6 +73,7 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from demand.config import Settings
+from demand.errors import PipelineError
 from demand.schemas import (
     DROPOFF_DATETIME,
     DURATION_MINUTES,
@@ -136,7 +137,7 @@ _MINUTES_PER_HOUR = 60
 _FIRST_ZONE_ID = 1
 
 
-class RawFormatError(ValueError):
+class RawFormatError(PipelineError, ValueError):
     """A raw file does not have the structure this stage expects."""
 
 

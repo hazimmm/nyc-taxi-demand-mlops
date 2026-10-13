@@ -13,6 +13,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Branch (git) | A named line of commits. Work happens on `dev`. | 12 |
 | Branch coverage | Coverage that also requires both outcomes of every `if` to be executed. | 10 |
 | Build backend | The tool that turns a source folder into something installable. Here: hatchling. | 5 |
+| Cache (DVC) | The folder `.dvc/cache`, in which DVC keeps a copy of every output of a stage. | 21 |
 | Champion / challenger | The model in use / a new model that must beat it to replace it. | 1 |
 | Cleaning report | The record of a cleaning run: rows in, rows removed by each rule, rows out. Here: `reports/silver_cleaning_report.json`. | 16 |
 | Cleaning rule | A condition that marks a row as not valid, with a name and a fixed place in the order of the rules. | 16 |
@@ -35,14 +36,19 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Decorator | A marker above a function, starting with `@`, that changes how the function is used. | 9 |
 | Dependency | A library that the code needs in order to run. | 6 |
 | Dependency injection | Giving a function the things it depends on, such as a network client, as arguments, so that a test can pass different ones. | 14 |
+| `deps`, `params`, `outs` | The three lists of a stage in `dvc.yaml`: the files the stage reads, the config keys it uses, and what it writes. `deps` is short for dependencies, here in the sense of files, not libraries. | 21 |
 | Docstring | A text at the start of a file, class or function that documents it. | 5 |
 | Drift | A change in the data compared with the training period. | 3 |
+| DVC | Data Version Control: a tool next to git that runs a pipeline of stages and repeats only the stages for which something changed. It can also store versions of data files. | 21 |
+| `dvc.lock` | The record that DVC writes after a run: a checksum of every file a stage read and wrote, and the value of every config key it uses. Stored in git. | 21 |
+| `dvc.yaml` | The file that describes the stages of the pipeline for DVC. | 21 |
 | Editable install | An install that points to the source folder, so edits are active without installing again. | 5 |
 | Elapsed time | Real time that passed between two moments, as opposed to the difference between two clock readings. The two differ on the days the clocks change. | 17, 19 |
 | Entry point | The place where a program starts. Here: `python -m demand`. | 9 |
 | `.env` file | A text file with lines of the form `NAME=value`, read into environment variables when the program starts. Not stored in git. | 7 |
 | Environment variable | A named value outside the program, set by the shell or the platform and read at start-up. | 7 |
 | Exit code | The number a program returns when it ends. Zero is success. | 9 |
+| Expected failure | A failure that is not a mistake in the code, such as a missing input file or a failed quality gate. It is printed as one line that says what to do next. Here: every `PipelineError`. | 20 |
 | Exponential backoff | Waiting twice as long after every failed attempt before trying again. | 14 |
 | Extra | See *optional dependency group*. | 6 |
 | Fail closed / fail open | What a check does when it cannot do its job. Fail closed: stop with an error. Fail open: let everything pass. | 8 |
@@ -66,6 +72,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | JSON | A standard text format for structured data. | 9 |
 | Lag feature | A past value of the target used as an input. | 2, 19 |
 | Lazy import | Importing a module at the moment it is needed, not at the top of the file. | 9 |
+| Lazy validation | Checking a table against a schema in a way that runs every rule and reports all failures together, where the normal way stops at the first. | 20 |
 | Leakage test | A test that changes the target at one hour, builds the features again, and checks that no row earlier than that hour plus the horizon changed. | 19 |
 | Linear interpolation | Filling missing values on a straight line between the known value before the gap and the known value after it. | 17 |
 | Linter | A tool that reads code and reports likely mistakes and bad habits. | 11 |
@@ -73,6 +80,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Lock file | A list of the exact version of every installed library. | 6 |
 | Manifest | The record of every raw file: source address, download time, size, checksum, row count. | 4, 15 |
 | Mask | A column of true and false values, one per row, that marks the rows for which a condition holds. | 16 |
+| MD5 | A method for calculating a checksum of 32 characters. DVC uses it to see whether a file changed. | 21 |
 | Medallion architecture | Storing data in layers of increasing quality: raw (bronze), silver, gold. | 4 |
 | Missing value | A value that is not there: it was never recorded, or it was lost. Stored as an empty cell, not as a number. | 15, 16 |
 | Model registry | A place that keeps every version of a model with a label. | 1 |
@@ -84,15 +92,17 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Package | A folder of Python files that can be imported by its name. | 5 |
 | Parametrised test | One test function that runs once for each entry in a list of inputs. | 10 |
 | Parquet | A compact file format for tables. | 12 |
+| Persist (DVC) | The option `persist: true` of an output. It tells DVC not to delete the output before it runs the stage. | 21 |
 | Pin | To fix a library to one exact version. | 6 |
 | Placeholder | A function that exists by name and only raises `NotImplementedError` until the real one is written. | 9 |
 | Placeholder value | A value such as zero, or a copy of another field, that a source writes where it has no measurement. | 16 |
 | Producer / consumer | The step that writes a table / the step that reads it. | 8 |
 | Pure function | A function whose result depends only on its arguments and that reads and writes nothing outside itself. | 16 |
 | Push | To send commits to the shared copy of the repository. | 12 |
-| Quality gate | A check that can stop a pipeline. | 8 |
+| Quality gate | A check that can stop a pipeline. A stage runs one on its table before it writes it. The command `validate` runs one on the files of a layer before the next stage reads them. | 8, 20 |
 | Random split | Putting rows into training and test sets by chance. Wrong for data ordered in time. | 3 |
 | Raw layer | Data exactly as downloaded, never modified. Also called bronze. | 4 |
+| Remote (DVC) | A shared storage place to which the DVC cache can be sent, so that other people can fetch the same data. This project has none. | 21 |
 | Reversal | A row with negative amounts that cancels the charge of a trip, for example after a refund. It is not a second trip. | 16 |
 | Rolling statistic | A summary, such as the mean, over a moving window of time. Here every window ends one horizon before the target hour. | 2, 19 |
 | Rolling-origin backtest | A backtest repeated with a training end date that moves forward. | 3 |
@@ -102,7 +112,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Simulated clock | Replaying unseen historical data one day at a time, as if it were happening now. | 3 |
 | Slot | The group of hours that an hour is compared with when outliers are flagged: the same zone, the same hour of the day and the same kind of day (working day or weekend). | 18 |
 | src layout | Keeping the package inside a folder named `src/`, so that it must be installed to be imported. | 5 |
-| Stage | One step of the pipeline, such as ingest, silver, gold or train. | 9 |
+| Stage | One step of the pipeline, such as ingest, silver, gold or train. | 9, 21 |
 | Standard deviation | A number that says how far the values of a group typically lie from their mean. | 18 |
 | Static analysis | Finding problems by reading code without running it. | 11 |
 | Static type checker | A tool that reads type hints and reports contradictions. Here: mypy. | 11 |
@@ -117,12 +127,14 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Timeout | The longest time a program waits for one operation before it treats it as failed. | 14 |
 | Timezone-aware timestamp | A timestamp that carries its timezone, so that it names exactly one moment. | 17 |
 | `tmp_path` | A pytest fixture that gives each test a new empty folder. | 10 |
+| Traceback | The report of files and line numbers that Python prints when an error is not handled. It is made for finding a mistake in the code. | 20 |
 | Training/serving skew | A difference between how features are calculated for training and for prediction. | 4, 19 |
 | Transient error | A failure that may go away on its own, such as a short network problem. Worth a retry. | 14 |
 | Transitive dependency | A library that is installed because one of your dependencies needs it. | 6 |
 | Type hint | A note in the code that says which type a value has. | 11 |
 | Typed settings object | An object in which every setting has a declared name and type, built once at start-up. | 7 |
 | UTC | The world standard time, without summer time. | 9 |
+| Validation report | The result of one quality gate: every check with its name, whether it passed, and a detail. Here: `reports/silver_validation_report.json` and `reports/gold_validation_report.json`. | 20 |
 | Validator | A function that checks a rule when an object is created and raises an error if the rule is broken. | 7 |
 | Virtual environment | A folder with its own Python and its own installed libraries, separate from all others. | 6 |
 | Warm-up rows | The first rows of every zone, for which the history is too short to fill all lags and windows. Here 191 hours per zone. They are dropped, not filled. | 19 |

@@ -57,7 +57,7 @@ This is a restriction, and it has a cost: sometimes going straight to the raw fi
 
 **Rebuilding is safe.** Suppose you decide that trips longer than four hours are errors, where the limit was six. Because raw is never modified, you delete silver and gold and build them again. Nothing is downloaded again and nothing is lost. If a step had corrected the raw files in place, the original values would be gone.
 
-**Checks have a fixed place.** In Figure 4.1 a check stands at the entrance of silver and of gold. If every table can only be reached through its entrance, nothing can go around the check. Chapter 8 explains what the checks are.
+**Checks have a fixed place.** In Figure 4.1 a check stands at the entrance of silver and of gold. If every table can only be reached through its entrance, nothing can go around the check. Chapter 8 explains what the checks are, and Chapter 20 builds them as commands that read the files of a layer.
 
 > [!NOTE]
 > The layers cost disk space, because the data is stored three times in three forms. For this project that is six months of trips. In exchange, every question of the form "where did this value come from?" has a short answer.

@@ -58,6 +58,7 @@ import pandas as pd
 from demand.config import Settings
 from demand.data.clean_weather import local_hours
 from demand.data.features import weekend_flag
+from demand.errors import PipelineError
 from demand.schemas import (
     HOUR_START,
     IS_OUTLIER,
@@ -68,11 +69,11 @@ from demand.schemas import (
 )
 
 
-class TooFewZonesError(ValueError):
+class TooFewZonesError(PipelineError, ValueError):
     """Fewer zones have pickups in the training period than ``data.n_zones`` asks for."""
 
 
-class WeatherCoverageError(ValueError):
+class WeatherCoverageError(PipelineError, ValueError):
     """The silver weather does not have every hour of the configured period."""
 
 
@@ -139,7 +140,8 @@ def busiest_zones(pickups_per_zone: pd.Series, n_zones: int) -> dict[int, int]:
     if len(ranked) < n_zones:
         raise TooFewZonesError(
             f"only {len(ranked)} zones have pickups in the training period, but "
-            f"data.n_zones asks for {n_zones}"
+            f"data.n_zones asks for {n_zones}. Lower data.n_zones in the config, or check "
+            "that the silver trips cover the training period."
         )
     top = ranked.head(n_zones)
     return {
@@ -171,6 +173,15 @@ def add_counts(counts: list[pd.Series]) -> pd.Series:
     return total
 
 
+def grid_index(zones: list[int], hours: pd.DatetimeIndex) -> pd.MultiIndex:
+    """Every pair of a zone and an hour: the keys of a complete grid, zone by zone.
+
+    The gold stage builds the demand table on this index, and the quality gate compares
+    the stored tables with it, so both mean the same thing by "complete".
+    """
+    return pd.MultiIndex.from_product([sorted(zones), hours], names=[ZONE_ID, HOUR_START])
+
+
 def to_complete_grid(counts: pd.Series, zones: list[int], hours: pd.DatetimeIndex) -> pd.DataFrame:
     """Put the counts on the full grid of zones and hours; an empty hour becomes 0.
 
@@ -183,7 +194,7 @@ def to_complete_grid(counts: pd.Series, zones: list[int], hours: pd.DatetimeInde
         One row per zone and hour, sorted by zone and then by hour. Counts for a zone or
         an hour that is not on the grid are left out.
     """
-    grid = pd.MultiIndex.from_product([sorted(zones), hours], names=[ZONE_ID, HOUR_START])
+    grid = grid_index(zones, hours)
     return counts.reindex(grid, fill_value=0).astype("int64").rename(TARGET).reset_index()
 
 

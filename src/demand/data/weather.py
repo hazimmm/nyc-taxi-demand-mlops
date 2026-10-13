@@ -43,6 +43,7 @@ import httpx
 from demand.config import Settings, WeatherConfig
 from demand.data.ingest import (
     DEFAULT_RETRY,
+    RUN_AGAIN_HINT,
     Download,
     DownloadError,
     IngestedFile,
@@ -147,10 +148,15 @@ def check_weather_file(path: Path, variables: Sequence[str], hours: int) -> None
     try:
         payload = json.loads(path.read_bytes())
     except ValueError as error:
-        raise UnusableWeatherError(f"weather response is not valid JSON: {error}") from error
+        raise UnusableWeatherError(
+            f"weather response is not valid JSON: {error}. {RUN_AGAIN_HINT}"
+        ) from error
     problems = find_weather_problems(payload, variables, hours)
     if problems:
-        raise UnusableWeatherError("weather response is incomplete: " + "; ".join(problems))
+        raise UnusableWeatherError(
+            f"weather response is incomplete: {'; '.join(problems)}. Check data.weather "
+            f"and the period in the config. {RUN_AGAIN_HINT}"
+        )
 
 
 def ingest_weather(

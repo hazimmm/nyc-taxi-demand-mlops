@@ -1,0 +1,146 @@
+# The data pipeline of phase 1, as DVC stages. Run it with `dvc repro` from the project
+# folder, with the virtual environment active (the commands call `python`).
+#
+#   ingest_raw -> build_silver -> validate_silver -> build_gold -> validate_gold
+#
+# DVC runs a stage again only when something it depends on has changed:
+#
+#   deps    files the stage reads: its input data and the source files with its logic
+#   params  the keys of configs/config.yaml that the stage uses, and no others
+#   outs    files the stage writes; DVC stores their checksums in dvc.lock
+#
+# Which source files are listed as deps: the modules that hold the logic of the stage.
+# Left out on purpose: cli.py, config.py, logs.py and errors.py (shared by everything, so
+# listing them would rebuild the whole pipeline for a change that cannot alter the data),
+# and modules a stage imports only a path helper from. pipeline.py is a dependency of
+# ingest_raw only, because the ingest loop lives there; for the other stages it holds a
+# one-line call.
+#
+# The order of the stages comes from these lists, not from the order in this file. A
+# quality gate stands between two stages because the next stage depends on the report
+# the gate writes. A gate that fails exits with code 1, DVC stops, and the next stage is
+# not run.
+
+stages:
+  ingest_raw:
+    cmd: python -m demand ingest
+    deps:
+      - src/demand/data/pipeline.py
+      - src/demand/data/ingest.py
+      - src/demand/data/weather.py
+      - src/demand/data/manifest.py
+    params:
+      - configs/config.yaml:
+          - data.tlc_url_template
+          - data.zone_lookup_url
+          - data.start_month
+          - data.end_month
+          - data.weather
+    outs:
+      # persist: DVC normally deletes the outputs of a stage before it runs the stage.
+      # Ingest must keep them: it compares every file on disk with the checksum in
+      # manifest.json and downloads only what is missing or changed. Without this line
+      # every run would download 390 MB again.
+      #
+      # This stage has no input data, so DVC cannot see that a source has published a
+      # new version of a file. Ingest cannot see it either: it compares the file on disk
+      # with the manifest and does not ask the server. To fetch a file again, delete it
+      # from data/raw and run: dvc repro --force ingest_raw
+      - data/raw:
+          persist: true
+
+  build_silver:
+    cmd: python -m demand silver
+    deps:
+      # Not the whole raw folder: silver reads neither the zone table nor the manifest.
+      - data/raw/trips
+      - data/raw/weather
+      - src/demand/data/silver.py
+      - src/demand/data/clean.py
+      - src/demand/data/clean_weather.py
+      - src/demand/schemas.py
+    params:
+      - configs/config.yaml:
+          - project.timezone
+          - data.start_month
+          - data.end_month
+          - data.weather.variables
+          - cleaning
+    outs:
+      - data/silver
+    metrics:
+      # A metrics file is an output whose numbers `dvc metrics show` and
+      # `dvc metrics diff` can print and compare between two versions of the data.
+      - reports/silver_cleaning_report.json
+
+  validate_silver:
+    cmd: python -m demand validate silver
+    deps:
+      - data/silver
+      - reports/silver_cleaning_report.json
+      - src/demand/data/validate.py
+      - src/demand/data/silver.py
+      - src/demand/data/clean.py
+      - src/demand/data/clean_weather.py
+      - src/demand/schemas.py
+    params:
+      - configs/config.yaml:
+          - project.timezone
+          - data.start_month
+          - data.end_month
+          - data.weather.variables
+          - cleaning.min_duration_minutes
+          - cleaning.max_duration_hours
+          - cleaning.max_distance_miles
+          - cleaning.min_passengers
+          - cleaning.max_passengers
+          - cleaning.max_zone_id
+    outs:
+      - reports/silver_validation_report.json
+
+  build_gold:
+    cmd: python -m demand gold
+    deps:
+      - data/silver
+      # The gate: gold is built only from a silver layer that passed validate_silver.
+      - reports/silver_validation_report.json
+      - src/demand/data/gold.py
+      - src/demand/data/aggregate.py
+      - src/demand/data/features.py
+      - src/demand/data/clean_weather.py
+      - src/demand/schemas.py
+    params:
+      - configs/config.yaml:
+          - project.timezone
+          - data.start_month
+          - data.end_month
+          # The outlier statistics are learned from the training period only.
+          - data.train_end_date
+          - data.zones
+          - data.weather.variables
+          - features
+    outs:
+      - data/gold
+
+  validate_gold:
+    cmd: python -m demand validate gold
+    deps:
+      - data/gold
+      - src/demand/data/validate.py
+      - src/demand/data/gold.py
+      - src/demand/data/aggregate.py
+      - src/demand/data/features.py
+      - src/demand/data/clean_weather.py
+      - src/demand/schemas.py
+    params:
+      - configs/config.yaml:
+          - project.timezone
+          - data.start_month
+          - data.end_month
+          - data.zones
+          - data.weather.variables
+          - features.horizon_hours
+          - features.lags
+          - features.rolling_windows
+    outs:
+      - reports/gold_validation_report.json

@@ -65,6 +65,10 @@ def _run_stage(module: str, function: str, *args: object) -> None:
     except NotImplementedError as error:
         # The module exists but this stage is still a placeholder.
         raise _not_implemented(str(error) or f"{module}.{function}") from error
+    except PipelineError as error:
+        # An expected failure: the message is enough, a traceback would only hide it.
+        typer.secho(f"Error: {error}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=1) from error
 ```
 
 Line 3 asks Python whether a module with this name exists, without loading it. If it does not exist, line 4 stops the command with the message "Not implemented yet" and a failure code.
@@ -73,7 +77,9 @@ Line 5 sets up logging, which the second half of this chapter covers.
 
 Line 7 does three things, from the inside out. `importlib.import_module(module)` loads the module now. `getattr(..., function)` takes the function with the given name out of it. The final brackets call that function and give it the settings as its first argument.
 
-The `try` and `except` around it handle a stage whose module exists while the stage itself is not written yet. Such a stage is a **placeholder**: a function that only raises `NotImplementedError`. Without the `except` block, the user would see a long error report with file names and line numbers. With it, the user sees one line, "Not implemented yet", followed by the text of the placeholder, and the exit code is 1. The `validate` command is such a stage today, and you will run it below.
+The first `except` block handles a stage whose module exists while the stage itself is not written yet. Such a stage is a **placeholder**: a function that only raises `NotImplementedError`. Without the `except` block, the user would see a long error report with file names and line numbers. With it, the user sees one line, "Not implemented yet", followed by the text of the placeholder, and the exit code is 1. The `validate` command was such a stage until Chapter 20. No stage is a placeholder today, and the block stays for the next one.
+
+The second `except` block handles a failure that the program expects, such as an input file that is missing. Every error of this kind belongs to the class `PipelineError`. The user sees one line that begins with "Error:", and the exit code is 1. Any other error is a mistake in the code and keeps its long report. Chapter 20 explains the difference and the class.
 
 This fixes a simple agreement for all stages, stated at the top of the file: every stage function takes the settings object first and returns nothing. The CLI needs to know nothing else about a stage.
 
@@ -85,7 +91,7 @@ The first is the dependency groups of Chapter 6. The training stage needs LightG
 
 The second is speed. Loading large libraries takes seconds. Printing a help text should not wait for them.
 
-The third is the order of building. The full list of commands existed before any stage did, and today four stages are written: `ingest`, `select-zones`, `silver` and `gold` (Chapters 14 to 19). A missing module is not an import error that breaks the whole program. It is a clear message for that one command.
+The third is the order of building. The full list of commands existed before any stage did, and today five stages are written: `ingest`, `select-zones`, `silver`, `gold` and `validate` (Chapters 14 to 20). A missing module is not an import error that breaks the whole program. It is a clear message for that one command.
 
 ```mermaid
 flowchart TB
@@ -95,6 +101,7 @@ flowchart TB
     C -->|"yes"| E["Set up logging,<br/>load the settings"]
     E --> F["Import the module now<br/>and call run_ingest(settings)"]
     F --> G["exit code 0<br/>if no error was raised"]
+    F -->|"expected failure"| H["Print one line: Error: ...<br/>exit code 1"]
 ```
 
 *Figure 9.1 – What happens when a stage command runs. A stage that is still a placeholder ends in the same way as a missing module: one line "Not implemented yet" and exit code 1.*
@@ -201,14 +208,14 @@ You should see one line of this form, with the current time:
 
 The two extra values are separate fields. The `+00:00` at the end of the time shows that it is UTC.
 
-Run a command whose stage is still a placeholder.
+Run a command whose stage does not exist yet.
 
 ```powershell
-.venv\Scripts\python.exe -m demand validate gold
+.venv\Scripts\python.exe -m demand train
 $LASTEXITCODE
 ```
 
-You should see `Not implemented yet: validate arrives with the quality-gate feature of phase 1` and then the number `1`. This is the end of Figure 9.1 for a stage that is not written: one line, no long error report, and a failure code.
+You should see `Not implemented yet: demand.models.pipeline` and then the number `1`. This is the branch "no" of Figure 9.1: the module of the training stage is not written, and the command says so in one line, without a long error report, and with a failure code.
 
 Run the test that checks every stage command.
 
@@ -216,7 +223,7 @@ Run the test that checks every stage command.
 .venv\Scripts\python.exe -m pytest tests/unit/test_cli.py -q -k "each_command"
 ```
 
-You should see `8 passed, 9 deselected`. Many stages do not exist yet, so how can their commands be tested? Chapter 10 explains the method: the test puts a fake module in the place of the real one.
+You should see `8 passed, 11 deselected`. Many stages do not exist yet, so how can their commands be tested? Chapter 10 explains the method: the test puts a fake module in the place of the real one.
 
 ## Key takeaways
 

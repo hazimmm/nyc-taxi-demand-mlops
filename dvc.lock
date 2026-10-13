@@ -1,0 +1,312 @@
+schema: '2.0'
+stages:
+  ingest_raw:
+    cmd: python -m demand ingest
+    deps:
+    - path: src/demand/data/ingest.py
+      hash: md5
+      md5: 4afb1831470976766673e558864fda1b
+      size: 12113
+    - path: src/demand/data/manifest.py
+      hash: md5
+      md5: 49823f938f75ec088ffe355639168688
+      size: 4735
+    - path: src/demand/data/pipeline.py
+      hash: md5
+      md5: 188c52f3259377ec4a34df8e95461d0a
+      size: 6692
+    - path: src/demand/data/weather.py
+      hash: md5
+      md5: 127261f44468a8d8a1a1f21d8538556d
+      size: 8820
+    params:
+      configs/config.yaml:
+        data.end_month: 2025-06
+        data.start_month: 2025-01
+        data.tlc_url_template: 
+          https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_{year}-{month:02d}.parquet
+        data.weather:
+          latitude: 40.7128
+          longitude: -74.006
+          forecast_url: 
+            https://historical-forecast-api.open-meteo.com/v1/forecast
+          archive_url: https://archive-api.open-meteo.com/v1/archive
+          variables:
+          - temperature_2m
+          - precipitation
+          - snowfall
+          - wind_speed_10m
+        data.zone_lookup_url: 
+          https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv
+    outs:
+    - path: data/raw
+      hash: md5
+      md5: ae8875149b564daa28c51ca282cbb1c5.dir
+      size: 408383472
+      nfiles: 9
+  build_silver:
+    cmd: python -m demand silver
+    deps:
+    - path: data/raw/trips
+      hash: md5
+      md5: 8b0a0525f9152d8529de9ac6338aaeda.dir
+      size: 408199712
+      nfiles: 6
+    - path: data/raw/weather
+      hash: md5
+      md5: 09facd25349c20130954ac4f125bb1e5.dir
+      size: 168579
+      nfiles: 1
+    - path: src/demand/data/clean.py
+      hash: md5
+      md5: d9b62b727a2ee8d6d7d86d77995d6d03
+      size: 18010
+    - path: src/demand/data/clean_weather.py
+      hash: md5
+      md5: 54c1f82ae0f277de54932640bf953fcc
+      size: 7902
+    - path: src/demand/data/silver.py
+      hash: md5
+      md5: 53f07e4575a61569bd5c782f2f8695c9
+      size: 11340
+    - path: src/demand/schemas.py
+      hash: md5
+      md5: d19899cb19a23aa8a389cc20e3ef0016
+      size: 8389
+    params:
+      configs/config.yaml:
+        cleaning:
+          min_duration_minutes: 1.0
+          max_duration_hours: 6.0
+          max_distance_miles: 100.0
+          min_passengers: 1
+          max_passengers: 8
+          max_zone_id: 263
+          max_weather_gap_hours: 3
+        data.end_month: 2025-06
+        data.start_month: 2025-01
+        data.weather.variables:
+        - temperature_2m
+        - precipitation
+        - snowfall
+        - wind_speed_10m
+        project.timezone: America/New_York
+    outs:
+    - path: data/silver
+      hash: md5
+      md5: 9f06102797e5b51437b5353d5cdd81f9.dir
+      size: 389119583
+      nfiles: 7
+    - path: reports/silver_cleaning_report.json
+      hash: md5
+      md5: ed6c1492bcd0a76021609be11cd94dbb
+      size: 4497
+  validate_silver:
+    cmd: python -m demand validate silver
+    deps:
+    - path: data/silver
+      hash: md5
+      md5: 9f06102797e5b51437b5353d5cdd81f9.dir
+      size: 389119583
+      nfiles: 7
+    - path: reports/silver_cleaning_report.json
+      hash: md5
+      md5: ed6c1492bcd0a76021609be11cd94dbb
+      size: 4497
+    - path: src/demand/data/clean.py
+      hash: md5
+      md5: d9b62b727a2ee8d6d7d86d77995d6d03
+      size: 18010
+    - path: src/demand/data/clean_weather.py
+      hash: md5
+      md5: 54c1f82ae0f277de54932640bf953fcc
+      size: 7902
+    - path: src/demand/data/silver.py
+      hash: md5
+      md5: 53f07e4575a61569bd5c782f2f8695c9
+      size: 11340
+    - path: src/demand/data/validate.py
+      hash: md5
+      md5: 2a6705cd33181b80c34e04a40a0f9372
+      size: 25776
+    - path: src/demand/schemas.py
+      hash: md5
+      md5: d19899cb19a23aa8a389cc20e3ef0016
+      size: 8389
+    params:
+      configs/config.yaml:
+        cleaning.max_distance_miles: 100.0
+        cleaning.max_duration_hours: 6.0
+        cleaning.max_passengers: 8
+        cleaning.max_zone_id: 263
+        cleaning.min_duration_minutes: 1.0
+        cleaning.min_passengers: 1
+        data.end_month: 2025-06
+        data.start_month: 2025-01
+        data.weather.variables:
+        - temperature_2m
+        - precipitation
+        - snowfall
+        - wind_speed_10m
+        project.timezone: America/New_York
+    outs:
+    - path: reports/silver_validation_report.json
+      hash: md5
+      md5: b77877add2e1ccc395bc63b4b4608ad7
+      size: 3823
+  build_gold:
+    cmd: python -m demand gold
+    deps:
+    - path: data/silver
+      hash: md5
+      md5: 9f06102797e5b51437b5353d5cdd81f9.dir
+      size: 389119583
+      nfiles: 7
+    - path: reports/silver_validation_report.json
+      hash: md5
+      md5: b77877add2e1ccc395bc63b4b4608ad7
+      size: 3823
+    - path: src/demand/data/aggregate.py
+      hash: md5
+      md5: 1173a252ea572f900bd565867757a414
+      size: 12164
+    - path: src/demand/data/clean_weather.py
+      hash: md5
+      md5: 54c1f82ae0f277de54932640bf953fcc
+      size: 7902
+    - path: src/demand/data/features.py
+      hash: md5
+      md5: 41f0b0fa906bb887f073569b3b2a9f86
+      size: 14195
+    - path: src/demand/data/gold.py
+      hash: md5
+      md5: 8487ef213dfa8cd044f24761bf4ab662
+      size: 10815
+    - path: src/demand/schemas.py
+      hash: md5
+      md5: d19899cb19a23aa8a389cc20e3ef0016
+      size: 8389
+    params:
+      configs/config.yaml:
+        data.end_month: 2025-06
+        data.start_month: 2025-01
+        data.train_end_date: '2025-04-30'
+        data.weather.variables:
+        - temperature_2m
+        - precipitation
+        - snowfall
+        - wind_speed_10m
+        data.zones:
+        - 161
+        - 237
+        - 236
+        - 132
+        - 230
+        - 186
+        - 162
+        - 142
+        - 234
+        - 170
+        - 163
+        - 239
+        - 68
+        - 138
+        - 79
+        - 48
+        - 249
+        - 141
+        - 164
+        - 140
+        features:
+          horizon_hours: 24
+          lags:
+          - 24
+          - 48
+          - 168
+          rolling_windows:
+          - 24
+          - 168
+          outlier_zscore: 4.0
+        project.timezone: America/New_York
+    outs:
+    - path: data/gold
+      hash: md5
+      md5: e5b2e1f900d283014008abfddf3cb0ea.dir
+      size: 3143475
+      nfiles: 2
+  validate_gold:
+    cmd: python -m demand validate gold
+    deps:
+    - path: data/gold
+      hash: md5
+      md5: e5b2e1f900d283014008abfddf3cb0ea.dir
+      size: 3143475
+      nfiles: 2
+    - path: src/demand/data/aggregate.py
+      hash: md5
+      md5: 1173a252ea572f900bd565867757a414
+      size: 12164
+    - path: src/demand/data/clean_weather.py
+      hash: md5
+      md5: 54c1f82ae0f277de54932640bf953fcc
+      size: 7902
+    - path: src/demand/data/features.py
+      hash: md5
+      md5: 41f0b0fa906bb887f073569b3b2a9f86
+      size: 14195
+    - path: src/demand/data/gold.py
+      hash: md5
+      md5: 8487ef213dfa8cd044f24761bf4ab662
+      size: 10815
+    - path: src/demand/data/validate.py
+      hash: md5
+      md5: 2a6705cd33181b80c34e04a40a0f9372
+      size: 25776
+    - path: src/demand/schemas.py
+      hash: md5
+      md5: d19899cb19a23aa8a389cc20e3ef0016
+      size: 8389
+    params:
+      configs/config.yaml:
+        data.end_month: 2025-06
+        data.start_month: 2025-01
+        data.weather.variables:
+        - temperature_2m
+        - precipitation
+        - snowfall
+        - wind_speed_10m
+        data.zones:
+        - 161
+        - 237
+        - 236
+        - 132
+        - 230
+        - 186
+        - 162
+        - 142
+        - 234
+        - 170
+        - 163
+        - 239
+        - 68
+        - 138
+        - 79
+        - 48
+        - 249
+        - 141
+        - 164
+        - 140
+        features.horizon_hours: 24
+        features.lags:
+        - 24
+        - 48
+        - 168
+        features.rolling_windows:
+        - 24
+        - 168
+        project.timezone: America/New_York
+    outs:
+    - path: reports/gold_validation_report.json
+      hash: md5
+      md5: 2491f95715aa316715d0fba12ce0fa4c
+      size: 997

@@ -1,8 +1,6 @@
 """Stage functions of the data pipeline, called by ``python -m demand <command>``.
 
-Each function takes the ``Settings`` object first and returns ``None``. ``run_validate``
-raises ``NotImplementedError`` until its feature is built, so the command line fails
-with a clear message.
+Each function takes the ``Settings`` object first and returns ``None``.
 """
 
 from __future__ import annotations
@@ -25,6 +23,7 @@ from demand.data.ingest import (
 )
 from demand.data.manifest import load_manifest
 from demand.data.silver import build_silver
+from demand.data.validate import validate_layer
 from demand.data.weather import ingest_weather
 from demand.logs import get_logger
 
@@ -176,5 +175,17 @@ def run_gold(settings: Settings) -> None:
 
 
 def run_validate(settings: Settings, layer: str) -> None:
-    """Run the quality gate of one layer."""
-    raise NotImplementedError("validate arrives with the quality-gate feature of phase 1")
+    """Check the files of one layer and write the validation report.
+
+    Safe to run again: no data is changed, and the report comes out identical. The work
+    itself is in ``validate.py``.
+
+    Args:
+        settings: Project settings.
+        layer: ``"silver"`` or ``"gold"``.
+
+    Raises:
+        QualityGateError: If a check failed; the report says which and why.
+        ZonesNotSelectedError: For the gold layer, if ``data.zones`` is empty.
+    """
+    validate_layer(settings, layer)

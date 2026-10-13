@@ -49,6 +49,8 @@ This block tells hatchling where the code is: in the folder `src/demand`.
 nyc-taxi-demand-mlops/
 ├── pyproject.toml          project description and tool settings
 ├── requirements.lock       exact versions of all dependencies
+├── dvc.yaml                the stages of the data pipeline (Chapter 21)
+├── dvc.lock                checksums of what the pipeline read and wrote
 ├── configs/
 │   └── config.yaml         all settings
 ├── src/
@@ -59,6 +61,7 @@ nyc-taxi-demand-mlops/
 │       ├── config.py       the settings object
 │       ├── schemas.py      the data contracts
 │       ├── logs.py         logging
+│       ├── errors.py       failures that are reported in one line (Chapter 20)
 │       ├── data/           the data pipeline (Part III)
 │       ├── models/         this and the next three: empty until their part is built
 │       ├── serving/

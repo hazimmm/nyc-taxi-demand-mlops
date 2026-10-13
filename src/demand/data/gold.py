@@ -57,6 +57,7 @@ from demand.data.aggregate import (
 )
 from demand.data.features import build_feature_table
 from demand.data.silver import silver_trips_path, silver_weather_path, write_parquet
+from demand.errors import PipelineError
 from demand.logs import get_logger
 from demand.schemas import (
     IS_OUTLIER,
@@ -77,11 +78,11 @@ GOLD_FEATURES_FILE_NAME = "features.parquet"
 PICKUP_COLUMNS = [PICKUP_DATETIME, PICKUP_ZONE_ID]
 
 
-class MissingSilverFileError(FileNotFoundError):
+class MissingSilverFileError(PipelineError, FileNotFoundError):
     """A silver file that this stage reads is not on disk."""
 
 
-class ZonesNotSelectedError(ValueError):
+class ZonesNotSelectedError(PipelineError, ValueError):
     """``data.zones`` is empty, so there is nothing to build the gold layer for."""
 
 
@@ -162,6 +163,19 @@ def summarise(
 # --------------------------------------------------------------------------------------
 # Disk
 # --------------------------------------------------------------------------------------
+
+
+def check_zones_selected(settings: Settings) -> None:
+    """Stop if no zones are frozen in the config: there is nothing to build or check.
+
+    Raises:
+        ZonesNotSelectedError: If ``data.zones`` is empty.
+    """
+    if not settings.data.zones:
+        raise ZonesNotSelectedError(
+            "data.zones is empty. Run `python -m demand select-zones` and paste the "
+            "result into configs/config.yaml before building or checking the gold layer."
+        )
 
 
 def check_silver_files_exist(settings: Settings, files: list[Path]) -> None:
@@ -252,11 +266,7 @@ def build_gold(settings: Settings) -> GoldSummary:
     data = settings.data
     silver_dir = settings.paths.silver
     gold_dir = settings.paths.gold
-    if not data.zones:
-        raise ZonesNotSelectedError(
-            "data.zones is empty. Run `python -m demand select-zones` and paste the "
-            "result into configs/config.yaml before building the gold layer."
-        )
+    check_zones_selected(settings)
     trip_files = [silver_trips_path(silver_dir, year, month) for year, month in data.months]
     check_silver_files_exist(settings, [*trip_files, silver_weather_path(silver_dir)])
 

@@ -18,7 +18,9 @@ data:
   end_month: "2025-06"
   # Last day the model is allowed to learn from. Everything after it is replayed
   # as "production" by the simulated clock.
-  train_end_date: 2025-04-30
+  # Quoted like the months above: without quotes YAML reads a date object, and DVC
+  # cannot store one in dvc.lock.
+  train_end_date: "2025-04-30"
   # Download behaviour. A timeout limits one network operation, not a whole file.
   download:
     max_attempts: 4            # tries per file for transient failures (network, 5xx, 429)

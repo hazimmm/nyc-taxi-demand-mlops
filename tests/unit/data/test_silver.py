@@ -18,6 +18,7 @@ from demand.data.clean import (
     PICKUP_OUTSIDE_MONTH,
     RULE_ORDER,
     UNKNOWN_PICKUP_ZONE,
+    RawFormatError,
 )
 from demand.data.clean_weather import WeatherGapError
 from demand.data.ingest import trips_path
@@ -298,6 +299,48 @@ def test_long_weather_gap_stops_the_stage_before_anything_is_written(
         run_silver(two_months)
 
     assert _files_with_content(two_months.paths.silver) == {}
+
+
+def test_raw_trips_without_a_needed_column_name_the_file_and_what_to_do(
+    two_months: Settings,
+) -> None:
+    path = trips_path(two_months.paths.raw, two_months.data.tlc_url_template, 2025, 3)
+    pq.write_table(raw_trips_table(MARCH).drop_columns(["total_amount"]), path)
+
+    with pytest.raises(RawFormatError) as error:
+        run_silver(two_months)
+
+    message = str(error.value)
+    assert message.startswith("yellow_tripdata_2025-03.parquet: raw trips have no column")
+    assert "total_amount" in message
+    assert "python -m demand ingest" in message
+
+
+def test_raw_weather_that_is_not_json_names_the_file_and_what_to_do(
+    two_months: Settings,
+) -> None:
+    weather_path(two_months.paths.raw).write_bytes(b"<html>not the weather</html>")
+
+    with pytest.raises(RawFormatError) as error:
+        run_silver(two_months)
+
+    message = str(error.value)
+    assert message.startswith("open_meteo_hourly.json: not valid JSON")
+    assert "python -m demand ingest" in message
+    assert not two_months.paths.silver.exists()
+
+
+def test_raw_weather_with_another_structure_names_the_file_and_what_to_do(
+    two_months: Settings,
+) -> None:
+    _write_raw_weather(two_months, {"daily": {}})
+
+    with pytest.raises(RawFormatError) as error:
+        run_silver(two_months)
+
+    message = str(error.value)
+    assert message.startswith("open_meteo_hourly.json: weather response has no 'hourly' section")
+    assert "python -m demand ingest" in message
 
 
 def test_failed_write_leaves_no_temporary_file_and_keeps_the_old_one(

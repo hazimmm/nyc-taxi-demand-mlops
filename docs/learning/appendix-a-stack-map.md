@@ -19,7 +19,7 @@ The **Status** column has three values.
 | pydantic, pydantic-settings | Libraries that check data against typed classes | Settings that are checked when the program starts | In use | 7 |
 | PyYAML | Reads YAML files | A config file that people can read | In use | 7 |
 | python-dotenv | Reads a `.env` file into environment variables | Local values and secrets in one file that is not in git | In use | 7 |
-| Pandera | Schema checks for pandas tables | Data contracts between the data layers | In use (the silver and gold stages validate every table before writing it; the `validate` command follows) | 8, 17, 18 |
+| Pandera | Schema checks for pandas tables | Data contracts between the data layers | In use (the silver and gold stages validate every table before writing it; the `validate` command checks the files of a layer with the same schemas, in lazy mode) | 8, 17, 18, 20 |
 | pandas | Library for tables of data | The cleaning rules, time zones and daylight saving, counting pickups on a complete grid, and the table type that the schemas check | In use | 8, 16, 17, 18 |
 | NumPy | Library for fast calculations on arrays of numbers | The lags and rolling windows of the feature function | In use | 19 |
 | Typer | Library for building command-line programs | One entry point on every operating system | In use | 9 |
@@ -38,7 +38,7 @@ The **Status** column has three values.
 | pyarrow | Reader and writer for Parquet files | The file format of the raw, silver and gold tables; the footer check before a file is accepted | In use | 14, 17, 18 |
 | DuckDB | A database engine that runs inside the Python process | Reads and counts large files without loading everything into memory | Declared (used in this book to look at the raw data and to check a cleaning rule) | 15, 16 |
 | holidays | Library of public holidays | The `is_holiday` feature: the federal holidays of the United States | In use | 19 |
-| DVC | Data Version Control: versions data files and pipeline steps next to git | A pipeline that can be repeated; data versions without data in git | Declared | |
+| DVC | Data Version Control: versions data files and pipeline steps next to git | Runs the five stages in order, skips a stage when nothing it depends on changed, and stops when a quality gate fails | In use (pipeline and local cache; no remote, so the data itself is not shared) | 21 |
 
 ## Modelling (Phase 2)
 
@@ -91,4 +91,4 @@ The **Status** column has three values.
 
 ---
 
-[Previous: Chapter 19 – Features without leakage](19-features-without-leakage.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)
+[Previous: Chapter 21 – A pipeline that knows what changed](21-a-pipeline-that-knows-what-changed.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)

@@ -24,6 +24,8 @@ The word "contract" fits because two parties rely on it. The step that writes a 
 
 In Chapter 4, Figure 4.1 showed a check at the entrance of the silver layer and of the gold layer. These checks are contracts. A check that can stop a pipeline is called a **quality gate**. If the table does not satisfy the contract, the gate stays closed: the table is not written, and the pipeline stops with an error.
 
+This chapter describes the check that a producer runs on its own table before writing it. Chapter 20 adds a second place for the same schemas: a command that checks the files of a layer before the next stage reads them.
+
 ```mermaid
 flowchart LR
     A["Cleaning step<br/>produces a table"] --> B{"Does the table<br/>satisfy the contract?"}

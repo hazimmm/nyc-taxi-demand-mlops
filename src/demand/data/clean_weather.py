@@ -30,6 +30,7 @@ from pydantic import BaseModel, ConfigDict
 
 from demand.config import Settings
 from demand.data.clean import RawFormatError
+from demand.errors import PipelineError
 from demand.schemas import HOUR_START
 
 RAW_TIME = "time"
@@ -38,7 +39,7 @@ RAW_UTC_OFFSET_SECONDS = "utc_offset_seconds"
 _LAST_HOUR_OF_DAY = 23
 
 
-class WeatherGapError(ValueError):
+class WeatherGapError(PipelineError, ValueError):
     """The weather has a gap that is too long, or one that cannot be interpolated."""
 
 

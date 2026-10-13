@@ -45,6 +45,7 @@ from demand.data.manifest import (
     sha256_of_file,
     temp_path_for,
 )
+from demand.errors import PipelineError
 from demand.logs import get_logger
 
 log = get_logger(__name__)
@@ -54,6 +55,7 @@ ZONES_DIR = "zones"
 PARQUET_SUFFIX = ".parquet"
 _DOWNLOAD_CHUNK_BYTES = 1024 * 1024
 _TOO_MANY_REQUESTS = 429
+RUN_AGAIN_HINT = "Run `python -m demand ingest` again later."
 TRIP_NOT_PUBLISHED_HINT = (
     "The TLC server answers 403 for a month that is not published yet; "
     "check data.start_month and data.end_month."
@@ -63,8 +65,8 @@ Sleep = Callable[[float], None]
 FileCheck = Callable[[Path], None]
 
 
-class DownloadError(Exception):
-    """A file could not be downloaded. The message names the URL."""
+class DownloadError(PipelineError):
+    """A file could not be downloaded. The message names the URL or the file."""
 
 
 class RejectedRequestError(DownloadError):
@@ -159,7 +161,10 @@ def parquet_row_count(path: Path) -> int:
     try:
         return int(pq.read_metadata(path).num_rows)
     except (pa.ArrowInvalid, OSError) as error:
-        raise DownloadError(f"Not a valid Parquet file: {path.name} ({error})") from error
+        raise DownloadError(
+            f"Not a valid Parquet file: {path.name} ({error}). The server sent something "
+            f"else; check the URL in the config. {RUN_AGAIN_HINT}"
+        ) from error
 
 
 def _download_once(
@@ -228,7 +233,8 @@ def download_file(
         except TransientDownloadError as error:
             if attempt == retry.max_attempts:
                 raise DownloadError(
-                    f"Gave up after {attempt} attempts. Last error: {error}"
+                    f"Gave up after {attempt} attempts. Last error: {error}. Files that "
+                    f"finished are kept. {RUN_AGAIN_HINT}"
                 ) from error
             wait_seconds = backoff_seconds(attempt, retry)
             log.warning(
