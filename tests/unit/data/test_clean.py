@@ -122,7 +122,14 @@ BAD_TRIPS = {
         DURATION_OUT_OF_RANGE,
         raw_trip("2025-01-15 08:00:00", "2025-01-15 14:00:01"),
     ),
-    "zero distance": (DISTANCE_OUT_OF_RANGE, raw_trip(GOOD_PICKUP, trip_distance=0.0)),
+    "no time passed and no distance": (
+        DURATION_OUT_OF_RANGE,
+        raw_trip(GOOD_PICKUP, GOOD_PICKUP, trip_distance=0.0),
+    ),
+    "zero distance inside one zone": (
+        DISTANCE_OUT_OF_RANGE,
+        raw_trip(GOOD_PICKUP, trip_distance=0.0, PULocationID=161, DOLocationID=161),
+    ),
     "negative distance": (DISTANCE_OUT_OF_RANGE, raw_trip(GOOD_PICKUP, trip_distance=-1.2)),
     "too far": (DISTANCE_OUT_OF_RANGE, raw_trip(GOOD_PICKUP, trip_distance=100.1)),
     "negative total amount": (NEGATIVE_TOTAL_AMOUNT, raw_trip(GOOD_PICKUP, total_amount=-0.01)),
@@ -310,6 +317,76 @@ def test_thresholds_come_from_the_settings(settings: Settings) -> None:
 
     assert default_counts.rows_out == 1
     assert strict_counts.removed == _only(DISTANCE_OUT_OF_RANGE)
+
+
+# --- values the source did not record ---------------------------------------------------
+
+
+def test_trip_without_a_recorded_dropoff_time_is_kept_with_the_time_missing(
+    settings: Settings,
+) -> None:
+    same_time = raw_trip(GOOD_PICKUP, GOOD_PICKUP, trip_distance=1.5)
+
+    silver, counts = _clean(settings, [raw_trip(GOOD_PICKUP), same_time])
+
+    assert counts.removed == _only(None)
+    assert silver[DROPOFF_DATETIME].isna().tolist() == [False, True]
+    assert silver[DURATION_MINUTES].isna().tolist() == [False, True]
+    assert silver[PICKUP_DATETIME].iloc[1] == _local(GOOD_PICKUP)
+    assert silver[TRIP_DISTANCE].iloc[1] == 1.5
+    assert counts.not_recorded == {DROPOFF_DATETIME: 1, TRIP_DISTANCE: 0}
+
+
+def test_trip_without_a_recorded_distance_is_kept_with_the_distance_missing(
+    settings: Settings,
+) -> None:
+    changed_zone = raw_trip(GOOD_PICKUP, trip_distance=0.0, PULocationID=48, DOLocationID=107)
+
+    silver, counts = _clean(settings, [raw_trip(GOOD_PICKUP), changed_zone])
+
+    assert counts.removed == _only(None)
+    assert silver[TRIP_DISTANCE].isna().tolist() == [False, True]
+    assert silver[DURATION_MINUTES].iloc[1] == 15.0
+    assert counts.not_recorded == {DROPOFF_DATETIME: 0, TRIP_DISTANCE: 1}
+
+
+def test_unrecorded_value_does_not_protect_a_row_from_the_other_rules(
+    settings: Settings,
+) -> None:
+    refund = raw_trip(GOOD_PICKUP, GOOD_PICKUP, trip_distance=1.5, total_amount=-9.0)
+    too_long = raw_trip("2025-01-15 08:00:00", "2025-01-15 15:00:00", trip_distance=0.0)
+
+    silver, counts = _clean(settings, [refund, too_long])
+
+    assert silver.empty
+    assert counts.removed == _only(None) | {NEGATIVE_TOTAL_AMOUNT: 1, DURATION_OUT_OF_RANGE: 1}
+    assert counts.not_recorded == {DROPOFF_DATETIME: 0, TRIP_DISTANCE: 0}
+
+
+def test_total_adds_up_the_unrecorded_values_of_the_months() -> None:
+    january = CleaningCounts(
+        rows_in=3,
+        removed=_only(None),
+        rows_out=3,
+        not_recorded={DROPOFF_DATETIME: 1, TRIP_DISTANCE: 2},
+    )
+    february = CleaningCounts(
+        rows_in=4,
+        removed=_only(None),
+        rows_out=4,
+        not_recorded={DROPOFF_DATETIME: 3, TRIP_DISTANCE: 0},
+    )
+
+    total = total_counts([january, february])
+
+    assert total.not_recorded == {DROPOFF_DATETIME: 4, TRIP_DISTANCE: 2}
+
+
+def test_raw_file_without_the_dropoff_zone_is_refused(settings: Settings) -> None:
+    raw = raw_trips_frame([raw_trip(GOOD_PICKUP)]).drop(columns=["DOLocationID"])
+
+    with pytest.raises(RawFormatError, match="DOLocationID"):
+        clean_trips(raw, 2025, 1, settings)
 
 
 def test_raw_file_without_a_needed_column_is_refused(settings: Settings) -> None:

@@ -205,6 +205,7 @@ def build_silver_trips(settings: Settings) -> dict[str, CleaningCounts]:
                 "rows_out": counts.rows_out,
                 "percent_removed": counts.percent_removed,
                 "removed": counts.removed,
+                "not_recorded": counts.not_recorded,
                 "seconds": round(time.monotonic() - started, 2),
             },
         )
@@ -268,6 +269,7 @@ def build_silver(settings: Settings) -> CleaningReport:
             "rows_out": total.rows_out,
             "percent_removed": total.percent_removed,
             "removed": total.removed,
+            "not_recorded": total.not_recorded,
             "weather_hours": weather.hours,
             "seconds": round(time.monotonic() - started, 2),
         },

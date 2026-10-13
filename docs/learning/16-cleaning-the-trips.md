@@ -9,6 +9,7 @@ The plan for this project had a line that nobody questioned: "drop trips with a 
 - Why the numbers of a cleaning step must add up, and how the code enforces it.
 - How to read the cleaning report.
 - How a rule from the plan was checked against the data and changed.
+- What to do with a value that was not recorded: remove the row, fill the value in, or keep it as missing.
 - How cleaning rules are tested.
 
 ## One row, one valid trip
@@ -30,15 +31,17 @@ A cleaning rule is a condition that marks a row as not valid. This table lists t
 | 3 | `pickup_outside_month` | the pickup is not in the month the file is named after | 137 |
 | 4 | `nonexistent_local_time` | a time is in the hour that the clocks skipped (Chapter 17) | 0 |
 | 5 | `dropoff_before_pickup` | the trip ends before it starts | 793 |
-| 6 | `duration_out_of_range` | it is shorter than 1 minute or longer than 6 hours | 462,187 |
-| 7 | `distance_out_of_range` | the distance is zero, negative or above 100 miles | 483,695 |
-| 8 | `negative_total_amount` | the total amount is below zero | 394,494 |
-| 9 | `passenger_count_out_of_range` | a passenger count is recorded and is not from 1 to 8 | 132,699 |
-| 10 | `unknown_pickup_zone` | the zone number is below 1 or above 263 | 42,738 |
+| 6 | `duration_out_of_range` | it is shorter than 1 minute or longer than 6 hours, and the dropoff time was recorded | 272,353 |
+| 7 | `distance_out_of_range` | the distance is zero, negative or above 100 miles, and the distance was recorded | 36,606 |
+| 8 | `negative_total_amount` | the total amount is below zero | 399,647 |
+| 9 | `passenger_count_out_of_range` | a passenger count is recorded and is not from 1 to 8 | 133,711 |
+| 10 | `unknown_pickup_zone` | the zone number is below 1 or above 263 | 43,105 |
 
 *Figure 16.1 – The cleaning rules in their order, with the real totals for January to June 2025.*
 
 The limits (1 minute, 6 hours, 100 miles, 1 to 8 passengers, zone 263) come from the `cleaning` section of the config file, the same values that the silver contract of Chapter 8 reads. The order goes from "this is not a usable record" to "the record is readable, but a value is impossible".
+
+Rules 6 and 7 say "was recorded". A later section, "A value that was not recorded", explains these words.
 
 Rule 9 has a detail. A missing passenger count is allowed. Chapter 15 found that this value is empty in 15.5% of the January rows. Those trips are valid in every other way, and removing them would remove real pickups.
 
@@ -93,7 +96,7 @@ This is a validator, as in Chapter 7. A `CleaningCounts` object with numbers tha
 
 The **cleaning report** is the record of what was removed and why. The stage writes it to `reports/silver_cleaning_report.json`: one block of counts per month and one for the total.
 
-The total: 24,083,384 rows in, 22,566,641 rows out. 1,516,743 rows were removed, which is 6.3%. Figure 16.1 shows where they went.
+The total: 24,083,384 rows in, 23,197,032 rows out. 886,352 rows were removed, which is 3.7%. Figure 16.1 shows where they went.
 
 Three rules removed nothing. A zero is a result too: this problem was looked for and does not exist in this data. The 137 rows of rule 3 are trips of a neighbouring month, like the pickups of 31 December in the January file. They are dropped and not moved to the other file, so that every silver file comes from exactly one raw file. The cost is 137 real trips.
 
@@ -141,13 +144,76 @@ Three lessons are general.
 
 **Ask whether the removed share changes over time.** A constant share lowers every count a little. A growing share changes the shape of the target.
 
-**The check is never finished.** The report shows the same warning sign again: the share of all removed rows is about 5.5% from January to March and above 7% in May and June. Most of the rise is in rules 6 and 7, which have not been examined in this way yet. Exercise 2 asks what you would do.
+**The check is never finished.** After this change, the report showed the same warning sign again. The share of all removed rows was about 5.5% from January to April and above 7% in May and June, and most of the rise was in rules 6 and 7. The next section is about what was found there.
+
+## A value that was not recorded
+
+Rule 6 removed trips shorter than one minute. Rule 7 removed trips with a distance of zero. Both sound safe. These are rows that the two rules removed from the June file.
+
+```text
+                pickup      dropoff   from   to   miles    total  vendor
+Group 1  11 Jun 08:00:04   08:13:30     48  107    0.00    24.80       1
+         11 Jun 08:05:56   08:45:43      4  166    0.00    53.00       1
+
+Group 2  11 Jun 08:00:51   08:00:51    236  239    1.00    13.44       7
+         11 Jun 08:01:19   08:01:19     13  246    3.49    28.62       7
+```
+
+*Figure 16.5 – Real rows from the June 2025 file. "from" and "to" are the pickup zone and the dropoff zone.*
+
+**Group 1: a distance of zero.** The taxi started in one zone and stopped in another, 13 and 40 minutes later, and an ordinary amount was charged. A taxi cannot change zone without moving. The trip happened, and the distance was not written down. In June, 97% of the zero-distance trips of this kind end in a different zone.
+
+**Group 2: a dropoff at the second of the pickup.** A first guess is that the driver ended the trip early on the meter, to be free for the next passenger. It is a reasonable guess, and a guess about data can be tested. If drivers did this, the trips of one vendor would have many different durations, and some of them would be very short. The data shows something else. Vendor 7 has 191,785 trips in the six months, and in every one of them the dropoff time is equal to the pickup time. Not one trip of this vendor has a duration. No group of drivers behaves the same way 191,785 times. The system of this vendor does not record the dropoff time and writes the pickup time into both fields.
+
+Both groups grow. Vendor 7 has 1,206 trips in January and 67,573 in June. As with the negative fare, the two rules were removing more real pickups every month.
+
+These values are **missing values** that do not look missing. A zero or a copied time that stands in the place of a measurement is called a **placeholder value**. There are three common ways to handle a missing value, and the right one depends on two questions: why is the value missing, and what is the value needed for?
+
+| Way | What it does | Right when | Wrong here because |
+|---|---|---|---|
+| Remove the row | The trip is not counted | Few rows, missing by chance, and the row is useless without the value | The rows are many, come from one growing group, and are real pickups |
+| Fill the value in | A calculated value replaces the missing one, for example the average. This is called **imputation**. | The value is an input of the model, and a good estimate exists | Nothing in this project uses the distance or the duration of a trip, and an invented value looks like a measurement |
+| Keep it as missing | The row stays, and the value is stored as empty | The row is useful without the value | – |
+
+*Figure 16.6 – Three ways to handle a missing value.*
+
+The silver layer exists to count pickups. A pickup needs a time and a zone, and both are there. So the row is kept and the placeholder value is replaced by a real missing value: no dropoff time and no duration for group 2, no distance for group 1. This is the same decision as for the passenger count in rule 9.
+
+[`src/demand/data/clean.py`](../../src/demand/data/clean.py)
+
+```python
+    has_distance = raw[RAW_TRIP_DISTANCE] > 0
+    same_time = raw[RAW_DROPOFF_DATETIME] == raw[RAW_PICKUP_DATETIME]
+    changed_zone = raw[RAW_DROPOFF_ZONE_ID].notna() & (
+        raw[RAW_DROPOFF_ZONE_ID] != raw[RAW_PICKUP_ZONE_ID]
+    )
+    return {
+        DROPOFF_DATETIME: same_time & has_distance,
+        TRIP_DISTANCE: (raw[RAW_TRIP_DISTANCE] == 0) & changed_zone,
+    }
+```
+
+This is the body of `find_unrecorded_values`. It returns two masks. The first marks a dropoff time as not recorded when it is equal to the pickup time and the trip has a distance. The second marks a distance as not recorded when it is zero and the zone changed. Each test asks for a second sign that the trip happened. A row with a distance of zero and a duration of zero has no such sign, matches neither test, and is still removed.
+
+The rules do not look at vendor numbers. A rule such as "vendor 7 has no dropoff time" would be true today and wrong on the day the vendor repairs its system or another vendor has the same fault.
+
+Rules 6 and 7 then skip the marked rows:
+
+```python
+        DISTANCE_OUT_OF_RANGE: ((distance <= 0) | (distance > cleaning.max_distance_miles))
+        & ~unrecorded[TRIP_DISTANCE],
+```
+
+The report counts the kept rows under `not_recorded`: 189,657 trips without a dropoff time and 440,734 without a distance. With this change the share of removed rows no longer rises. It is between 3.4% and 4.2% in every month.
+
+> [!NOTE]
+> A missing value is information. Removing the row throws the trip away, and filling the value in hides that it was missing. Keeping it as missing keeps the trip and tells the truth about the value. The price is paid by the code that reads the table later: it must expect empty values in these columns, and the contract of Chapter 8 now says so.
 
 ## Testing the rules
 
 The tests in [`tests/unit/data/test_clean.py`](../../tests/unit/data/test_clean.py) use two patterns again and again.
 
-**One bad row next to one good row.** A dictionary lists twenty ways to break a rule, each with the rule that must catch it:
+**One bad row next to one good row.** A dictionary lists twenty-one ways to break a rule, each with the rule that must catch it:
 
 ```python
     "too far": (DISTANCE_OUT_OF_RANGE, raw_trip(GOOD_PICKUP, trip_distance=100.1)),
@@ -177,7 +243,7 @@ Check that the numbers of the report add up.
 .venv\Scripts\python.exe -c "import json; t = json.load(open('reports/silver_cleaning_report.json'))['total']; print(t['rows_in'] - t['rows_out'], sum(t['removed'].values()))"
 ```
 
-You should see `1516743 1516743`. The rows that are gone and the rows that the rules counted are the same number.
+You should see `886352 886352`. The rows that are gone and the rows that the rules counted are the same number.
 
 Find the trip that is written twice.
 
@@ -202,7 +268,23 @@ Run the tests of the two patterns.
 .venv\Scripts\python.exe -m pytest tests/unit/data/test_clean.py -q -k "on_the_edge"
 ```
 
-You should see `20 passed, 36 deselected` and then `12 passed, 44 deselected`.
+You should see `21 passed, 41 deselected` and then `12 passed, 50 deselected`.
+
+Check the vendor that never records a dropoff time.
+
+```powershell
+.venv\Scripts\python.exe -c "import duckdb; print(duckdb.sql('select VendorID, count(*), count(*) filter (tpep_dropoff_datetime = tpep_pickup_datetime) from read_parquet(\'data/raw/trips/*.parquet\') group by 1 order by 1').fetchall())"
+```
+
+You should see `[(1, 4863684, 3983), (2, 19024265, 525), (6, 3650, 33), (7, 191785, 191785)]`. For vendor 7 the two numbers are equal.
+
+Run the tests of the values that were not recorded.
+
+```powershell
+.venv\Scripts\python.exe -m pytest tests/unit/data/test_clean.py -q -k "unrecorded or without_a_recorded"
+```
+
+You should see `4 passed, 58 deselected`. One of them proves that a missing value does not protect a row: a refund without a dropoff time is still removed as a refund.
 
 ## Key takeaways
 
@@ -211,25 +293,27 @@ You should see `20 passed, 36 deselected` and then `12 passed, 44 deselected`.
 - Rows in must equal rows out plus rows removed. The code refuses counts that do not add up.
 - A cleaning rule is a claim about the data. Look at the rows it removes before you accept it.
 - A rule that removes a changing share over time changes the target. "Negative fare" would have removed more real pickups after the training cut-off than before it.
+- A zero or a copied value can be a placeholder value for "not recorded". Ask for a second sign that the trip happened.
+- A missing value can be handled in three ways: remove the row, fill the value in, or keep it as missing. Keep it as missing when the row is useful without the value.
 - Test each rule with one bad row next to a good row, and with values on the edge.
 
 ## Exercises
 
-**1.** In the report, `negative_total_amount` for May is 98,849. Figure 16.4 says that the May file has 112,544 rows with a negative total. Both numbers are correct. Explain the difference.
+**1.** In the report, `negative_total_amount` for May is 103,472. Figure 16.4 says that the May file has 112,544 rows with a negative total. Both numbers are correct. Explain the difference.
 
 <details>
 <summary>Answer</summary>
 
-Figure 16.4 counts every row with a negative total. The report counts a row under the first rule that rejects it. A reversal that also has a distance of zero is counted under `distance_out_of_range`, rule 7. So 13,695 of these rows appear under earlier rules. All 112,544 rows are removed. They are only labelled differently.
+Figure 16.4 counts every row with a negative total. The report counts a row under the first rule that rejects it. A reversal that is also shorter than one minute is counted under `duration_out_of_range`, rule 6. So 9,072 of these rows appear under earlier rules. All 112,544 rows are removed. They are only labelled differently.
 
 </details>
 
-**2.** The share of removed rows is 5.6% in January and 7.7% in May, and most of the rise is in the duration and distance rules. What would you do before you trust these two rules?
+**2.** A later phase adds the average trip distance per zone and hour as an input of the model. Is "keep it as missing" still enough for the 440,734 trips without a distance?
 
 <details>
 <summary>Answer</summary>
 
-The same as for the fare. Look at a sample of the removed rows of each rule, in January and in May, to see whether they are one kind or several. Count them by vendor and by payment type, to see whether the rise comes from one group. Check whether their other values are ordinary. If a growing group turns out to be real pickups with one broken field, the rule must change. If they are not trips, the rule stays, and the reason is written down next to it.
+The rows still count as pickups, so they stay. But now the distance is needed, and the question of Figure 16.6 has a different answer. An average ignores empty values, so each hourly average would be calculated from the trips that have a distance. That is acceptable if the trips without a distance are like the others. They come mostly from one vendor and one payment type, so this must be checked first, for example by comparing their durations with those of the other trips. If they differ, the choice is between filling in an estimate, for example from the usual distance between the two zones, and giving the model a second input that says how many trips had no distance. The decision in silver does not change. Silver keeps the truth, and each use decides what to do with it.
 
 </details>
 
@@ -242,6 +326,7 @@ The same as for the fare. Look at a sample of the removed rows of each rule, in 
 - Count the rows removed by each rule, check that the counts add up, and save them in a report for every run.
 - Before accepting a rule, look at the rows it removes and at how their share changes over time, especially across the training cut-off.
 - A concrete case: "drop negative fares" would have removed a growing group of real trips. Only a negative total marks a reversed charge.
+- Separate "impossible" from "not recorded". Keep a row whose missing value is not needed, store the value as empty, and count such rows in the report.
 - Test every rule with a bad row next to a good one and with values on the edge.
 
 </details>

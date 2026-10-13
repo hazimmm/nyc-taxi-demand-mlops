@@ -14,6 +14,7 @@ from demand.data import silver
 from demand.data.clean import (
     NEGATIVE_TOTAL_AMOUNT,
     NONEXISTENT_LOCAL_TIME,
+    NOT_RECORDED_COLUMNS,
     PICKUP_OUTSIDE_MONTH,
     RULE_ORDER,
     UNKNOWN_PICKUP_ZONE,
@@ -101,6 +102,9 @@ def _removed(**counts: int) -> dict[str, int]:
     return dict.fromkeys(RULE_ORDER, 0) | counts
 
 
+NOTHING_UNRECORDED = dict.fromkeys(NOT_RECORDED_COLUMNS, 0)
+
+
 # --- layout -----------------------------------------------------------------------------
 
 
@@ -163,11 +167,13 @@ def test_report_counts_every_month_and_the_total(two_months: Settings) -> None:
                 "rows_in": 4,
                 "removed": _removed(**{PICKUP_OUTSIDE_MONTH: 1, NEGATIVE_TOTAL_AMOUNT: 1}),
                 "rows_out": 2,
+                "not_recorded": NOTHING_UNRECORDED,
             },
             "2025-03": {
                 "rows_in": 5,
                 "removed": _removed(**{NONEXISTENT_LOCAL_TIME: 1, UNKNOWN_PICKUP_ZONE: 1}),
                 "rows_out": 3,
+                "not_recorded": NOTHING_UNRECORDED,
             },
         },
         "total": {
@@ -181,6 +187,7 @@ def test_report_counts_every_month_and_the_total(two_months: Settings) -> None:
                 }
             ),
             "rows_out": 5,
+            "not_recorded": NOTHING_UNRECORDED,
         },
         "weather": {
             "hours": PERIOD_HOURS,

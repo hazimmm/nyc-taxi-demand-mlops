@@ -151,7 +151,7 @@ Run the stage. It needs the raw layer of Chapter 15.
 You should see eight log lines after about half a minute: one `weather cleaned`, six `trips cleaned`, and a last line like this:
 
 ```text
-{"time": "2026-10-13T05:11:58.499428+00:00", "level": "INFO", "logger": "demand.data.silver", "message": "silver finished", "silver_dir": "data\\silver", "report": "reports\\silver_cleaning_report.json", "rows_in": 24083384, "rows_out": 22566641, "percent_removed": 6.298, "removed": {"duplicate": 0, "missing_required_value": 0, "pickup_outside_month": 137, "nonexistent_local_time": 0, "dropoff_before_pickup": 793, "duration_out_of_range": 462187, "distance_out_of_range": 483695, "negative_total_amount": 394494, "passenger_count_out_of_range": 132699, "unknown_pickup_zone": 42738}, "weather_hours": 4343, "seconds": 30.55}
+{"time": "2026-10-13T05:55:08.376605+00:00", "level": "INFO", "logger": "demand.data.silver", "message": "silver finished", "silver_dir": "data\\silver", "report": "reports\\silver_cleaning_report.json", "rows_in": 24083384, "rows_out": 23197032, "percent_removed": 3.68, "removed": {"duplicate": 0, "missing_required_value": 0, "pickup_outside_month": 137, "nonexistent_local_time": 0, "dropoff_before_pickup": 793, "duration_out_of_range": 272353, "distance_out_of_range": 36606, "negative_total_amount": 399647, "passenger_count_out_of_range": 133711, "unknown_pickup_zone": 43105}, "not_recorded": {"dropoff_datetime": 189657, "trip_distance": 440734}, "weather_hours": 4343, "seconds": 30.06}
 ```
 
 Prove that a second run gives the same file.
@@ -213,7 +213,7 @@ Run the tests of the clocks, of the gaps and of the stage.
 .venv\Scripts\python.exe -m pytest tests/unit/data/test_silver.py -q
 ```
 
-You should see `6 passed, 50 deselected`, then `10 passed, 19 deselected`, then `14 passed`. The stage tests build two tiny months and a small weather file in a temporary folder, so they never touch the real data.
+You should see `6 passed, 56 deselected`, then `10 passed, 19 deselected`, then `14 passed`. The stage tests build two tiny months and a small weather file in a temporary folder, so they never touch the real data.
 
 ## Key takeaways
 

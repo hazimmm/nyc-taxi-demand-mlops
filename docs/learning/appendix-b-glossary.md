@@ -58,6 +58,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Hard-coded | Said of a value written directly in the code. | 7 |
 | Idempotent | Said of an operation that gives the same result when it is run again. | 15, 17 |
 | Immutable | Cannot be modified after it is written or created. | 4 |
+| Imputation | Filling a missing value with a calculated one, for example the average. | 16 |
 | Import path | The list of folders where Python searches for code to import. | 5 |
 | Ingest | To bring data from outside sources into the project. The first stage of the pipeline. | 14 |
 | JSON | A standard text format for structured data. | 9 |
@@ -70,6 +71,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Manifest | The record of every raw file: source address, download time, size, checksum, row count. | 4, 15 |
 | Mask | A column of true and false values, one per row, that marks the rows for which a condition holds. | 16 |
 | Medallion architecture | Storing data in layers of increasing quality: raw (bronze), silver, gold. | 4 |
+| Missing value | A value that is not there: it was never recorded, or it was lost. Stored as an empty cell, not as a number. | 15, 16 |
 | Model registry | A place that keeps every version of a model with a label. | 1 |
 | monkeypatch | A pytest fixture that changes something for one test and restores it afterwards. | 10 |
 | Naive timestamp | A date and time without a timezone. | 17 |
@@ -80,6 +82,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Parquet | A compact file format for tables. | 12 |
 | Pin | To fix a library to one exact version. | 6 |
 | Placeholder | A function that exists by name and only raises `NotImplementedError` until the real one is written. | 9 |
+| Placeholder value | A value such as zero, or a copy of another field, that a source writes where it has no measurement. | 16 |
 | Producer / consumer | The step that writes a table / the step that reads it. | 8 |
 | Pure function | A function whose result depends only on its arguments and that reads and writes nothing outside itself. | 16 |
 | Push | To send commits to the shared copy of the repository. | 12 |

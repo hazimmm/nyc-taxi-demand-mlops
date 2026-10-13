@@ -283,7 +283,7 @@ Run all tests of the data code and look at the time.
 .venv\Scripts\python.exe -m pytest tests/unit/data -q
 ```
 
-You should see `172 passed` in about five seconds. The number includes the tests of the cleaning code of Chapters 16 and 17. The download tests include many retries with waits of several seconds each. The short time proves that no test really waits and none uses the network.
+You should see `178 passed` in about five seconds. The number includes the tests of the cleaning code of Chapters 16 and 17. The download tests include many retries with waits of several seconds each. The short time proves that no test really waits and none uses the network.
 
 ## Key takeaways
 

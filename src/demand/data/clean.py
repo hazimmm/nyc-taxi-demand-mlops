@@ -22,8 +22,10 @@ usable record at all" to "the record is fine but its values are impossible":
 4. ``nonexistent_local_time``       pickup or dropoff is a time the clocks skipped
 5. ``dropoff_before_pickup``
 6. ``duration_out_of_range``        shorter than ``min_duration_minutes`` or longer
-                                    than ``max_duration_hours``
-7. ``distance_out_of_range``        zero, negative or above ``max_distance_miles``
+                                    than ``max_duration_hours``, unless the dropoff
+                                    time was not recorded
+7. ``distance_out_of_range``        zero, negative or above ``max_distance_miles``,
+                                    unless the distance was not recorded
 8. ``negative_total_amount``        the charge was taken back (see below)
 9. ``passenger_count_out_of_range`` recorded, but not ``min_passengers..max_passengers``
 10. ``unknown_pickup_zone``         zone ID below 1 or above ``max_zone_id``
@@ -39,6 +41,23 @@ and there is no second row for the same trip. They are real pickups with a fare 
 that cannot be trusted, and their share doubles from January to June, so removing them
 would add a falling trend to the demand that does not exist. The rule therefore looks
 at the total amount, and silver does not keep the fare.
+
+**A value that was not recorded is missing, not impossible.** Two patterns in the raw
+files look like impossible trips and are not (see ``find_unrecorded_values``):
+
+* *Dropoff time equal to the pickup time, with a distance above zero.* One vendor
+  writes the pickup time into both fields for every one of its trips (191,785 in the
+  first half of 2025, from 1,206 in January to 67,573 in June).
+* *Distance of zero, with different pickup and dropoff zones.* A taxi cannot change
+  zone without moving. About 450,000 trips, mostly of one vendor and payment type.
+
+Removing these rows would remove real pickups, and more of them every month. Silver is
+used to count pickups, and neither value is needed for that, so the row is kept and the
+value is stored as missing: no dropoff time and no duration in the first case, no
+distance in the second. Nothing is filled in, because an invented duration or distance
+would look like a measurement. The report counts these rows under ``not_recorded``.
+A trip with no distance *and* no duration gives no sign that it happened and is still
+removed.
 
 **Rows of a neighbouring month.** A raw file contains a few trips that started just
 before or after its month (the January file has pickups from the evening of
@@ -68,6 +87,7 @@ from demand.schemas import (
 RAW_PICKUP_DATETIME = "tpep_pickup_datetime"
 RAW_DROPOFF_DATETIME = "tpep_dropoff_datetime"
 RAW_PICKUP_ZONE_ID = "PULocationID"
+RAW_DROPOFF_ZONE_ID = "DOLocationID"
 RAW_TRIP_DISTANCE = "trip_distance"
 RAW_PASSENGER_COUNT = "passenger_count"
 RAW_TOTAL_AMOUNT = "total_amount"
@@ -107,6 +127,10 @@ RULE_ORDER = (
     UNKNOWN_PICKUP_ZONE,
 )
 
+# Silver columns that may be stored as missing because the source did not record them.
+# The passenger count is not listed: it is already missing in the raw file.
+NOT_RECORDED_COLUMNS = (DROPOFF_DATETIME, TRIP_DISTANCE)
+
 _SECONDS_PER_MINUTE = 60
 _MINUTES_PER_HOUR = 60
 _FIRST_ZONE_ID = 1
@@ -125,6 +149,10 @@ class CleaningCounts(BaseModel):
     removed: dict[str, int]
     """Rule name -> rows removed by it, in ``RULE_ORDER``."""
     rows_out: int = Field(ge=0)
+    not_recorded: dict[str, int] = Field(
+        default_factory=lambda: dict.fromkeys(NOT_RECORDED_COLUMNS, 0)
+    )
+    """Silver column -> kept rows whose value the source did not record."""
 
     @model_validator(mode="after")
     def _check_counts_add_up(self) -> CleaningCounts:
@@ -208,8 +236,36 @@ def to_silver_columns(raw: pd.DataFrame, timezone: str) -> pd.DataFrame:
     return trips
 
 
+def find_unrecorded_values(raw: pd.DataFrame) -> dict[str, pd.Series]:
+    """Mark the rows where the source wrote a placeholder instead of a measurement.
+
+    Keys are the silver columns in ``NOT_RECORDED_COLUMNS``.
+
+    * Dropoff time: it is equal to the pickup time to the second, although the trip has
+      a distance. Nobody is driven a mile in zero seconds; the field was not filled.
+    * Distance: it is zero, although pickup and dropoff are in different zones.
+
+    A row with a zero distance and a zero duration matches neither: the first test asks
+    for a distance, and such a row is removed by the duration rule.
+    """
+    has_distance = raw[RAW_TRIP_DISTANCE] > 0
+    same_time = raw[RAW_DROPOFF_DATETIME] == raw[RAW_PICKUP_DATETIME]
+    changed_zone = raw[RAW_DROPOFF_ZONE_ID].notna() & (
+        raw[RAW_DROPOFF_ZONE_ID] != raw[RAW_PICKUP_ZONE_ID]
+    )
+    return {
+        DROPOFF_DATETIME: same_time & has_distance,
+        TRIP_DISTANCE: (raw[RAW_TRIP_DISTANCE] == 0) & changed_zone,
+    }
+
+
 def find_rejected_rows(
-    raw: pd.DataFrame, trips: pd.DataFrame, year: int, month: int, settings: Settings
+    raw: pd.DataFrame,
+    trips: pd.DataFrame,
+    unrecorded: dict[str, pd.Series],
+    year: int,
+    month: int,
+    settings: Settings,
 ) -> dict[str, pd.Series]:
     """For every rule, mark the rows it rejects. Keys are in ``RULE_ORDER``.
 
@@ -219,6 +275,7 @@ def find_rejected_rows(
     Args:
         raw: The raw trips of one file.
         trips: The same rows after ``to_silver_columns``.
+        unrecorded: Result of ``find_unrecorded_values`` for the same rows.
         year: Year the file is named after.
         month: Month the file is named after.
         settings: Project settings; the thresholds come from ``settings.cleaning``.
@@ -245,9 +302,14 @@ def find_rejected_rows(
         NONEXISTENT_LOCAL_TIME: (local_pickup.notna() & pickup.isna())
         | (local_dropoff.notna() & dropoff.isna()),
         DROPOFF_BEFORE_PICKUP: dropoff < pickup,
-        DURATION_OUT_OF_RANGE: (duration < cleaning.min_duration_minutes)
-        | (duration > cleaning.max_duration_hours * _MINUTES_PER_HOUR),
-        DISTANCE_OUT_OF_RANGE: (distance <= 0) | (distance > cleaning.max_distance_miles),
+        # A value that was not recorded cannot be out of range.
+        DURATION_OUT_OF_RANGE: (
+            (duration < cleaning.min_duration_minutes)
+            | (duration > cleaning.max_duration_hours * _MINUTES_PER_HOUR)
+        )
+        & ~unrecorded[DROPOFF_DATETIME],
+        DISTANCE_OUT_OF_RANGE: ((distance <= 0) | (distance > cleaning.max_distance_miles))
+        & ~unrecorded[TRIP_DISTANCE],
         NEGATIVE_TOTAL_AMOUNT: trips[TOTAL_AMOUNT] < 0,
         # A missing count compares as False on both sides, so it is not rejected.
         PASSENGER_COUNT_OUT_OF_RANGE: (passengers < cleaning.min_passengers)
@@ -292,13 +354,23 @@ def clean_trips(
     Raises:
         RawFormatError: If ``raw`` lacks a column that silver is built from.
     """
-    missing_columns = [column for column in RAW_TO_SILVER if column not in raw.columns]
+    needed = [*RAW_TO_SILVER, RAW_DROPOFF_ZONE_ID]
+    missing_columns = [column for column in needed if column not in raw.columns]
     if missing_columns:
         raise RawFormatError(f"raw trips have no column {', '.join(missing_columns)}")
 
     trips = to_silver_columns(raw, settings.project.timezone)
-    rejected = find_rejected_rows(raw, trips, year, month, settings)
+    unrecorded = find_unrecorded_values(raw)
+    rejected = find_rejected_rows(raw, trips, unrecorded, year, month, settings)
     removed, is_kept = count_removed(rejected)
+
+    # Store "not recorded" as missing, so that no later stage reads a placeholder as a
+    # measurement. The duration is derived from the dropoff time and goes with it.
+    no_dropoff = unrecorded[DROPOFF_DATETIME] & is_kept
+    no_distance = unrecorded[TRIP_DISTANCE] & is_kept
+    trips.loc[no_dropoff, DROPOFF_DATETIME] = pd.NaT
+    trips.loc[no_dropoff, DURATION_MINUTES] = np.nan
+    trips.loc[no_distance, TRIP_DISTANCE] = np.nan
 
     silver = trips[is_kept].reset_index(drop=True)
     silver = silver.astype(
@@ -309,7 +381,15 @@ def clean_trips(
             TOTAL_AMOUNT: "float64",
         }
     )
-    counts = CleaningCounts(rows_in=len(raw), removed=removed, rows_out=len(silver))
+    counts = CleaningCounts(
+        rows_in=len(raw),
+        removed=removed,
+        rows_out=len(silver),
+        not_recorded={
+            DROPOFF_DATETIME: int(no_dropoff.sum()),
+            TRIP_DISTANCE: int(no_distance.sum()),
+        },
+    )
     return silver, counts
 
 
@@ -319,4 +399,8 @@ def total_counts(counts: list[CleaningCounts]) -> CleaningCounts:
         rows_in=sum(month.rows_in for month in counts),
         removed={rule: sum(month.removed[rule] for month in counts) for rule in RULE_ORDER},
         rows_out=sum(month.rows_out for month in counts),
+        not_recorded={
+            column: sum(month.not_recorded[column] for month in counts)
+            for column in NOT_RECORDED_COLUMNS
+        },
     )

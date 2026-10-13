@@ -71,7 +71,9 @@ def feature_columns(settings: Settings) -> list[str]:
     return [ZONE_ID, *lags, *rolling, *CALENDAR_FEATURES, *settings.data.weather.variables]
 
 
-def _timestamp_column(timezone: str, *, on_the_hour: bool = False) -> pa.Column:
+def _timestamp_column(
+    timezone: str, *, on_the_hour: bool = False, nullable: bool = False
+) -> pa.Column:
     """Timezone-aware timestamp column, independent of the stored time resolution."""
     checks = [
         pa.Check(
@@ -88,7 +90,7 @@ def _timestamp_column(timezone: str, *, on_the_hour: bool = False) -> pa.Column:
                 error="must be aligned to the start of an hour",
             )
         )
-    return pa.Column(checks=checks, nullable=False)
+    return pa.Column(checks=checks, nullable=nullable)
 
 
 def _zone_column(settings: Settings, *, frozen_only: bool) -> pa.Column:
@@ -121,15 +123,19 @@ def silver_trips_schema(settings: Settings) -> pa.DataFrameSchema:
     return pa.DataFrameSchema(
         {
             PICKUP_DATETIME: _timestamp_column(timezone),
-            DROPOFF_DATETIME: _timestamp_column(timezone),
+            # Dropoff time, duration and distance are missing where the source did not
+            # record them (see data/clean.py). A recorded value must be in range.
+            DROPOFF_DATETIME: _timestamp_column(timezone, nullable=True),
             PICKUP_ZONE_ID: _zone_column(settings, frozen_only=False),
             TRIP_DISTANCE: pa.Column(
                 "float64",
                 pa.Check.in_range(0, cleaning.max_distance_miles, include_min=False),
+                nullable=True,
             ),
             DURATION_MINUTES: pa.Column(
                 "float64",
                 pa.Check.in_range(cleaning.min_duration_minutes, cleaning.max_duration_hours * 60),
+                nullable=True,
             ),
             # Missing for a share of vendor-submitted trips that are otherwise valid,
             # so nulls are kept; only recorded values outside the range are removed.
