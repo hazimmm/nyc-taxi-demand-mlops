@@ -40,6 +40,14 @@ Activate the venv first, because the stages call `python`. The first run downloa
 
 The pipeline does not notice when a source publishes a corrected version of a file it already has: ingest compares each file on disk with its recorded checksum and never asks the server again. To fetch a file again, delete it from `data/raw` and run `dvc repro --force ingest_raw`.
 
+## Model
+
+```powershell
+python -m demand promote
+```
+
+`dvc repro` trains and registers a new model version in MLflow but never changes which version is served. `promote` makes the newest version champion only if its backtest MAE beats both the current champion and the weekly baseline by at least 0.2, with no test week worse. Each version is judged once, so a later `promote` never undoes a rollback (rule and reasons in `src/demand/models/promotion.py`). `python -m demand set-champion VERSION --reason TEXT` sets the champion by hand, for a rollback or to bring a judged version back, and records why. What the current model is for and where it is weak: [docs/model-card.md](docs/model-card.md).
+
 ## Learning book as a PDF
 
 ```powershell

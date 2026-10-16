@@ -66,6 +66,26 @@ def test_validate_passes_the_layer_to_the_stage(monkeypatch: pytest.MonkeyPatch)
     assert calls[0][1] == "gold"
 
 
+def test_set_champion_passes_the_version_and_the_reason(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[object, ...]] = []
+    _fake_module(
+        monkeypatch, "demand.models.promotion", set_champion=lambda *args: calls.append(args)
+    )
+
+    result = runner.invoke(app, ["set-champion", "1", "--reason", "version 2 failed in May"])
+
+    assert result.exit_code == 0, result.output
+    assert calls[0][1:] == (1, "version 2 failed in May")
+
+
+def test_set_champion_needs_a_reason() -> None:
+    result = runner.invoke(app, ["set-champion", "1"])
+
+    assert result.exit_code == 2
+
+
 def test_validate_rejects_unknown_layer() -> None:
     result = runner.invoke(app, ["validate", "bronze"])
 
@@ -82,6 +102,7 @@ def test_validate_rejects_unknown_layer() -> None:
         ("backtest", "demand.models.pipeline", "run_backtest"),
         ("train", "demand.models.pipeline", "run_training"),
         ("tune", "demand.models.pipeline", "run_tuning"),
+        ("promote", "demand.models.promotion", "run_promotion"),
         ("forecast", "demand.flows.forecast_flow", "run_forecast"),
         ("monitor", "demand.flows.monitoring_flow", "run_monitoring"),
         ("retrain", "demand.flows.retrain_flow", "run_retrain"),

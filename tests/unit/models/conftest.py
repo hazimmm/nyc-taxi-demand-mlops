@@ -6,15 +6,24 @@ value of ``k`` hours ago is wrong by exactly ``k``. ``Lookup`` forecasts whateve
 tells it to, and ``Spy`` records what the backtest hands to a forecaster. ``ONE_TREE`` and
 ``FEW_TREES`` are LightGBM parameters for tests: a model small enough to check by hand,
 and a quick one that still draws random rows and columns.
+
+``Store`` is a temporary MLflow store in which a test registers versions with the
+parameters, tags and scores it needs, for the promotion gate; ``RUN_PARAMS`` and the
+fold scores are copied from the two versions of the repository's store.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+import shutil
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+import mlflow
 import pandas as pd
+import pytest
+from mlflow.entities import Metric, Param, RunTag
 
 from demand.config import Settings
 from demand.data.aggregate import training_period_end
@@ -176,3 +185,134 @@ def with_mlflow_store(settings: Settings, folder: Path) -> Settings:
     return settings.model_copy(
         update={"mlflow": settings.mlflow.model_copy(update={"tracking_uri": uri})}
     )
+
+
+# What the training run of version 2 in the repository's store recorded, copied from it:
+# the parameters that define the backtest, the tags, and the MAE of every fold.
+RUN_PARAMS = {
+    "model.learning_rate": "0.104",
+    "data.train_end_date": "2025-04-30",
+    "data.zones": "[161, 237, 236, 132, 230, 186, 162, 142, 234, 170, 163, 239, 68, 138, 79, "
+    "48, 249, 141, 164, 140]",
+    "features.horizon_hours": "48",
+    "features.lags": "[48, 168]",
+    "features.rolling_windows": "[24, 168]",
+    "features.outlier_zscore": "4.0",
+    "feature_columns": "['zone_id', 'lag_48h', 'lag_168h', 'roll_mean_24h', 'roll_std_24h', "
+    "'roll_mean_168h', 'roll_std_168h', 'hour', 'day_of_week', 'month', 'is_weekend', "
+    "'is_holiday', 'temperature_2m', 'precipitation', 'snowfall', 'wind_speed_10m']",
+    "backtest.n_folds": "4",
+    "backtest.fold_days": "7",
+}
+RUN_TAGS = {
+    "forecaster": "lightgbm",
+    "baseline": "weekly_naive",
+    "git_commit": "5d1d9e4adc01ac34842c56dcab1e662e01dc27ac",
+    "git_dirty": "false",
+    "data_version": "7bacf1bf80cf4612d40552e74ef11cc5.dir",
+}
+BASELINE_FOLDS = (27.614583, 26.572619, 27.91756, 28.697917)
+"""The weekly baseline per fold; pooled 27.70067."""
+UNTUNED_FOLDS = (24.345801, 22.66614, 25.722257, 26.985474)
+"""Version 1 of the repository's store; pooled 24.929918."""
+TUNED_FOLDS = (23.510474, 21.84912, 24.753347, 26.311159)
+"""Version 2 of the repository's store; pooled 24.106025."""
+
+
+def pooled(folds: Sequence[float]) -> float:
+    """The MAE over all rows of folds of equal size: the mean of the fold MAEs."""
+    return round(sum(folds) / len(folds), 6)
+
+
+def mae_metrics(
+    model: Sequence[float], baseline: Sequence[float] = BASELINE_FOLDS
+) -> dict[str, float]:
+    """The MAE metrics a training run records, for the model and the baseline."""
+    metrics = {"lightgbm.mae": pooled(model), "weekly_naive.mae": pooled(baseline)}
+    for name, folds in (("lightgbm", model), ("weekly_naive", baseline)):
+        metrics |= {f"{name}.fold_{n}.mae": mae for n, mae in enumerate(folds, start=1)}
+    return metrics
+
+
+@dataclass(frozen=True)
+class Store:
+    """A temporary MLflow store, and a quick way to register versions in it.
+
+    A version is registered without a stored model: the gate reads only the run of a
+    version, and saving a real model would take seconds per version.
+    """
+
+    settings: Settings
+
+    @property
+    def client(self) -> mlflow.MlflowClient:
+        uri = self.settings.mlflow.tracking_uri
+        return mlflow.MlflowClient(tracking_uri=uri, registry_uri=uri)
+
+    @property
+    def name(self) -> str:
+        return self.settings.mlflow.registered_model_name
+
+    def register(
+        self,
+        model: Sequence[float] = TUNED_FOLDS,
+        *,
+        params: Mapping[str, str] | None = None,
+        tags: Mapping[str, str] | None = None,
+        metrics: Mapping[str, float] | None = None,
+    ) -> int:
+        """Record a finished run and register it as the next version; its number."""
+        client = self.client
+        experiment = client.get_experiment_by_name(self.settings.mlflow.experiment_name)
+        assert experiment is not None
+        run = client.create_run(experiment.experiment_id)
+        client.log_batch(
+            run.info.run_id,
+            metrics=[
+                Metric(key, value, 0, 0)
+                for key, value in (mae_metrics(model) if metrics is None else metrics).items()
+            ],
+            params=[Param(key, value) for key, value in (params or RUN_PARAMS).items()],
+            tags=[RunTag(key, value) for key, value in (tags or RUN_TAGS).items()],
+        )
+        client.set_terminated(run.info.run_id)
+        if not client.search_registered_models(f"name='{self.name}'"):
+            client.create_registered_model(self.name)
+        version = client.create_model_version(
+            self.name, source=run.info.artifact_uri, run_id=run.info.run_id
+        )
+        return int(version.version)
+
+    def aliases(self) -> dict[str, int]:
+        aliases = self.client.get_registered_model(self.name).aliases
+        return {alias: int(version) for alias, version in aliases.items()}
+
+    def version_aliases(self, version: int) -> list[str]:
+        return list(self.client.get_model_version(self.name, str(version)).aliases)
+
+    def tags(self, version: int) -> dict[str, str]:
+        return dict(self.client.get_model_version(self.name, str(version)).tags)
+
+
+@pytest.fixture(scope="session")
+def empty_store(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """An MLflow database with the experiment and nothing else, created once.
+
+    Creating a database takes MLflow seconds; copying the file takes a moment, so every
+    test gets a copy of this one (``store``).
+    """
+    folder = tmp_path_factory.mktemp("empty_mlflow_store")
+    uri = f"sqlite:///{(folder / 'mlflow.db').as_posix()}"
+    client = mlflow.MlflowClient(tracking_uri=uri, registry_uri=uri)
+    client.create_experiment("taxi-demand", artifact_location=(folder / "mlruns").as_uri())
+    return folder / "mlflow.db"
+
+
+@pytest.fixture
+def store(
+    settings: Settings, tmp_path: Path, empty_store: Path, monkeypatch: pytest.MonkeyPatch
+) -> Store:
+    """A fresh MLflow store under ``tmp_path``, which is also the working directory."""
+    shutil.copy(empty_store, tmp_path / "mlflow.db")
+    monkeypatch.chdir(tmp_path)
+    return Store(with_mlflow_store(settings, tmp_path))

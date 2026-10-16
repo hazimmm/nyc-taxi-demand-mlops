@@ -32,10 +32,13 @@ flowchart TB
 
     subgraph REG["MLflow · experiment tracking + model registry"]
         direction LR
-        CHAL["challenger"]
+        CHAL["new version"]
         GATE{{"Promotion gate<br/>beats champion and baseline"}}
         CHAMP["champion"]
-        CHAL --> GATE --> CHAMP
+        REJ["challenger"]
+        CHAL --> GATE
+        GATE -->|passes| CHAMP
+        GATE -->|fails| REJ
     end
 
     subgraph PROD["Production · Docker images on Kubernetes (kind) · Compose in development"]

@@ -9,7 +9,7 @@ Three months from now a planner complains: the forecast for a Saturday in July w
 - What experiment tracking is, and how it differs from what DVC does.
 - What an MLflow run holds: parameters, metrics, tags and artifacts.
 - What a model signature is, and why the stored model is the forecaster itself.
-- What the model registry gives, and what is not built yet.
+- What the model registry gives.
 - Four limits of this record.
 
 ## One run, four steps
@@ -100,11 +100,11 @@ This matters for the serving phase. A web request arrives as JSON, where 161 and
 
 Chapter 1 introduced the **model registry**. Every training run registers its model under the name `taxi-demand` and gets a **model version**: 1 for the first run, 2 for the second. In this repository, version 1 is the model before tuning. The training run of Chapter 27, with the tuned values, adds version 2 next to it. Version 1 is not changed or removed. A later step can then say "load `models:/taxi-demand/1`".
 
-No version carries a label yet. The config names two aliases, `champion` and `challenger`, and the rule that gives them to a version is not built. Until then the registry is a numbered list.
+A version can also carry a label that moves, an alias. The config names two, `champion` and `challenger`. Training sets neither: which version is served is decided by the promotion gate of Chapter 29, a command of its own. In this repository the gate has made version 2 the champion, so the service of Phase 3 will load it as `models:/taxi-demand@champion`.
 
-## MLflow in one module
+## MLflow in two modules
 
-Only one module of the project imports `mlflow`: `tracking.py`. The forecaster, the backtest and the training code hand it plain values and get back a run id and a version number. Two things follow. MLflow could be replaced by changing one file. And the command `python -m demand backtest` never loads MLflow, which takes between one and two seconds to import here: `pipeline.py` imports the training module inside the function `run_training`, the lazy import of Chapter 9.
+Only two modules of the project import `mlflow`. `tracking.py` writes the runs: the forecaster, the backtest and the training code hand it plain values and get back a run id and a version number. `registry.py`, added with Chapter 29, reads versions and moves aliases. Two things follow. MLflow could be replaced by changing two files. And the command `python -m demand backtest` never loads MLflow, which takes between one and two seconds to import here: `pipeline.py` imports the training module inside the function `run_training`, the lazy import of Chapter 9.
 
 ## Four limits
 
@@ -149,10 +149,10 @@ The report holds only the newest run. For version 1 it said `24.929918 27.70067 
 Ask MLflow for the newest run and for the model versions.
 
 ```powershell
-.venv\Scripts\python.exe -c "from mlflow import MlflowClient; c = MlflowClient('sqlite:///mlflow.db'); e = c.get_experiment_by_name('taxi-demand'); runs = c.search_runs([e.experiment_id]); r = runs[0]; print(len(runs), r.info.status, len(r.data.params), len(r.data.metrics)); print(r.data.metrics['lightgbm.mae'], r.data.metrics['weekly_naive.mae'], r.data.metrics['improvement.mae_percent']); [print(k, '=', r.data.tags[k]) for k in ('forecaster', 'baseline', 'git_commit', 'git_dirty', 'data_version')]; print([a.path for a in c.list_artifacts(r.info.run_id)]); [print(v.name, v.version, v.status, v.aliases, v.run_id == r.info.run_id) for v in c.search_model_versions()]"
+.venv\Scripts\python.exe -c "from mlflow import MlflowClient; c = MlflowClient('sqlite:///mlflow.db'); e = c.get_experiment_by_name('taxi-demand'); runs = c.search_runs([e.experiment_id]); r = runs[0]; print(len(runs), r.info.status, len(r.data.params), len(r.data.metrics)); print(r.data.metrics['lightgbm.mae'], r.data.metrics['weekly_naive.mae'], r.data.metrics['improvement.mae_percent']); [print(k, '=', r.data.tags[k]) for k in ('forecaster', 'baseline', 'git_commit', 'git_dirty', 'data_version')]; print([a.path for a in c.list_artifacts(r.info.run_id)]); [print(v.name, v.version, v.status, c.get_model_version(v.name, v.version).aliases, v.run_id == r.info.run_id) for v in c.search_model_versions()]"
 ```
 
-With the two runs in the store you should see:
+With the two runs in the store, after the promotion of Chapter 29, you should see:
 
 ```text
 2 FINISHED 20 52
@@ -163,11 +163,11 @@ git_commit = <the commit that was checked out>
 git_dirty = false
 data_version = 7bacf1bf80cf4612d40552e74ef11cc5.dir
 ['backtest_report.json', 'shap_importance.json', 'shap_summary.png', 'silver_cleaning_report.json']
-taxi-demand 2 READY [] True
+taxi-demand 2 READY ['champion'] True
 taxi-demand 1 READY [] False
 ```
 
-The newest run comes first. The last two lines say: two versions, both ready, no alias, and version 2 belongs to this run. The commit and the id of the run are not printed here, because they differ for every run.
+The newest run comes first. The last two lines say: two versions, both ready, version 2 is the champion, and it belongs to this run. The aliases are asked for each version with `get_model_version`, because in the MLflow version installed here `search_model_versions` returns every version with an empty list of aliases. Before the promotion, the list of version 2 was empty too. The commit and the id of the run are not printed here, because they differ for every run.
 
 Load the model from the registry, forecast three rows, and then give it the zone as a decimal number.
 
@@ -218,7 +218,7 @@ You should see `48 passed, 2 warnings`. The warnings come from MLflow and its da
 - DVC answers "is the pipeline up to date?". MLflow answers "which model is this, what made it, and how good was it?".
 - A run holds parameters, metrics, tags and artifacts. The git commit, the dirty flag and the data version make it reproducible.
 - The stored model is the forecaster itself, with a signature that enforces column names, order and types when it is loaded.
-- Every run registers a new version of `taxi-demand`: version 1 before tuning, version 2 after. No alias is set yet.
+- Every run registers a new version of `taxi-demand`: version 1 before tuning, version 2 after. Training sets no alias; the promotion gate of Chapter 29 does.
 - Know the limits: a dirty run, a database DVC does not track, an absolute path, and a data version that is read and not calculated.
 
 ## Exercises
@@ -246,7 +246,7 @@ It has to say that 1 May is included although this model could not have made tha
 <details>
 <summary>Answer</summary>
 
-The run cannot be rebuilt from its commit, because files differed from the commit when it was made, and the record does not say how. If the model misbehaves later, nobody can inspect the exact code that trained it. Commit the code, train again, and commit `dvc.lock`. On the same machine the scores come out the same (Chapter 25), so nothing is lost except a few minutes, and the new run has `git_dirty = false`.
+The run cannot be rebuilt from its commit, because files differed from the commit when it was made, and the record does not say how. If the model misbehaves later, nobody can inspect the exact code that trained it. Commit the code, train again, and commit `dvc.lock`. On the same machine the scores come out the same (Chapter 25), so nothing is lost except a few minutes, and the new run has `git_dirty = false`. The promotion gate of Chapter 29 refuses a dirty version for this reason.
 
 </details>
 

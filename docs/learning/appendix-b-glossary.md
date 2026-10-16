@@ -5,7 +5,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Term | Meaning | Ch. |
 |---|---|---|
 | Actuals | The real observed values, here the real pickups, known only after the hour has passed. | 3 |
-| Alias (model registry) | A label, such as `champion`, that points to one version of a registered model. None is set yet. | 26 |
+| Alias (model registry) | A name that points at one version of a registered model and can be moved to another. `models:/taxi-demand@champion` loads whichever version the alias `champion` points at now. | 26, 29 |
 | Artifact | A file that is stored with a training run, such as a report or the model. | 26 |
 | Atomic | Said of an operation that happens completely or not at all, with no state in between. Renaming a file inside one folder is atomic. | 14 |
 | Automated test | A small function that runs a piece of code and checks the result with `assert`. | 10 |
@@ -18,7 +18,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Build backend | The tool that turns a source folder into something installable. Here: hatchling. | 5 |
 | Cache (DVC) | The folder `.dvc/cache`, in which DVC keeps a copy of every output of a stage. | 21 |
 | Categorical feature | An input whose values are labels from a fixed list, not amounts. Here: `zone_id`. A tree can put any group of labels on one side of a question. | 24 |
-| Champion / challenger | The model in use / a new model that must beat it to replace it. | 1 |
+| Champion / challenger | The model in use / a new model that must beat it to replace it. As aliases: `champion` points at the served version, and `challenger` at the newest version the promotion gate judged and did not promote. | 1, 29 |
 | Cleaning report | The record of a cleaning run: rows in, rows removed by each rule, rows out. Here: `reports/silver_cleaning_report.json`. | 16 |
 | Cleaning rule | A condition that marks a row as not valid, with a name and a fixed place in the order of the rules. | 16 |
 | Checksum | A short code calculated from the content of a file. If the content changes, the code changes. | 4, 15 |
@@ -101,6 +101,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Log scale (search space) | A range in which every doubling is equally likely to be tried: values from 8 to 16 as often as from 64 to 128. | 27 |
 | MAE | Mean absolute error: the mean size of the error, here in pickups per zone and hour. The main metric of this project. | 22 |
 | Manifest | The record of every raw file: source address, download time, size, checksum, row count. | 4, 15 |
+| Margin (promotion) | The smallest gain in pooled MAE that lets a new version replace the champion. Here 0.2, the measured range of the seeds on the backtest folds, written as the constant `MIN_MAE_GAIN` in the code. | 29 |
 | Mask | A column of true and false values, one per row, that marks the rows for which a condition holds. | 16 |
 | MD5 | A method for calculating a checksum of 32 characters. DVC uses it to see whether a file changed. | 21 |
 | Mean absolute SHAP value | The mean size of an input's contributions over many rows, whatever their direction. Here stored as `shap.mean_abs.<input>`. | 28 |
@@ -108,6 +109,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Metric | A rule that turns the errors of many forecasts into one number. | 22 |
 | Missing value | A value that is not there: it was never recorded, or it was lost. Stored as an empty cell, not as a number. | 15, 16 |
 | MLflow | A tool for experiment tracking with a model registry. Here it writes to `mlflow.db` and `mlruns`. | 26 |
+| Model card | A short document, written by hand, that says what one model version is for, where it must not be used, how it was evaluated and where it is weak. Here: `docs/model-card.md`. | 29 |
 | Model registry | A place that keeps every version of a model with a label. Here: the name `taxi-demand` in MLflow. | 1, 26 |
 | Model signature | The names and types of the input columns of a stored model, in order, and the type of its output. MLflow checks every table against it when the model is loaded. | 26 |
 | Model version | The number the registry gives a model each time one is registered under the same name: 1, 2, 3. | 26 |
@@ -129,7 +131,9 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Pin | To fix a library to one exact version. | 6 |
 | Placeholder | A function that exists by name and only raises `NotImplementedError` until the real one is written. | 9 |
 | Placeholder value | A value such as zero, or a copy of another field, that a source writes where it has no measurement. | 16 |
+| Pooled MAE | The MAE over all test rows of all folds together. With folds of equal size, as here, it equals the mean of the fold MAEs. | 29 |
 | Producer / consumer | The step that writes a table / the step that reads it. | 8 |
+| Promotion gate | The rule that decides whether the newest model version becomes champion, run as `python -m demand promote`. It is not part of `dvc repro`, so rebuilding never changes the served model. | 29 |
 | Pruning (of a trial) | Stopping a trial early when its first results look bad. Not used here. | 27 |
 | Pure function | A function whose result depends only on its arguments and that reads and writes nothing outside itself. | 16 |
 | Push | To send commits to the shared copy of the repository. | 12 |
@@ -139,6 +143,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Remote (DVC) | A shared storage place to which the DVC cache can be sent, so that other people can fetch the same data. This project has none. | 21 |
 | Reversal | A row with negative amounts that cancels the charge of a trip, for example after a refund. It is not a second trip. | 16 |
 | RMSE | Root mean squared error: like the MAE, with large errors counted much more. It is never smaller than the MAE. | 22 |
+| Rollback | Making an earlier model version champion again, by hand, because the newer one behaved badly. Here: `python -m demand set-champion VERSION --reason TEXT`. | 29 |
 | Rolling statistic | A summary, such as the mean, over a moving window of time. Here every window ends one horizon before the target hour. | 2, 19 |
 | Rolling-origin backtest | A backtest repeated with a training end date that moves forward. | 3 |
 | Run (MLflow) | One recorded execution of the training, with an id. It holds parameters (settings chosen before), metrics (numbers produced), tags (where it came from) and artifacts (files). | 26 |
@@ -164,6 +169,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Streaming | Receiving or reading a file piece by piece, so that it is never in memory as a whole. | 14 |
 | Strict schema | A schema that refuses columns it does not list (`strict=True`). | 8 |
 | Structured logging | Writing each log event as a record with named fields. | 9 |
+| Tag (model version) | A label that stays with one model version, such as `promotion.decision = promoted`. Compare *alias*, which can move. | 29 |
 | Target | The thing a model predicts. Here: the number of pickups. | 2 |
 | Test double | A simple object that stands in for a real one during a test. | 10 |
 | Time-based split | Training on data before a date and testing on data after it. | 3 |

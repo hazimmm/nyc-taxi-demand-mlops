@@ -69,7 +69,7 @@ Each box is one step.
 
 ## What exists today
 
-The foundation exists, and the first three steps of the path: the download, the cleaning, and the counting per zone and hour with its features. Between the steps stand two quality gates that check the files, and one command, `dvc repro`, runs the steps and the gates in order (Chapters 20 and 21). The fourth step exists too: the baseline and a LightGBM model are scored on four past weeks, the parameters of the model were tuned, the model is fitted, explained and recorded, and it is registered as a numbered version (Chapters 22 to 28). No rule gives a version the label champion yet, and nothing is served.
+The foundation exists, and the first three steps of the path: the download, the cleaning, and the counting per zone and hour with its features. Between the steps stand two quality gates that check the files, and one command, `dvc repro`, runs the steps and the gates in order (Chapters 20 and 21). The fourth step exists too: the baseline and a LightGBM model are scored on four past weeks, the parameters of the model were tuned, the model is fitted, explained and recorded, and it is registered as a numbered version (Chapters 22 to 28). A promotion gate decides which version gets the label champion, and a person can set it by hand for a rollback (Chapter 29). Nothing is served yet.
 
 The foundation was built before any step of the pipeline. This order is deliberate. Every later step needs the same basic things: one place for settings, one definition of the column names, one way to start a command, one way to write a log line, and a way to test all of it. If these are built first, every later step uses them. If each step invents its own, they will not fit together.
 
@@ -83,7 +83,7 @@ Ask the program which commands it has.
 .venv\Scripts\python.exe -m demand --help
 ```
 
-You should see a short description and a list of thirteen commands: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest`, `train`, `tune`, `forecast`, `monitor`, `retrain`, `serve`. Compare the list with Figure 1.1: almost every box has a command. This shows that the shape of the whole system was fixed before the steps were written. Nine of them do real work today: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest`, `train` and `tune`. The others answer with "Not implemented yet".
+You should see a short description and a list of fifteen commands: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest`, `train`, `tune`, `promote`, `set-champion`, `forecast`, `monitor`, `retrain`, `serve`. Compare the list with Figure 1.1: almost every box has a command. This shows that the shape of the whole system was fixed before the steps were written. Eleven of them do real work today: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest`, `train`, `tune`, `promote` and `set-champion`. The others answer with "Not implemented yet".
 
 Now ask for the three dates that define the project.
 

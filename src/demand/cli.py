@@ -109,6 +109,21 @@ def tune() -> None:
 
 
 @app.command()
+def promote() -> None:
+    """Make the newest model version champion if it beats the champion and the baseline."""
+    _run_stage("demand.models.promotion", "run_promotion")
+
+
+@app.command("set-champion")
+def set_champion(
+    version: Annotated[int, typer.Argument(help="The model version to serve.")],
+    reason: Annotated[str, typer.Option(help="Why the gate is bypassed; recorded on the version.")],
+) -> None:
+    """Make a model version champion by hand, without the gate (to roll back)."""
+    _run_stage("demand.models.promotion", "set_champion", version, reason)
+
+
+@app.command()
 def forecast() -> None:
     """Write the forecast for every hour of the next day at the simulated clock's next step."""
     _run_stage("demand.flows.forecast_flow", "run_forecast")

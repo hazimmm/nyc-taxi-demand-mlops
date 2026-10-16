@@ -1,6 +1,6 @@
 # Appendix C – Further reading
 
-Official documentation for the tools that the repository uses today, and one textbook on forecasting. Entries for later tools are added when their chapters are written. A web address is given only for the main page of each project; use the search of each site to find the topics named here.
+Official documentation for the tools that the repository uses today, a few books, and one paper. Entries for later tools are added when their chapters are written. A web address is given for the main page of each project, and for a few pages that a chapter depends on; use the search of each site to find the topics named here.
 
 ## Python and packaging
 
@@ -41,6 +41,11 @@ Official documentation for the tools that the repository uses today, and one tex
 
 - **LightGBM documentation** – the list of parameters (`objective`, `num_leaves`, `learning_rate`, `deterministic`), the page on categorical features, and the Python class `LGBMRegressor`. <https://lightgbm.readthedocs.io>
 - **MLflow documentation** – tracking (runs, parameters, metrics, tags, artifacts), models (the `pyfunc` flavour, signatures and input examples), and the model registry (versions and aliases). <https://mlflow.org/docs/latest/>
+- **MLflow Model Registry** – the page on registered models, versions, aliases such as `champion`, and tags on versions, which the promotion gate of Chapter 29 uses. <https://mlflow.org/docs/latest/ml/model-registry/>
+
+## Promoting and describing a model
+
+- **Model Cards for Model Reporting** by Margaret Mitchell, Simone Wu, Andrew Zaldivar and others – the paper that proposed model cards, presented at the conference FAT* in 2019. Read its list of sections (intended use, factors, metrics, evaluation data, caveats) and compare it with `docs/model-card.md`. <https://arxiv.org/abs/1810.03993>
 
 ## Tuning and explaining the model
 

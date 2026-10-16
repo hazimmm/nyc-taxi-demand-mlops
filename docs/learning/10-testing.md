@@ -218,7 +218,7 @@ Run everything with coverage.
 .venv\Scripts\python.exe -m pytest --cov -q
 ```
 
-You should see `697 passed, 2 warnings`, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.88%`. The two warnings come from MLflow and its database library (Chapter 26). The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
+You should see `760 passed, 2 warnings`, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.89%`. The two warnings come from MLflow and its database library (Chapter 26). The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
 
 ## Key takeaways
 

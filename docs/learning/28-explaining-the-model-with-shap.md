@@ -233,4 +233,4 @@ The 0.4% is a mean over 5,000 rows, and 4,902 of them are not holidays. On the 9
 
 ---
 
-[Previous: Chapter 27 – Tuning: a search, and how much of its score to believe](27-tuning-and-how-much-to-believe.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 27 – Tuning: a search, and how much of its score to believe](27-tuning-and-how-much-to-believe.md) | [Contents](README.md) | [Next: Chapter 29 – Which model is served: the promotion gate and the model card](29-which-model-is-served.md)
