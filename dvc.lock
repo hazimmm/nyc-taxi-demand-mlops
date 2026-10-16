@@ -394,26 +394,30 @@ stages:
       hash: md5
       md5: d4291cc31f73cebcdace504ab6e8a42c
       size: 5670
+    - path: src/demand/models/explain.py
+      hash: md5
+      md5: 1efdef771270e0cabce545a10494eced
+      size: 12863
     - path: src/demand/models/gbm.py
       hash: md5
-      md5: f5de7a1dfdf283ffbab8dd7ef6911793
-      size: 11608
+      md5: 125a02725c86f0bc57022b5a8c616ced
+      size: 11918
     - path: src/demand/models/metrics.py
       hash: md5
       md5: 37f741e4e7a80fa2cc36d923234608f1
       size: 6916
     - path: src/demand/models/pipeline.py
       hash: md5
-      md5: 92dfbdceaace2402a80d9050d6696fd5
-      size: 2347
+      md5: 778bbb4f242198b8065309817063a47e
+      size: 3766
     - path: src/demand/models/tracking.py
       hash: md5
       md5: 6ef1980992568435293c37bdad72b8fa
       size: 6704
     - path: src/demand/models/training.py
       hash: md5
-      md5: d7cb9518076a9b325898cd10db026042
-      size: 16259
+      md5: 28fafc1a1ef2852151bdf754a3f4b815
+      size: 17769
     - path: src/demand/schemas.py
       hash: md5
       md5: c203bcd2cdbdd31f7e94c04fdeeed8d4
@@ -464,11 +468,11 @@ stages:
         mlflow.tracking_uri: sqlite:///mlflow.db
         model.params:
           objective: poisson
-          learning_rate: 0.05
+          learning_rate: 0.104
           n_estimators: 600
-          num_leaves: 63
-          min_child_samples: 20
-          subsample: 0.8
+          num_leaves: 110
+          min_child_samples: 161
+          subsample: 0.85
           subsample_freq: 1
           colsample_bytree: 0.8
           verbosity: -1
@@ -477,9 +481,17 @@ stages:
     outs:
     - path: reports/backtest_report.json
       hash: md5
-      md5: 2470dfabde7b855093c1ef3261d63179
-      size: 8476
+      md5: b0d68a6d33a912fa5319bbbd1e5c418d
+      size: 8479
+    - path: reports/shap_importance.json
+      hash: md5
+      md5: 201cc8a7da5422a300f5b0661c4592d1
+      size: 974
+    - path: reports/shap_summary.png
+      hash: md5
+      md5: 08d69ed15da7d8c5905047a67dd2e3c5
+      size: 148988
     - path: reports/training_report.json
       hash: md5
-      md5: b568d6544376e0ed5aecf3a58d6aa7c2
+      md5: 0cd4a2e48d8cf57cc5962a72533bde32
       size: 623
