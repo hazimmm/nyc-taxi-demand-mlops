@@ -6,16 +6,21 @@ Layout of the report (``settings.paths.reports_dir``)::
       backtest_report.json    written first, by the backtest (``backtest.py``)
       training_report.json    the MLflow run, the model version, the data version and
                               the headline scores of this training run
+      shap_importance.json    how much every input moves the forecasts of the final
+      shap_summary.png        model, as numbers and as a picture (``explain.py``)
 
-One training run does three things, in this order:
+One training run does four things, in this order:
 
 1. **The backtest**, for the baseline and for the model, exactly as
    ``python -m demand backtest`` does it. Its scores say how good the *recipe* is
    (these inputs, these parameters), measured on four weeks the model had not seen.
 2. **The final fit.** The recipe is fitted once more, on more rows than any fold had.
    This is the model that is stored and later served.
-3. **The record.** Parameters, scores, the model and the facts that make the run
-   reproducible go to MLflow (``tracking.py``), and a short report is written to disk.
+3. **The explanation.** For a fixed sample of the rows of the final fit, the
+   contribution of every input to the forecast is calculated (SHAP, ``explain.py``).
+4. **The record.** Parameters, scores, the model, the explanation and the facts that
+   make the run reproducible go to MLflow (``tracking.py``), and a short report is
+   written to disk.
 
 **The scores belong to the recipe, not to the stored model.** The final model has no
 score of its own: every April week it could be tested on is now part of its training
@@ -90,7 +95,8 @@ from demand.models.backtest import (
     load_training_features,
 )
 from demand.models.baseline import WEEKLY_NAIVE, Forecaster
-from demand.models.gbm import LIGHTGBM
+from demand.models.explain import ShapReport, explain_to_reports, shap_plot_path, shap_report_path
+from demand.models.gbm import LIGHTGBM, LightGbmForecaster
 from demand.models.tracking import log_training_run
 from demand.schemas import HOUR_START, feature_columns
 
@@ -218,6 +224,16 @@ def _errors(score: Score) -> dict[str, float]:
     return {"mae": score.mae, "rmse": score.rmse, "smape": score.smape}
 
 
+def shap_metrics(report: ShapReport) -> dict[str, float]:
+    """The mean absolute SHAP value of every input, as MLflow metrics.
+
+    One metric per input, ``shap.mean_abs.<input>``, so that two training runs can be
+    compared in MLflow: an input whose value jumps between two runs has changed its
+    role in the model.
+    """
+    return {f"shap.mean_abs.{name}": value for name, value in report.mean_abs_shap.items()}
+
+
 def final_training_rows(table: pd.DataFrame, settings: Settings) -> pd.DataFrame:
     """The rows the final model is fitted on: all of ``table``, once it is checked.
 
@@ -293,19 +309,22 @@ def train_from_gold(settings: Settings, candidates: Mapping[str, Forecaster]) ->
     """Backtest the forecasters, fit the final model, record the run, write the report.
 
     Nothing is written into the data folder. Running it again records a new MLflow run
-    and a new model version; the scores and the model come out the same for the same
-    feature table, config and machine (see ``gbm.py``).
+    and a new model version; the scores, the model and the SHAP values come out the
+    same for the same feature table, config and machine (see ``gbm.py``).
 
     Args:
         settings: Project settings.
         candidates: The forecasters to backtest, by name (``pipeline.forecasters``).
-            The one named ``lightgbm`` is fitted on all training rows and stored; the
-            one named ``weekly_naive`` is the baseline it is compared with.
+            The one named ``lightgbm`` is fitted on all training rows, explained and
+            stored; the one named ``weekly_naive`` is the baseline it is compared
+            with. Only a ``LightGbmForecaster`` can be explained: for any other object
+            under that name the explanation is left out, with a warning.
 
     Raises:
         MissingGoldFileError: If the gold feature table is missing or out of date.
         TooLittleHistoryError: If the table is too short for the configured folds.
-        PipelineError: If the baseline is perfect on the test weeks.
+        PipelineError: If the baseline is perfect on the test weeks, or the SHAP values
+            do not add up to the output of the model.
     """
     started = time.monotonic()
     backtest_report = backtest_from_gold(settings, candidates)
@@ -326,6 +345,12 @@ def train_from_gold(settings: Settings, candidates: Mapping[str, Forecaster]) ->
         artifacts.append(cleaning_report)
     else:
         log.warning("no cleaning report to store", extra={"missing": str(cleaning_report)})
+    if isinstance(model, LightGbmForecaster):
+        explanation = explain_to_reports(model, rows, reports_dir, settings.project.seed)
+        metrics |= shap_metrics(explanation)
+        artifacts += [shap_report_path(reports_dir), shap_plot_path(reports_dir)]
+    else:
+        log.warning("no explanation to store", extra={"forecaster": type(model).__name__})
     logged = log_training_run(
         settings,
         forecaster=model,

@@ -8,8 +8,9 @@ backtest had to change for it.
 about the inputs of a row ("is ``lag_168h`` above 80?", "is the hour after 17?") and
 ends in a number; every new tree is built to correct the error the trees before it
 still make. The parameters (how many trees, how large, how fast they learn) are
-``model.params`` in the config and are handed to LightGBM unchanged. This feature does
-not search for better ones.
+``model.params`` in the config and are handed to LightGBM unchanged.
+``python -m demand tune`` searches for better ones and prints them (``tuning.py``); the
+forecaster itself only ever uses what the config says.
 
 **Its inputs.** ``feature_columns``, in that order, and nothing else. ``fit`` receives
 whole rows of the feature table and reads the target from them. The outlier flag is in
@@ -21,7 +22,10 @@ of the backtest (3 to 30 April 2025), three times with the seeds 42, 43 and 44. 
 picks rows and columns at random for every tree (``subsample``, ``colsample_bytree``),
 so the score moves a little with the seed, and a difference smaller than that movement
 is noise. With the settings chosen here the MAE is 25.04 on average and moves by 0.20
-between the three seeds. The weekly baseline has 27.70.
+between the three seeds. The weekly baseline has 27.70. All of this was measured before
+any tuning, with the parameters the config had then (a learning rate of 0.05, 63 leaves,
+at least 20 rows per leaf). With other parameters the four choices were not measured
+again.
 
 * *The zone is a category, not a number.* ``zone_id`` is a label: zone 162 is not
   "more" than zone 161. Read as a number, a tree can only ask "is the zone below 150?";

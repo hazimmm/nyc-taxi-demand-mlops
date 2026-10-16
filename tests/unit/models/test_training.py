@@ -22,6 +22,7 @@ from demand.models.backtest import (
     backtest_report_path,
 )
 from demand.models.baseline import WEEKLY_NAIVE, Forecaster, baselines
+from demand.models.explain import ShapReport, shap_plot_path, shap_report_path
 from demand.models.gbm import LIGHTGBM, LightGbmForecaster
 from demand.models.pipeline import forecasters
 from demand.models.tracking import LoggedRun
@@ -35,6 +36,7 @@ from demand.models.training import (
     improvement_percent,
     run_metrics,
     run_params,
+    shap_metrics,
     train_from_gold,
     training_report_path,
 )
@@ -228,6 +230,23 @@ def test_run_metrics_are_the_scores_of_model_and_baseline_and_the_improvement() 
         "improvement.mae_percent": 25.0,  # 30 against 40
         "improvement.fold_1.mae_percent": 50.0,  # 25 against 50
         "improvement.fold_2.mae_percent": -10.0,  # 33 against 30: worse in this fold
+    }
+
+
+def test_shap_metrics_are_one_number_per_input() -> None:
+    report = ShapReport(
+        rows=100,
+        seed=42,
+        objective="poisson",
+        base_value=4.5,
+        mean_abs_shap={"lag_168h": 0.7, "hour": 0.2, "zone_id": 0.05},
+        share_percent={"lag_168h": 73.68, "hour": 21.05, "zone_id": 5.26},
+    )
+
+    assert shap_metrics(report) == {
+        "shap.mean_abs.lag_168h": 0.7,
+        "shap.mean_abs.hour": 0.2,
+        "shap.mean_abs.zone_id": 0.05,
     }
 
 
@@ -507,14 +526,81 @@ def test_training_twice_gives_the_same_scores_and_the_same_backtest_report(
 ) -> None:
     first = train_from_gold(small, forecasters(small))
     first_bytes = backtest_report_path(small.paths.reports_dir).read_bytes()
+    first_shap = shap_report_path(small.paths.reports_dir).read_bytes()
 
     second = train_from_gold(small, forecasters(small))
 
     assert second == first
     assert backtest_report_path(small.paths.reports_dir).read_bytes() == first_bytes
+    assert shap_report_path(small.paths.reports_dir).read_bytes() == first_shap
     first_forecaster, second_forecaster = (call["forecaster"] for call in fake_mlflow.calls)
     example = fake_mlflow.calls[0]["input_example"]
     assert first_forecaster.predict(example).tolist() == second_forecaster.predict(example).tolist()
+
+
+# --- the explanation of the final model ------------------------------------------------------
+
+
+def test_training_explains_the_final_model_and_hands_mlflow_the_explanation(
+    small: Settings, fake_mlflow: FakeMlflow
+) -> None:
+    train_from_gold(small, forecasters(small))
+
+    reports_dir = small.paths.reports_dir
+    assert _files(reports_dir) == [
+        "backtest_report.json",
+        "shap_importance.json",
+        "shap_summary.png",
+        "training_report.json",
+    ]
+    explanation = ShapReport.model_validate_json(shap_report_path(reports_dir).read_bytes())
+    # The rows of the final fit are explained; there are fewer of them than the sample.
+    assert (explanation.rows, explanation.seed, explanation.objective) == (504, 42, "poisson")
+    assert sorted(explanation.mean_abs_shap) == sorted(feature_columns(small))
+    (call,) = fake_mlflow.calls
+    assert call["artifacts"] == [
+        backtest_report_path(reports_dir),
+        shap_report_path(reports_dir),
+        shap_plot_path(reports_dir),
+    ]
+    logged = {name: v for name, v in call["metrics"].items() if name.startswith("shap.")}
+    assert logged == shap_metrics(explanation)
+    assert len(logged) == len(feature_columns(small))
+    # The scores are still there, next to the explanation.
+    assert "lightgbm.mae" in call["metrics"]
+
+
+def test_training_explains_the_model_that_is_stored(
+    small: Settings, fake_mlflow: FakeMlflow
+) -> None:
+    train_from_gold(small, forecasters(small))
+
+    (call,) = fake_mlflow.calls
+    stored: LightGbmForecaster = call["forecaster"]
+    rows = training_rows(_gold_table(small), small)
+    assert stored.model is not None
+    own = stored.model.predict(rows[stored.columns], pred_contrib=True)
+    explanation = ShapReport.model_validate_json(
+        shap_report_path(small.paths.reports_dir).read_bytes()
+    )
+    expected = dict(zip(stored.columns, abs(own[:, :-1]).mean(axis=0), strict=True))
+    assert explanation.mean_abs_shap == {
+        name: pytest.approx(expected[name], abs=1e-6) for name in explanation.mean_abs_shap
+    }
+    assert explanation.base_value == pytest.approx(own[0, -1], abs=1e-6)
+
+
+def test_training_leaves_the_explanation_out_for_a_forecaster_it_cannot_explain(
+    small: Settings, perfect: PerfectSpy, fake_mlflow: FakeMlflow, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.WARNING):
+        train_from_gold(small, _with_model(small, perfect))
+
+    (call,) = fake_mlflow.calls
+    assert "no explanation to store" in caplog.text
+    assert not shap_report_path(small.paths.reports_dir).exists()
+    assert not shap_plot_path(small.paths.reports_dir).exists()
+    assert not [name for name in call["metrics"] if name.startswith("shap.")]
 
 
 # --- error paths -----------------------------------------------------------------------------

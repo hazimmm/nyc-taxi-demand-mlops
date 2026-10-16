@@ -42,6 +42,13 @@ Official documentation for the tools that the repository uses today, and one tex
 - **LightGBM documentation** – the list of parameters (`objective`, `num_leaves`, `learning_rate`, `deterministic`), the page on categorical features, and the Python class `LGBMRegressor`. <https://lightgbm.readthedocs.io>
 - **MLflow documentation** – tracking (runs, parameters, metrics, tags, artifacts), models (the `pyfunc` flavour, signatures and input examples), and the model registry (versions and aliases). <https://mlflow.org/docs/latest/>
 
+## Tuning and explaining the model
+
+- **Optuna documentation** – the tutorial on the ask-and-tell interface (`study.ask` and `study.tell`, which `tuning.py` uses), the page on samplers with the TPE sampler and its seed, and the page on pruning. <https://optuna.org>
+- **SHAP documentation** – `TreeExplainer`, the meaning of `expected_value` (the base value), and the summary plot. <https://shap.readthedocs.io>
+- **Interpretable Machine Learning** by Christoph Molnar – a free online book. Read the chapter on Shapley values and SHAP, and its sections on the limits of feature importance. <https://christophm.github.io/interpretable-ml-book/>
+- **matplotlib documentation** – backends (the `Agg` backend draws without a window) and `savefig`. <https://matplotlib.org>
+
 ## Command line, tests and code quality
 
 - **Typer documentation** – commands, arguments, testing a CLI. <https://typer.tiangolo.com>

@@ -81,6 +81,7 @@ def test_validate_rejects_unknown_layer() -> None:
         ("gold", "demand.data.pipeline", "run_gold"),
         ("backtest", "demand.models.pipeline", "run_backtest"),
         ("train", "demand.models.pipeline", "run_training"),
+        ("tune", "demand.models.pipeline", "run_tuning"),
         ("forecast", "demand.flows.forecast_flow", "run_forecast"),
         ("monitor", "demand.flows.monitoring_flow", "run_monitoring"),
         ("retrain", "demand.flows.retrain_flow", "run_retrain"),

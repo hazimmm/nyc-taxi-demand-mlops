@@ -12,7 +12,7 @@ Three months from now a planner complains: the forecast for a Saturday in July w
 - What the model registry gives, and what is not built yet.
 - Four limits of this record.
 
-## One run, three steps
+## One run, four steps
 
 The command is `python -m demand train`. The work is in [`src/demand/models/training.py`](../../src/demand/models/training.py).
 
@@ -20,11 +20,12 @@ The command is `python -m demand train`. The work is in [`src/demand/models/trai
 flowchart TB
     A["features.parquet<br/>rows before 1 May only"] --> B["1. Backtest<br/>baseline and model, four folds"]
     B --> C["2. Final fit<br/>the model on all 53,280 rows"]
-    C --> D["3. Record<br/>one MLflow run, one model version"]
+    C --> X["3. Explanation<br/>SHAP on 5,000 rows"]
+    X --> D["4. Record<br/>one MLflow run, one model version"]
     D --> E["reports/training_report.json"]
 ```
 
-*Figure 26.1 – One training run.*
+*Figure 26.1 – One training run. The third step was added with Chapter 28.*
 
 In `dvc.yaml` the stage `train` has replaced the stage `backtest`. The two are one stage for a reason: a model must be recorded together with the scores of the exact config it was trained with. `python -m demand backtest` still exists as a quick look that keeps nothing.
 
@@ -54,12 +55,12 @@ DVC knows which files a stage read and wrote, and whether they changed (Chapter 
 
 | Kind | What it is | In the real run of this repository |
 |---|---|---|
-| Parameter | A setting chosen before the run | 20, for example `model.learning_rate` = 0.05 and `features.lags` = [48, 168] |
-| Metric | A number the run produced | 36, for example `lightgbm.mae` = 24.929918 and `improvement.mae_percent` = 10.002 |
+| Parameter | A setting chosen before the run | 20, for example `model.learning_rate` = 0.104 and `features.lags` = [48, 168] |
+| Metric | A number the run produced | 52, for example `lightgbm.mae` = 24.106025, `improvement.mae_percent` = 12.977, and the 16 values `shap.mean_abs.<input>` of Chapter 28 |
 | Tag | A label that says where the run came from | `git_commit`, `git_dirty`, `data_version`, `forecaster`, `baseline` |
-| **Artifact** | A file stored with the run | `backtest_report.json`, `silver_cleaning_report.json` |
+| **Artifact** | A file stored with the run | `backtest_report.json`, `shap_importance.json`, `shap_summary.png`, `silver_cleaning_report.json` |
 
-*Figure 26.3 – The four kinds of record. Runs are compared by their parameters and sorted by their metrics.*
+*Figure 26.3 – The four kinds of record, for a run with the tuned values of Chapter 27. The first run of this repository, before tuning and before SHAP, has 36 metrics and two artifacts. Runs are compared by their parameters and sorted by their metrics.*
 
 The config says where this is written: `tracking_uri: "sqlite:///mlflow.db"`, one database file in the project folder. Files do not go into the database. MLflow puts them into the folder `mlruns`. Both are ignored by git (Chapter 12).
 
@@ -97,7 +98,7 @@ This matters for the serving phase. A web request arrives as JSON, where 161 and
 
 ## The registry
 
-Chapter 1 introduced the **model registry**. Every training run registers its model under the name `taxi-demand` and gets a **model version**: 1 for the first run, 2 for the second. A later step can then say "load `models:/taxi-demand/1`".
+Chapter 1 introduced the **model registry**. Every training run registers its model under the name `taxi-demand` and gets a **model version**: 1 for the first run, 2 for the second. In this repository, version 1 is the model before tuning. The training run of Chapter 27, with the tuned values, adds version 2 next to it. Version 1 is not changed or removed. A later step can then say "load `models:/taxi-demand/1`".
 
 No version carries a label yet. The config names two aliases, `champion` and `challenger`, and the rule that gives them to a version is not built. Until then the registry is a numbered list.
 
@@ -107,7 +108,7 @@ Only one module of the project imports `mlflow`: `tracking.py`. The forecaster, 
 
 ## Four limits
 
-**The real run is marked dirty.** The run in this repository has `git_dirty = true`. It was made while the new files of this feature were not committed, so its commit is the one before the feature, and the run cannot be rebuilt from that commit alone. The order that gives a clean record is: commit the code, train, then commit `dvc.lock`.
+**A run can be marked dirty.** A run made while files are changed or not committed gets `git_dirty = true`, and it cannot be rebuilt from its commit alone. Version 1 of this repository was made the clean way, from commit `7bffb9e`, with `git_dirty = false`. The order that gives a clean record is: commit the code, train, then commit `dvc.lock`.
 
 **The MLflow database is not a DVC output.** DVC tracks the small file `reports/training_report.json` in its place. If `mlflow.db` is deleted, `dvc repro` still says that everything is up to date. The comment in `dvc.yaml` gives the repair: `dvc repro --force train`.
 
@@ -134,14 +135,16 @@ Read the training report.
 .venv\Scripts\python.exe -c "import json; r = json.load(open('reports/training_report.json')); print(r['registered_model'], r['model_version'], r['train_rows']); print(r['first_train_hour'], r['last_train_hour']); print(r['model']['mae'], r['baseline']['mae'], r['mae_improvement_percent']); print(r['git_dirty'], r['data_version'])"
 ```
 
-You should see, for the first run:
+After the training run with the tuned values you should see:
 
 ```text
-taxi-demand 1 53280
+taxi-demand 2 53280
 2025-01-09T23:00:00-05:00 2025-04-30T23:00:00-04:00
-24.929918 27.70067 10.002
-True 7bacf1bf80cf4612d40552e74ef11cc5.dir
+24.106025 27.70067 12.977
+False 7bacf1bf80cf4612d40552e74ef11cc5.dir
 ```
+
+The report holds only the newest run. For version 1 it said `24.929918 27.70067 10.002`.
 
 Ask MLflow for the newest run and for the model versions.
 
@@ -149,34 +152,37 @@ Ask MLflow for the newest run and for the model versions.
 .venv\Scripts\python.exe -c "from mlflow import MlflowClient; c = MlflowClient('sqlite:///mlflow.db'); e = c.get_experiment_by_name('taxi-demand'); runs = c.search_runs([e.experiment_id]); r = runs[0]; print(len(runs), r.info.status, len(r.data.params), len(r.data.metrics)); print(r.data.metrics['lightgbm.mae'], r.data.metrics['weekly_naive.mae'], r.data.metrics['improvement.mae_percent']); [print(k, '=', r.data.tags[k]) for k in ('forecaster', 'baseline', 'git_commit', 'git_dirty', 'data_version')]; print([a.path for a in c.list_artifacts(r.info.run_id)]); [print(v.name, v.version, v.status, v.aliases, v.run_id == r.info.run_id) for v in c.search_model_versions()]"
 ```
 
-With one run in the store you should see:
+With the two runs in the store you should see:
 
 ```text
-1 FINISHED 20 36
-24.929918 27.70067 10.002
+2 FINISHED 20 52
+24.106025 27.70067 12.977
 forecaster = lightgbm
 baseline = weekly_naive
-git_commit = af1c98e0db065958e921ad30dfec2882ae116a85
-git_dirty = true
+git_commit = <the commit that was checked out>
+git_dirty = false
 data_version = 7bacf1bf80cf4612d40552e74ef11cc5.dir
-['backtest_report.json', 'silver_cleaning_report.json']
-taxi-demand 1 READY [] True
+['backtest_report.json', 'shap_importance.json', 'shap_summary.png', 'silver_cleaning_report.json']
+taxi-demand 2 READY [] True
+taxi-demand 1 READY [] False
 ```
 
-The last line says: version 1, ready, no alias, and it belongs to this run. The id of the run is not printed here, because it is different for every run. After another training run the first number, the commit and the list of versions will differ.
+The newest run comes first. The last two lines say: two versions, both ready, no alias, and version 2 belongs to this run. The commit and the id of the run are not printed here, because they differ for every run.
 
 Load the model from the registry, forecast three rows, and then give it the zone as a decimal number.
 
 ```powershell
-.venv\Scripts\python.exe -c "import mlflow; from demand.config import get_settings; from demand.models.backtest import load_training_features; from demand.schemas import feature_columns; s = get_settings(); mlflow.set_tracking_uri(s.mlflow.tracking_uri); m = mlflow.pyfunc.load_model('models:/taxi-demand/1'); x = load_training_features(s)[feature_columns(s)].head(3); print(m.predict(x)); print(m.predict(x[x.columns[::-1]])); m.predict(x.astype({'zone_id': 'float64'}))"
+.venv\Scripts\python.exe -c "import mlflow; from demand.config import get_settings; from demand.models.backtest import load_training_features; from demand.schemas import feature_columns; s = get_settings(); mlflow.set_tracking_uri(s.mlflow.tracking_uri); m = mlflow.pyfunc.load_model('models:/taxi-demand/2'); x = load_training_features(s)[feature_columns(s)].head(3); print(m.predict(x)); print(m.predict(x[x.columns[::-1]])); m.predict(x.astype({'zone_id': 'float64'}))"
 ```
 
 You should see the same forecasts twice, the second time from columns in reverse order:
 
 ```text
-[145.66432939  99.30746141  46.94168159]
-[145.66432939  99.30746141  46.94168159]
+[155.41703452  91.80989147  46.57368484]
+[155.41703452  91.80989147  46.57368484]
 ```
+
+With `models:/taxi-demand/1`, the model before tuning, the first forecast is 145.66432939.
 
 and then a traceback whose last line ends with `Incompatible input types for column zone_id. Can not safely convert float64 to int64.` Loading through the registry writes one small file, `registered_model_meta`, next to the model in `mlruns`. It holds the name and the version.
 
@@ -202,17 +208,17 @@ Run the tests of the training code and of the tracking module.
 .venv\Scripts\python.exe -m pytest tests/unit/models/test_training.py tests/unit/models/test_tracking.py -q
 ```
 
-You should see `43 passed, 2 warnings`. The warnings come from MLflow and its database library. The tests write their MLflow store into a temporary folder, and one test checks that nothing was written into the repository.
+You should see `48 passed, 2 warnings`. The warnings come from MLflow and its database library. The tests write their MLflow store into a temporary folder, and one test checks that nothing was written into the repository.
 
 ## Key takeaways
 
-- One training run does three things: the backtest, the final fit on all 53,280 training rows, and the record.
+- One training run does four things: the backtest, the final fit on all 53,280 training rows, the explanation of Chapter 28, and the record.
 - The backtest scores belong to the recipe. The final model has no score of its own until the replay.
 - The final fit needs no gap. Its forecasts are consistent from 2 May on, and the forecast for 1 May is the one exception.
 - DVC answers "is the pipeline up to date?". MLflow answers "which model is this, what made it, and how good was it?".
 - A run holds parameters, metrics, tags and artifacts. The git commit, the dirty flag and the data version make it reproducible.
 - The stored model is the forecaster itself, with a signature that enforces column names, order and types when it is loaded.
-- Every run registers a new version of `taxi-demand`. No alias is set yet.
+- Every run registers a new version of `taxi-demand`: version 1 before tuning, version 2 after. No alias is set yet.
 - Know the limits: a dirty run, a database DVC does not track, an absolute path, and a data version that is read and not calculated.
 
 ## Exercises
@@ -222,7 +228,7 @@ You should see `43 passed, 2 warnings`. The warnings come from MLflow and its da
 <details>
 <summary>Answer</summary>
 
-Those 3,360 rows are training rows of the final model. A score on them is a training error, and Chapter 24 showed the size of the difference: 17.66 on training rows against 24.93 on test weeks. The honest number for that week is the score of fold 4, 26.99, which comes from a model that was fitted on rows up to 22 April only. The final model gets its own score when the replay of May and June runs.
+Those 3,360 rows are training rows of the final model. A score on them is a training error, and Chapter 24 showed the size of the difference: 13.35 on training rows against 24.11 on test weeks. The honest number for that week is the score of fold 4, 26.31, which comes from a model that was fitted on rows up to 22 April only. The final model gets its own score when the replay of May and June runs.
 
 </details>
 
@@ -260,4 +266,4 @@ The run cannot be rebuilt from its commit, because files differed from the commi
 
 ---
 
-[Previous: Chapter 25 – Deciding by measurement: four choices and the noise of a seed](25-deciding-by-measurement.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 25 – Deciding by measurement: four choices and the noise of a seed](25-deciding-by-measurement.md) | [Contents](README.md) | [Next: Chapter 27 – Tuning: a search, and how much of its score to believe](27-tuning-and-how-much-to-believe.md)

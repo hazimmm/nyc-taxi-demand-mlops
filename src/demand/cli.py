@@ -103,6 +103,12 @@ def train() -> None:
 
 
 @app.command()
+def tune() -> None:
+    """Search for better model parameters on the backtest folds and print them for the config."""
+    _run_stage("demand.models.pipeline", "run_tuning")
+
+
+@app.command()
 def forecast() -> None:
     """Write the forecast for every hour of the next day at the simulated clock's next step."""
     _run_stage("demand.flows.forecast_flow", "run_forecast")

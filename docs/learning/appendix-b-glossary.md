@@ -10,6 +10,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Atomic | Said of an operation that happens completely or not at all, with no state in between. Renaming a file inside one folder is atomic. | 14 |
 | Automated test | A small function that runs a piece of code and checks the result with `assert`. | 10 |
 | Backtest | Testing a forecasting model on the past as if it had been used then. Here: four test weeks in April 2025, scored by `python -m demand backtest`. | 3, 23 |
+| Base value (SHAP) | The output a model gives on average over its training rows, before any input of a row has contributed. Here about 4.49 on the log scale, which is about 89 pickups. | 28 |
 | Baseline | A very simple method that sets the minimum a model must beat. Here: "the same hour one week ago", a copy of the feature `lag_168h`, named `weekly_naive`. | 1, 22 |
 | Binary file | A file that is not text. Git must not change any byte of it. | 12 |
 | Branch (git) | A named line of commits. Work happens on `dev`. | 12 |
@@ -78,10 +79,12 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Gradient boosting | Building many decision trees in a row, where each new tree is trained on what the trees before it still get wrong. The forecast is the sum of all trees. | 24 |
 | Ground truth | The real value that a prediction tried to match. | 3 |
 | Hard-coded | Said of a value written directly in the code. | 7 |
+| Hyper-parameter | A setting fixed before training that decides how the model is trained, such as the number of leaves of a tree. Training cannot learn it; tuning searches for it. In the config: `model.params`. | 27 |
 | Idempotent | Said of an operation that gives the same result when it is run again. | 15, 17 |
 | Immutable | Cannot be modified after it is written or created. | 4 |
 | Imputation | Filling a missing value with a calculated one, for example the average. | 16 |
 | Import path | The list of folders where Python searches for code to import. | 5 |
+| In-sample / out-of-sample (score) | A score measured on the data that chose the settings / on data that took no part in the choice. An in-sample score is too good. | 27 |
 | Ingest | To bring data from outside sources into the project. The first stage of the pipeline. | 14 |
 | Input example | A few rows of valid model inputs, stored next to the model. Here: the first five training rows. | 26 |
 | JSON | A standard text format for structured data. | 9 |
@@ -94,10 +97,13 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Linter | A tool that reads code and reports likely mistakes and bad habits. | 11 |
 | Localize | To attach a timezone to a timestamp that was recorded without one. The clock time stays the same. | 17 |
 | Lock file | A list of the exact version of every installed library. | 6 |
+| Log scale (of SHAP values) | With the Poisson objective the trees add up to the natural logarithm of the forecast. A contribution is then a factor: +0.69 doubles the forecast, −0.69 halves it. | 28 |
+| Log scale (search space) | A range in which every doubling is equally likely to be tried: values from 8 to 16 as often as from 64 to 128. | 27 |
 | MAE | Mean absolute error: the mean size of the error, here in pickups per zone and hour. The main metric of this project. | 22 |
 | Manifest | The record of every raw file: source address, download time, size, checksum, row count. | 4, 15 |
 | Mask | A column of true and false values, one per row, that marks the rows for which a condition holds. | 16 |
 | MD5 | A method for calculating a checksum of 32 characters. DVC uses it to see whether a file changed. | 21 |
+| Mean absolute SHAP value | The mean size of an input's contributions over many rows, whatever their direction. Here stored as `shap.mean_abs.<input>`. | 28 |
 | Medallion architecture | Storing data in layers of increasing quality: raw (bronze), silver, gold. | 4 |
 | Metric | A rule that turns the errors of many forecasts into one number. | 22 |
 | Missing value | A value that is not there: it was never recorded, or it was lost. Stored as an empty cell, not as a number. | 15, 16 |
@@ -111,8 +117,11 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Noise (of a score) | Movement of a score that comes from chance, such as another seed, and not from a difference in the model. Here about 0.2 pickups of MAE. | 25 |
 | Objective | The measure of error that training makes small. Here: `poisson`, which is made for counts. | 24 |
 | Optional dependency group | A named set of additional libraries, installed only where needed. | 6 |
+| Optuna | A library that searches for hyper-parameters: it proposes values, sees the score, and proposes better ones. Used by `python -m demand tune`. | 27 |
 | Outlier flag | A true/false column that marks an hour whose pickups are far from normal for its slot. The hour is kept. Here: `is_outlier`. | 18 |
+| Over-fitting to the validation set | Settings chosen on a validation set fit it better than they fit new data, so its score for them is too good. Here about 30% of the in-sample tuning gain did not hold on weeks the search had not seen. | 27 |
 | Package | A folder of Python files that can be imported by its name. | 5 |
+| Parameter (of a model) | A value that training finds in the data, such as the threshold of a tree question. Compare *hyper-parameter*. | 27 |
 | Parametrised test | One test function that runs once for each entry in a list of inputs. | 10 |
 | Parquet | A compact file format for tables. | 12 |
 | Persist (DVC) | The option `persist: true` of an output. It tells DVC not to delete the output before it runs the stage. | 21 |
@@ -121,6 +130,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Placeholder | A function that exists by name and only raises `NotImplementedError` until the real one is written. | 9 |
 | Placeholder value | A value such as zero, or a copy of another field, that a source writes where it has no measurement. | 16 |
 | Producer / consumer | The step that writes a table / the step that reads it. | 8 |
+| Pruning (of a trial) | Stopping a trial early when its first results look bad. Not used here. | 27 |
 | Pure function | A function whose result depends only on its arguments and that reads and writes nothing outside itself. | 16 |
 | Push | To send commits to the shared copy of the repository. | 12 |
 | Quality gate | A check that can stop a pipeline. A stage runs one on its table before it writes it. The command `validate` runs one on the files of a layer before the next stage reads them. | 8, 20 |
@@ -132,10 +142,14 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Rolling statistic | A summary, such as the mean, over a moving window of time. Here every window ends one horizon before the target hour. | 2, 19 |
 | Rolling-origin backtest | A backtest repeated with a training end date that moves forward. | 3 |
 | Run (MLflow) | One recorded execution of the training, with an id. It holds parameters (settings chosen before), metrics (numbers produced), tags (where it came from) and artifacts (files). | 26 |
+| Sampler | The part of Optuna that proposes the next values. Here TPE, seeded with `project.seed`: ten random trials, then more trials near the values that scored well. | 27 |
 | Schema | The formal definition of a table: columns, types and rules. | 8 |
+| Search space | The ranges in which a search may choose each hyper-parameter. | 27 |
 | Seasonal naive forecast | The forecast "the same as one season ago". Here the season is a week. See *baseline*. | 22 |
 | Seed | The number from which a computer starts its sequence of random-looking numbers. The same seed gives the same random choices. Here: `project.seed`. | 25 |
+| Seed check | Scoring the current and the best hyper-parameters again with two more seeds, to see whether a gain is larger than the noise. | 27 |
 | SHA-256 | A method for calculating a checksum of 64 characters. | 15 |
+| SHAP value | The contribution of one input to one forecast. The base value plus the SHAP values of all inputs of a row is exactly the output of the model. | 28 |
 | Silver layer | Cleaned data: valid rows, fixed types, no duplicates. One row is one valid trip, or one hour of weather. | 4, 16 |
 | Simulated clock | Replaying unseen historical data one day at a time, as if it were happening now. | 3 |
 | Slot | The group of hours that an hour is compared with when outliers are flagged: the same zone, the same hour of the day and the same kind of day (working day or weekend). | 18 |
@@ -161,6 +175,8 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Training/serving skew | A difference between how features are calculated for training and for prediction. | 4, 19 |
 | Transient error | A failure that may go away on its own, such as a short network problem. Worth a retry. | 14 |
 | Transitive dependency | A library that is installed because one of your dependencies needs it. | 6 |
+| Trial | One set of hyper-parameters scored with the backtest. Trial 0 is the config as it is. | 27 |
+| Tuning | Searching for better hyper-parameters by trying them. | 27 |
 | Type hint | A note in the code that says which type a value has. | 11 |
 | Typed settings object | An object in which every setting has a declared name and type, built once at start-up. | 7 |
 | UTC | The world standard time, without summer time. | 9 |

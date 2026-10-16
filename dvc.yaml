@@ -150,6 +150,10 @@ stages:
   # The backtest and the final fit are one stage. Both would write the backtest report,
   # and a model must be recorded with the scores of the config it was trained with.
   # `python -m demand backtest` is still there as a command that does not use MLflow.
+  #
+  # `python -m demand tune` is not a stage on purpose. Its result is pasted into
+  # model.params by hand, and model.params is an input of the search (its first trial),
+  # so as a stage it would run again after every paste and report something else.
   train:
     cmd: python -m demand train
     deps:
@@ -161,6 +165,7 @@ stages:
       - src/demand/models/pipeline.py
       - src/demand/models/training.py
       - src/demand/models/tracking.py
+      - src/demand/models/explain.py
       - src/demand/models/gbm.py
       - src/demand/models/backtest.py
       - src/demand/models/baseline.py
@@ -187,3 +192,10 @@ stages:
       # instead. If mlflow.db is deleted, DVC still calls the stage up to date; record
       # the model again with: dvc repro --force train
       - reports/training_report.json
+      # How much every input moves the forecasts of the final model (SHAP). The same
+      # numbers are stored with the MLflow run.
+      - reports/shap_importance.json
+    plots:
+      # The same as a picture. Its checksum in dvc.lock can change with the version of
+      # matplotlib although the picture shows the same dots; the numbers above do not.
+      - reports/shap_summary.png

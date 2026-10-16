@@ -1,6 +1,9 @@
 # Chapter 25 – Deciding by measurement: four choices and the noise of a seed
 
-The backtest report says that the model has an MAE of 24.93. Change one number in the config, `seed: 42` to `seed: 43`, and nothing else. The MAE is 25.05. With 44 it is 25.12. The data, the code and the parameters are the same in all three runs. Now a colleague proposes a change to the model and shows that it lowers the MAE from 25.04 to 25.00. Is that an improvement? This chapter gives the rule that answers the question, and applies it to four real choices. One of them was a narrow decision.
+When this chapter was written, the backtest report said that the model had an MAE of 24.93. Change one number in the config, `seed: 42` to `seed: 43`, and nothing else. The MAE is 25.05. With 44 it is 25.12. The data, the code and the parameters are the same in all three runs. Now a colleague proposes a change to the model and shows that it lowers the MAE from 25.04 to 25.00. Is that an improvement? This chapter gives the rule that answers the question, and applies it to four real choices. One of them was a narrow decision.
+
+> [!NOTE]
+> Every measurement in this chapter was made before tuning, with the values the config had then: `learning_rate` 0.05, `num_leaves` 63, `min_child_samples` 20 and `subsample` 0.8. Chapter 27 changed them. The numbers here stay as the record of the decisions that were made with them.
 
 ## What you will learn
 
@@ -89,7 +92,7 @@ The modeller of this project measured each choice on the four test weeks of Chap
 
 The owner of this project proposed one more input, `lag_336h`: the pickups of the same zone at the same hour two weeks earlier. The reasoning was this. The pickups of two days ago come from a different kind of day: for a Monday they are from a Saturday. The same day of the week is the better guide. So a second week of the same weekday should help.
 
-The reasoning is correct, and the model agrees with it: `lag_168h` carries 76% of the gain and `lag_48h` less than 6% (Figure 24.4). The open question is whether a second week adds enough to what the first week already gives.
+The reasoning is correct, and the model agrees with it: `lag_168h` carries about three quarters of the gain and `lag_48h` about 5% (Figure 24.4). The open question is whether a second week adds enough to what the first week already gives.
 
 **The measurement.** A longer lag needs a longer history. The warm-up of Chapter 19 grows from 215 to 336 hours, so 121 more hours of every zone cannot become training rows: 2,420 rows. A fair comparison uses the same rows on both sides, which is why Figure 25.3 has the line "on the shorter table". On those rows the MAE falls from 25.16 to 24.52. The gain is 0.65, more than twice the noise. The first part of the rule holds.
 
@@ -116,9 +119,9 @@ That week, 13 to 19 March, comes directly after the clock change of 9 March. Lag
 
 **The costs.** 2,420 training rows are lost. And the serving code of a later phase would need two weeks of history for every zone before it can forecast, where it now needs nine days.
 
-**The decision: not now.** The lag is not added in this feature. It will be measured again after the model parameters are tuned, because a tuned model may use it differently.
+**The decision: not now.** The lag was not added in this feature. It was to be measured again after tuning, because a tuned model may use it differently. Chapter 27 did this: with the tuned values the lag gave no gain on four weeks and a loss on eight, and it was not added.
 
-This decision was narrow, and it should be read as narrow. The average gain is above the noise. A reasonable person could add the lag and accept that some weeks become worse. The rule asks for a gain that holds across the folds, and this gain does not. What matters most is that the decision is written down with its numbers, so it can be opened again.
+At this point the decision was narrow, and it should be read as narrow. The average gain is above the noise. A reasonable person could add the lag and accept that some weeks become worse. The rule asks for a gain that holds across the folds, and this gain does not. What matters most is that the decision is written down with its numbers, so it can be opened again.
 
 ## One run is not a measurement
 
@@ -128,14 +131,14 @@ This project learned the lesson once already. An early trial, made before this f
 
 Chapter 23 warned that folds stop being a clean test once they are used to choose. That has now happened four times, on the same four weeks. The score of the chosen settings is therefore a little too good, by an amount nobody knows.
 
-Two honest statements remain. With seed 42 the model is 10.0% better than the baseline. As the mean of three seeds it is 9.6% better, and that is the fairer number. The clean test is the replay of May and June, which no decision has touched.
+Two honest statements remained before tuning. With seed 42 the model was 10.0% better than the baseline. As the mean of three seeds it was 9.6% better, and that is the fairer number. Tuning used the same four weeks a fifth time, and Chapter 27 measures how much that flatters the score. The clean test is the replay of May and June, which no decision has touched.
 
 ## Try it yourself
 
-Run the backtest with three seeds. The command writes nothing and takes about half a minute.
+Run the backtest with three seeds. The command sets the four values from before tuning, so that it measures the model of this chapter. It writes nothing and takes about half a minute.
 
 ```powershell
-.venv\Scripts\python.exe -c "from demand.config import get_settings; from demand.models.backtest import backtest, load_training_features; from demand.models.gbm import LightGbmForecaster; from demand.schemas import feature_columns; s = get_settings(); t = load_training_features(s); [print(seed, backtest(t, {'m': LightGbmForecaster(feature_columns(s), s.model.params, seed)}, s).forecasters['m'].overall.mae) for seed in (42, 43, 44)]"
+.venv\Scripts\python.exe -c "from demand.config import get_settings; from demand.models.backtest import backtest, load_training_features; from demand.models.gbm import LightGbmForecaster; from demand.schemas import feature_columns; s = get_settings(); t = load_training_features(s); p = {**s.model.params, 'learning_rate': 0.05, 'num_leaves': 63, 'min_child_samples': 20, 'subsample': 0.8}; [print(seed, backtest(t, {'m': LightGbmForecaster(feature_columns(s), p, seed)}, s).forecasters['m'].overall.mae) for seed in (42, 43, 44)]"
 ```
 
 You should see:
@@ -146,12 +149,12 @@ You should see:
 44 25.124457
 ```
 
-These digits were produced on one Windows machine with LightGBM 4.7.0. On another machine the last digits may differ (Figure 25.1). The size of the differences between the seeds should be similar.
+With the tuned config itself, that is with `s.model.params` in place of `p`, the three numbers are 24.106025, 24.247902 and 24.055657. These digits were produced on one Windows machine with LightGBM 4.7.0. On another machine the last digits may differ (Figure 25.1). The size of the differences between the seeds should be similar.
 
-Compare the two objectives with seed 42. The two numbers are the MAE and the sMAPE.
+Compare the two objectives with seed 42 and the same values. The two numbers are the MAE and the sMAPE.
 
 ```powershell
-.venv\Scripts\python.exe -c "from demand.config import get_settings; from demand.models.backtest import backtest, load_training_features; from demand.models.gbm import LightGbmForecaster; from demand.schemas import feature_columns; s = get_settings(); t = load_training_features(s); [print(o, r.mae, r.smape) for o in ('poisson', 'regression') for r in [backtest(t, {'m': LightGbmForecaster(feature_columns(s), {**s.model.params, 'objective': o}, 42)}, s).forecasters['m'].overall]]"
+.venv\Scripts\python.exe -c "from demand.config import get_settings; from demand.models.backtest import backtest, load_training_features; from demand.models.gbm import LightGbmForecaster; from demand.schemas import feature_columns; s = get_settings(); t = load_training_features(s); p = {**s.model.params, 'learning_rate': 0.05, 'num_leaves': 63, 'min_child_samples': 20, 'subsample': 0.8}; [print(o, r.mae, r.smape) for o in ('poisson', 'regression') for r in [backtest(t, {'m': LightGbmForecaster(feature_columns(s), {**p, 'objective': o}, 42)}, s).forecasters['m'].overall]]"
 ```
 
 You should see:
@@ -177,7 +180,7 @@ Give the forecaster a seed inside its parameters: `.venv\Scripts\python.exe -c "
 - Another seed gives another, equally good model. Here the MAE moves by about 0.2 pickups between three seeds. That movement is noise.
 - A change is kept only if its gain is clearly above the noise and holds across the folds.
 - The zone as a category passed both parts. Dropping outlier rows and changing the objective did not change the MAE beyond the noise, so the simpler or safer setting stayed.
-- `lag_336h` helps on average and is worse in some weeks. It was not added, and it will be measured again after tuning. The decision was narrow.
+- `lag_336h` helped on average and was worse in some weeks. It was not added, and the decision was narrow. After tuning it gave no gain (Chapter 27).
 - One run is not a measurement. Report the mean of several seeds and their range.
 - The folds were used for four choices, so the scores are slightly too good. May and June are the clean test.
 

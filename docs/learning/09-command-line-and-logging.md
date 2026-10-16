@@ -87,11 +87,11 @@ This fixes a simple agreement for all stages, stated at the top of the file: eve
 
 Normally imports are at the top of a file. Here the stage modules are imported inside the function, at the moment a command runs. This is called a **lazy import**. There are three reasons.
 
-The first is the dependency groups of Chapter 6. The training stage needs LightGBM and MLflow, which are in the group `ml`. The web service image will not install that group. If `cli.py` imported the training module at the top, every command would fail in that image, even `--help`, because the import at the top would fail. With lazy imports, a command needs only what it uses itself.
+The first is the dependency groups of Chapter 6. The training stage needs LightGBM, MLflow and SHAP, and the tuning command needs Optuna. All of them are in the group `ml`. The web service image will not install that group. If `cli.py` imported the training module at the top, every command would fail in that image, even `--help`, because the import at the top would fail. With lazy imports, a command needs only what it uses itself.
 
 The second is speed. Loading large libraries takes seconds. Printing a help text should not wait for them.
 
-The third is the order of building. The full list of commands existed before any stage did, and today seven stages are written: `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest` and `train` (Chapters 14 to 26). A missing module is not an import error that breaks the whole program. It is a clear message for that one command.
+The third is the order of building. The full list of commands existed before any stage did, and today eight stages are written: `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest`, `train` and `tune` (Chapters 14 to 28). A missing module is not an import error that breaks the whole program. It is a clear message for that one command.
 
 ```mermaid
 flowchart TB
@@ -223,7 +223,7 @@ No real command is a placeholder today, so the other way to this message cannot 
 .venv\Scripts\python.exe -m pytest tests/unit/test_cli.py -q -k "placeholder"
 ```
 
-You should see `1 passed, 19 deselected`. The test checks that the command prints `Not implemented yet: validate arrives later` and that the exit code is 1.
+You should see `1 passed, 20 deselected`. The test checks that the command prints `Not implemented yet: validate arrives later` and that the exit code is 1.
 
 Run the test that checks every stage command.
 
@@ -231,7 +231,7 @@ Run the test that checks every stage command.
 .venv\Scripts\python.exe -m pytest tests/unit/test_cli.py -q -k "each_command"
 ```
 
-You should see `9 passed, 11 deselected`. Many stages do not exist yet, so how can their commands be tested? Chapter 10 explains the method: the test puts a fake module in the place of the real one.
+You should see `10 passed, 11 deselected`. Many stages do not exist yet, so how can their commands be tested? Chapter 10 explains the method: the test puts a fake module in the place of the real one.
 
 ## Key takeaways
 

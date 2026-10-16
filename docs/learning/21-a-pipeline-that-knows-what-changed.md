@@ -85,7 +85,7 @@ After a stage has run, DVC writes down what it saw. The record is the file [`dvc
 
 For every key under `params` it stores the value. For every entry under `deps` and `outs` it stores a checksum, calculated with **MD5**, a method like the SHA-256 of Chapter 15 with a shorter result. A folder gets one checksum for all its files together, marked with `.dir`.
 
-`dvc repro` (reproduce) is the command that runs the pipeline. For every stage it calculates the checksums and reads the config keys again, and compares them with `dvc.lock`. If all are equal, the stage is skipped. A run in which the five data stages were forced took about 46 seconds here. The sixth stage, `train`, adds the time to fit five models (Chapter 26). A second `dvc repro` takes about one second and prints `Data and pipelines are up to date.`
+`dvc repro` (reproduce) is the command that runs the pipeline. For every stage it calculates the checksums and reads the config keys again, and compares them with `dvc.lock`. If all are equal, the stage is skipped. A run in which the five data stages were forced took about 46 seconds here. The sixth stage, `train`, adds about one minute: it fits five models, explains the last one and records it (Chapters 26 and 28). A second `dvc repro` takes about one second and prints `Data and pipelines are up to date.`
 
 `dvc.yaml` and `dvc.lock` are stored in git. The data is not: `.gitignore` still excludes `data/` and `reports/` (Chapter 12). `requirements.lock` records the exact libraries of a commit (Chapter 6). `dvc.lock` does the same for the data: it records the exact content that the pipeline produced.
 
@@ -109,7 +109,7 @@ flowchart TD
     G2 --> P2["gold validation<br/>report"]
     GO --> TR["train"]
     P2 --> TR
-    TR --> P3["backtest and<br/>training reports"]
+    TR --> P3["backtest, training<br/>and SHAP reports"]
 ```
 
 *Figure 21.1 – The six stages. `build_gold` depends on the silver layer and on the report of the silver gate. `train` depends on the feature table and on the report of the gold gate.*
@@ -123,7 +123,9 @@ The data engineer of this project tested the gate inside the pipeline once. One 
 The option was needed for a reason that is worth knowing. A plain `dvc repro` first sees that an output of `build_silver` no longer matches `dvc.lock`, and it repairs that output before any gate runs. `--downstream validate_silver` starts at the named stage and does not touch the stages before it.
 
 > [!NOTE]
-> The stage `train` of Chapter 26 is connected to the gold gate in the same way. It lists `reports/gold_validation_report.json` under its `deps`, so a model is scored and trained only on a gold layer that passed its gate. Its two reports are listed under `metrics`, like the cleaning report of the silver stage: an output whose numbers the command `dvc metrics show` can print. Until Chapter 26 this stage was named `backtest` and ran only the backtest of Chapter 23.
+> The stage `train` of Chapter 26 is connected to the gold gate in the same way. It lists `reports/gold_validation_report.json` under its `deps`, so a model is scored and trained only on a gold layer that passed its gate. Its three reports are listed under `metrics`, like the cleaning report of the silver stage: an output whose numbers the command `dvc metrics show` can print. The third is `reports/shap_importance.json` of Chapter 28. The picture `reports/shap_summary.png` of the same chapter is listed under a fourth heading, `plots`: an output that is an image. Until Chapter 26 this stage was named `backtest` and ran only the backtest of Chapter 23.
+>
+> The command `python -m demand tune` of Chapter 27 is not a stage, and that chapter gives the reason.
 
 ## The raw layer keeps its files
 
@@ -232,10 +234,10 @@ build_silver     Outputs data/silver; Reports reports/silver_cleaning_report.jso
 validate_silver  Outputs reports/silver_validation_report.json
 build_gold       Outputs data/gold
 validate_gold    Outputs reports/gold_validation_report.json
-train            Reports reports/backtest_report.json, reports/training_report.json
+train            Reports reports/backtest_report.json, reports/training_report.json, reports/sha…
 ```
 
-`dvc dag` draws the same stages as a graph of boxes.
+The last line is cut off by DVC. It continues with `reports/shap_importance.json` and the picture `reports/shap_summary.png`. `dvc dag` draws the same stages as a graph of boxes.
 
 Repeat the mistake with the date, without DVC.
 

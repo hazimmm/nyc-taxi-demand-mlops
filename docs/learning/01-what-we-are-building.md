@@ -69,11 +69,11 @@ Each box is one step.
 
 ## What exists today
 
-The foundation exists, and the first three steps of the path: the download, the cleaning, and the counting per zone and hour with its features. Between the steps stand two quality gates that check the files, and one command, `dvc repro`, runs the steps and the gates in order (Chapters 20 and 21). The fourth step has begun: the baseline exists and is scored on four past weeks (Chapters 22 and 23). No model is trained yet.
+The foundation exists, and the first three steps of the path: the download, the cleaning, and the counting per zone and hour with its features. Between the steps stand two quality gates that check the files, and one command, `dvc repro`, runs the steps and the gates in order (Chapters 20 and 21). The fourth step exists too: the baseline and a LightGBM model are scored on four past weeks, the parameters of the model were tuned, the model is fitted, explained and recorded, and it is registered as a numbered version (Chapters 22 to 28). No rule gives a version the label champion yet, and nothing is served.
 
 The foundation was built before any step of the pipeline. This order is deliberate. Every later step needs the same basic things: one place for settings, one definition of the column names, one way to start a command, one way to write a log line, and a way to test all of it. If these are built first, every later step uses them. If each step invents its own, they will not fit together.
 
-So the repository contains the project packaging, the settings, the data contracts (rules that tables must satisfy), a command-line program, logging and tests. Part II of this book explains each of them. Part I, where you are now, explains the forecasting ideas that the foundation was designed around. Part III follows the pipeline step by step, starting with the download. Part IV begins the modelling.
+So the repository contains the project packaging, the settings, the data contracts (rules that tables must satisfy), a command-line program, logging and tests. Part II of this book explains each of them. Part I, where you are now, explains the forecasting ideas that the foundation was designed around. Part III follows the pipeline step by step, starting with the download. Part IV follows the modelling.
 
 ## Try it yourself
 
@@ -83,7 +83,7 @@ Ask the program which commands it has.
 .venv\Scripts\python.exe -m demand --help
 ```
 
-You should see a short description and a list of twelve commands: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest`, `train`, `forecast`, `monitor`, `retrain`, `serve`. Compare the list with Figure 1.1: almost every box has a command. This shows that the shape of the whole system was fixed before the steps were written. Eight of them do real work today: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest` and `train`. The others answer with "Not implemented yet".
+You should see a short description and a list of thirteen commands: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest`, `train`, `tune`, `forecast`, `monitor`, `retrain`, `serve`. Compare the list with Figure 1.1: almost every box has a command. This shows that the shape of the whole system was fixed before the steps were written. Nine of them do real work today: `config`, `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest`, `train` and `tune`. The others answer with "Not implemented yet".
 
 Now ask for the three dates that define the project.
 

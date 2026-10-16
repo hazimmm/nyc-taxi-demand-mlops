@@ -180,11 +180,12 @@ def test_train_command_reports_a_missing_gold_layer_in_one_line(
     assert list(tmp_path.iterdir()) == []
 
 
-def test_backtest_command_does_not_load_mlflow() -> None:
-    # In a fresh interpreter, because other tests of this run have loaded MLflow already.
+def test_backtest_command_loads_neither_mlflow_nor_optuna_nor_the_plotting_libraries() -> None:
+    # In a fresh interpreter, because other tests of this run have loaded them already.
     code = (
         "import sys, demand.models.pipeline, demand.models.backtest, demand.models.gbm; "
-        "sys.exit('mlflow' in sys.modules)"
+        "heavy = ('mlflow', 'optuna', 'shap', 'matplotlib'); "
+        "sys.exit(any(module in sys.modules for module in heavy))"
     )
 
     done = subprocess.run([sys.executable, "-c", code], check=False)

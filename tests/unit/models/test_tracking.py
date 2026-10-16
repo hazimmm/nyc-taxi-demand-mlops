@@ -33,7 +33,14 @@ from tests.unit.models.conftest import (
 )
 
 PARAMS = {"model.n_estimators": 20, "features.lags": [48, 168], "data.train_end_date": "2025-04-30"}
-METRICS = {"lightgbm.mae": 24.5, "weekly_naive.mae": 27.7, "improvement.mae_percent": 11.552}
+METRICS = {
+    "lightgbm.mae": 24.5,
+    "weekly_naive.mae": 27.7,
+    "improvement.mae_percent": 11.552,
+    "shap.mean_abs.lag_168h": 0.705,
+}
+# The start of a PNG file and some bytes that are not text: a picture is stored as it is.
+PICTURE = b"\x89PNG\r\n\x1a\n\x00\xff\x10"
 TAGS = {"git_commit": "0123abc", "git_dirty": "false", "data_version": "7bac.dir"}
 
 
@@ -72,6 +79,8 @@ def recorded(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Recorded]:
     reports = [folder / "backtest_report.json", folder / "silver_cleaning_report.json"]
     for number, report in enumerate(reports):
         report.write_text(json.dumps({"report": number}), encoding="utf-8")
+    picture = folder / "shap_summary.png"
+    picture.write_bytes(PICTURE)
 
     uri_before = mlflow.get_tracking_uri()
     # MLflow keeps the files of a run in ``mlruns`` of the working directory.
@@ -83,7 +92,7 @@ def recorded(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Recorded]:
             params=PARAMS,
             metrics=METRICS,
             tags=TAGS,
-            artifacts=reports,
+            artifacts=[*reports, picture],
         )
     yield Recorded(settings, folder, forecaster, table, logged)
     mlflow.set_tracking_uri(uri_before)
@@ -124,13 +133,27 @@ def test_tags_are_recorded(recorded: Recorded) -> None:
 def test_report_files_are_stored_with_the_run(recorded: Recorded) -> None:
     stored = {artifact.path for artifact in recorded.client.list_artifacts(recorded.logged.run_id)}
 
-    assert stored == {"backtest_report.json", "silver_cleaning_report.json"}
+    assert stored == {
+        "backtest_report.json",
+        "silver_cleaning_report.json",
+        "shap_summary.png",
+    }
     local = mlflow.artifacts.download_artifacts(
         run_id=recorded.logged.run_id,
         artifact_path="backtest_report.json",
         tracking_uri=recorded.settings.mlflow.tracking_uri,
     )
     assert json.loads(Path(local).read_text(encoding="utf-8")) == {"report": 0}
+
+
+def test_a_picture_is_stored_with_the_run_byte_for_byte(recorded: Recorded) -> None:
+    local = mlflow.artifacts.download_artifacts(
+        run_id=recorded.logged.run_id,
+        artifact_path="shap_summary.png",
+        tracking_uri=recorded.settings.mlflow.tracking_uri,
+    )
+
+    assert Path(local).read_bytes() == PICTURE
 
 
 def test_model_is_registered_as_version_1_and_no_alias_is_set(recorded: Recorded) -> None:

@@ -63,13 +63,18 @@ features:
   outlier_zscore: 4.0
 
 model:
+  # Output of `python -m demand tune` (30 trials on the four April folds), pasted by
+  # hand. Backtest MAE 24.14 against 25.04 with the parameters before (learning_rate
+  # 0.05, num_leaves 63, min_child_samples 20, subsample 0.8), mean of three seeds,
+  # better in all four folds. A search on March weeks only, scored on April, kept about
+  # 0.64 of that 0.90. Run it again only when the features or the training period change.
   params:
     objective: poisson
-    learning_rate: 0.05
+    learning_rate: 0.104
     n_estimators: 600
-    num_leaves: 63
-    min_child_samples: 20
-    subsample: 0.8
+    num_leaves: 110
+    min_child_samples: 161
+    subsample: 0.85
     subsample_freq: 1
     colsample_bytree: 0.8
     verbosity: -1

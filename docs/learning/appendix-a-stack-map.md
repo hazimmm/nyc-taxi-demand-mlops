@@ -42,15 +42,16 @@ The **Status** column has three values.
 
 ## Modelling (Phase 2)
 
-The baseline, the metrics and the backtest of Chapters 22 and 23 need no new tool. They use pandas, NumPy and pyarrow from the tables above. The model and its record use the first two tools of this table.
+The baseline, the metrics and the backtest of Chapters 22 and 23 need no new tool. They use pandas, NumPy and pyarrow from the tables above. The model, its record, its tuning and its explanation use the tools of this table, except scikit-learn.
 
 | Tool | What it is | Problem it solves here | Status | Chapter |
 |---|---|---|---|---|
-| LightGBM | A library for gradient-boosted decision trees | The forecasting model: 600 trees with the Poisson objective and the zone as a category, behind the `Forecaster` interface | In use (parameters from the config, not tuned yet) | 24, 25 |
+| LightGBM | A library for gradient-boosted decision trees | The forecasting model: 600 trees with the Poisson objective and the zone as a category, behind the `Forecaster` interface | In use (parameters from the config, tuned with Optuna and pasted by hand) | 24, 25, 27 |
 | MLflow | Records of training runs, and a model registry | Every training run is recorded with its parameters, scores, git commit and data version; the model is stored with a signature and registered as a version of `taxi-demand` | In use (a local SQLite file and the folder `mlruns`; no alias is set, so there is no champion yet) | 26 |
 | scikit-learn | General machine-learning library | LightGBM's class `LGBMRegressor` follows its interface and needs it installed | Declared (no code of the project imports it) | – |
-| Optuna | Library that searches for good model parameters | Tuning within a fixed budget | Declared | – |
-| SHAP | Library that explains model predictions | Shows which features drive the forecasts | Declared | – |
+| Optuna | Library that searches for good model parameters | `python -m demand tune`: a seeded search over five LightGBM hyper-parameters, at most 30 trials or 900 seconds, that prints a block for the config | In use (only `tuning.py` imports it) | 27 |
+| SHAP | Library that explains model predictions | Splits each forecast of the final model into contributions per input; a training run stores the mean sizes and a summary plot | In use (only `explain.py` imports it) | 28 |
+| matplotlib | Library for drawing charts | Draws the SHAP summary plot into a PNG file, in memory and without a window | In use (only `explain.py` imports it) | 28 |
 
 ## Serving (Phase 3)
 
@@ -93,4 +94,4 @@ The baseline, the metrics and the backtest of Chapters 22 and 23 need no new too
 
 ---
 
-[Previous: Chapter 26 – The model that is kept: the final fit and MLflow](26-the-final-fit-and-mlflow.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)
+[Previous: Chapter 28 – Explaining a forecast: SHAP](28-explaining-the-model-with-shap.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)

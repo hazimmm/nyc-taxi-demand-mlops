@@ -133,15 +133,15 @@ Good Friday and Easter Sunday, 20 April, are not federal holidays. So `is_holida
 - **Pickups are assumed to be known when the hour ends.** A real data feed is late. This project has no feed at all (Chapter 3).
 - **The weather column is assumed to be what a forecast would have said up to 47 hours ahead.** This is not verified. The archive of past forecasts may hold forecasts made closer to the hour, which are more accurate (Chapter 2).
 - **The folds lie inside the period that also chose the 20 zones** and gave the outlier flag its yardstick. This is the same for every forecaster, so comparisons between forecasters stay fair.
-- **The folds stop being a clean test once they are used to choose.** Chapter 25 makes four choices on these four weeks, and a later feature tunes the model on them. The score of the chosen settings is then too good, by an unknown amount. May and June remain the clean test.
+- **The folds stop being a clean test once they are used to choose.** Chapter 25 makes four choices on these four weeks, and Chapter 27 tunes the model on them. The score of the chosen settings is then too good. Chapter 27 estimates by how much, and May and June remain the clean test.
 
 ## What a model adds
 
-This chapter read the result of the baseline only. The same command now scores a second forecaster, the LightGBM model of Chapter 24, on the same rows. Its MAE is 24.93, which is 10.0% better than 27.70.
+This chapter read the result of the baseline only. The same command now scores a second forecaster, the LightGBM model of Chapter 24, on the same rows. With the tuned values of Chapter 27 its MAE is 24.11, which is 13.0% better than 27.70. Before tuning it was 24.93, 10.0% better.
 
 An earlier version of this section reported 25.96 from a scratch script. That was the same model with the zone read as a number (Chapter 25).
 
-The gain is only a tenth, because the weekly copy is a strong forecast. Without the baseline, 24.93 would look like a result. With it, it is a first step.
+The gain is only about an eighth, because the weekly copy is a strong forecast. Without the baseline, 24.11 would look like a result. With it, it is a modest step.
 
 ## Try it yourself
 
