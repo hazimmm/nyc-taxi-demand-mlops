@@ -140,7 +140,7 @@ When another version becomes champion, the card must be written again. Nothing u
 
 Part IV started from a number to beat: the baseline, 27.70. The first LightGBM model scored 24.93, and tuning brought it to 24.11; about 0.6 of the tuning gain held on weeks the search had not seen. SHAP showed what the model leans on, the gate decides what is served, and the card says what it is good for.
 
-Not proven yet: all these scores come from four April weeks that also helped to choose the settings. The clean exam is the replay of May and June, which no decision has read.
+Not proven yet: all these scores come from four April weeks that also helped to choose the settings. The clean exam is the replay of May and June, which no decision has read. Chapter 34 takes it, and the model card now has a section with its result.
 
 Part V builds on two pieces: the service of Chapter 30 loads `models:/taxi-demand@champion`, and the signature of Chapter 26 checks every table of inputs it builds.
 

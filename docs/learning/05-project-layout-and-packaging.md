@@ -69,8 +69,8 @@ nyc-taxi-demand-mlops/
 │       ├── data/           the data pipeline (Part III)
 │       ├── models/         the baseline, the backtest, the model and its training (Part IV)
 │       ├── serving/        the prediction service (Part V)
-│       ├── monitoring/     this and the next: empty until their part is built
-│       └── flows/
+│       ├── monitoring/     empty until its part is built
+│       └── flows/          the simulated clock and the replay (Part VII)
 ├── tests/
 │   ├── conftest.py
 │   └── unit/
@@ -79,7 +79,7 @@ nyc-taxi-demand-mlops/
 
 *Figure 5.1 – The main folders and files.*
 
-Each file inside `demand` has one responsibility. Settings are in one file, contracts in another, commands in a third. The sub-folder `data` holds the pipeline of Part III, `models` holds the modelling code of Part IV, and `serving` the web service of Part V. The other two are empty packages that reserve a place for the later parts of the system. The folders `docker/` and `monitoring/` hold no Python: they describe how the code is packed into images and how the running service is watched.
+Each file inside `demand` has one responsibility. Settings are in one file, contracts in another, commands in a third. The sub-folder `data` holds the pipeline of Part III, `models` holds the modelling code of Part IV, `serving` the web service of Part V, and `flows` the replay of Part VII. `monitoring` is an empty package that reserves a place for a later part of the system. The folders `docker/` and `monitoring/` hold no Python: they describe how the code is packed into images and how the running service is watched.
 
 ## Why the code is inside `src/`
 

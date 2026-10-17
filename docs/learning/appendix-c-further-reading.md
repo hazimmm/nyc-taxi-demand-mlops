@@ -76,6 +76,12 @@ Official documentation for the tools that the repository uses today, a few books
 - **Prometheus configuration** – `global`, `scrape_interval` and `scrape_configs`. <https://prometheus.io/docs/prometheus/latest/configuration/configuration/>
 - **Provision Grafana** – data sources and dashboards set up from files. <https://grafana.com/docs/grafana/latest/administration/provisioning/>
 
+## The replay and live scores
+
+- **Designing Machine Learning Systems** by Chip Huyen (O'Reilly, 2022) – the chapter "Data Distribution Shifts and Monitoring" explains why a model gets worse after it is deployed, why accuracy needs actual values that arrive late, and what can be watched before they arrive. It is the background of Chapter 34 and of the monitoring that follows.
+- **Forecasting: Principles and Practice** (see above) – the section on residual diagnostics: residuals whose mean is not zero mean that the forecasts are biased, as the replay's are.
+- **pandas documentation** – `read_parquet`, whose path may be a folder: Chapter 34 reads all the files of `data/predictions/scored/` as one table this way.
+
 ## Command line, tests and code quality
 
 - **Typer documentation** – commands, arguments, testing a CLI. <https://typer.tiangolo.com>

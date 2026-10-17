@@ -131,7 +131,7 @@ The 48 hours are elapsed hours (Chapter 19). The day the clocks go back has a 25
 
 A real service would read the newest pickups from a live feed and the weather from a forecast service. This project has neither: the TLC publishes each month about two months late. So the service reads two files once, at startup: the gold demand table, of which it keeps zone, hour and pickups (86,860 rows: 4,343 hours for 20 zones), and the silver weather table, which stands in for a weather forecast as in training. Together they are a **snapshot**, a copy of the data as it was at one moment, read once and never written. It stands in for live feeds the project does not have. New data needs a restart.
 
-The snapshot includes May and June, the replay period. The service answers for those days on purpose: for this project they are "production", and serving them decides nothing about the model.
+The snapshot includes May and June, the replay period. The service answers for those days on purpose: for this project they are "production", and serving them decides nothing about the model. The replay of Chapter 34 forecasts the same days with the same function, `predict_day`, and writes the answers to disk.
 
 The service forecasts every day from 10 January to 30 June 2025, and no other.
 

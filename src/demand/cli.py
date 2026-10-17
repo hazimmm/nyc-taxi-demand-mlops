@@ -124,9 +124,17 @@ def set_champion(
 
 
 @app.command()
-def forecast() -> None:
-    """Write the forecast for every hour of the next day at the simulated clock's next step."""
-    _run_stage("demand.flows.forecast_flow", "run_forecast")
+def forecast(
+    days: Annotated[
+        int,
+        typer.Option(
+            min=1,
+            help="Steps of the simulated clock to run; stops early at the end of the data.",
+        ),
+    ] = 1,
+) -> None:
+    """Forecast the next day of the replay and score the days that are over."""
+    _run_stage("demand.flows.forecast_flow", "run_forecast", days)
 
 
 @app.command()

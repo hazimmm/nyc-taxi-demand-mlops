@@ -12,6 +12,7 @@ This page describes version 2 of the registered model `taxi-demand`. It is the v
 | [Q] | a scratch query: the backtest re-run in memory with the same config, which reproduces the MAE of [T] exactly (24.106025), with each row's forecast kept. It read only rows up to 30 April 2025. |
 | [D] | measured by hand earlier and written down in the docstrings of `src/demand/models/gbm.py`, `tuning.py` and `training.py`. Not re-run for this page. |
 | [C] | `configs/config.yaml` at commit `5d1d9e4` |
+| [R] | `reports/replay_report.json` of the replay of 2 May to 30 June 2025 with this version (`python -m demand forecast --days 61`), checked by a separate SQL query on the issued forecasts and `data/gold/demand_hourly.parquet` |
 
 ## What it does
 
@@ -65,7 +66,22 @@ The parameters before tuning (version 1) scored 24.93 [M]. With three seeds the 
 
 - **They are optimistic.** The same four April weeks chose the zone handling and the objective [D], and then the 30-trial parameter search kept the set that did best on them [U]. A winner picked on a set of weeks scores better on those weeks than it will elsewhere.
 - **About 0.6 of the 0.9 tuning gain survived on unseen weeks.** A separate search on March weeks gained 0.64 when scored on April, against 0.90 for the search on April itself [D]. So the real gain from tuning is closer to 0.6 MAE than to the full 0.9.
-- **The clean exam has not been taken.** The day-by-day replay of May and June 2025 is weeks no decision has looked at. It is not run yet. Until it is, the backtest is the best estimate available, and an optimistic one.
+- **The clean exam has not been taken in the backtest.** The day-by-day replay of May and June 2025 is weeks no decision had looked at. Its result is in the next section.
+
+## The replay of May and June 2025
+
+Version 2 forecast every day from 2 May to 30 June 2025 as it would have in use: each day at 00:00 on the day before, from the pickups known by then. 1 May is not forecast, for the reason under Known weaknesses. 60 days, 28,800 zone-hours [R].
+
+| 2 May to 30 June | MAE | RMSE | sMAPE |
+|---|---|---|---|
+| Version 2 | 27.80 | 43.29 | 22.6 % |
+| Weekly baseline | 31.83 | 50.51 | 26.3 % |
+
+- **Worse than the backtest, as expected.** The live MAE is 1.15 times the backtest MAE of 24.11 [R]. The backtest was optimistic for the reasons above.
+- **Still better than the baseline**, by 12.6 % on MAE. But not on every day: the baseline was better on 23 of the 60 days [R].
+- **Forecasts were too low on average,** by 8.4 pickups per zone-hour (from the SQL check; the report has no bias field) [R].
+- **The worst days were around holidays:** Juneteenth, 19 June (MAE 46.9), the Saturday before Memorial Day (42.9) and Memorial Day, 26 May (39.7) [R]. `is_holiday` marked the two holidays, but the training rows contain only two holidays to learn from; the Saturday is not a holiday in the features.
+- **No decision was changed after these numbers were seen.** They are reported as they came out.
 
 ## Known weaknesses
 

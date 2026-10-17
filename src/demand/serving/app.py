@@ -53,7 +53,9 @@ for an app used without its startup, as in the tests.
 
 **Stateless.** Nothing is written at request time: no file, no database, no cache. Every
 replica holds the same model and the same read-only data and can answer any request.
-The forecasts and the actual pickups are written by the batch forecast, not here. Logs
+The forecasts and the actual pickups are written by the batch forecast of the replay
+(``demand.flows.forecast_flow``), not here; it computes them with the same function,
+``predict_day`` (``forecasting.py``). Logs
 go to stderr and counters to ``/metrics``.
 
 **Left out on purpose:** authentication, CORS, rate limits, caching of answers,
@@ -70,7 +72,6 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Annotated, Any
 
-import numpy as np
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from prometheus_client import CONTENT_TYPE_LATEST
@@ -78,7 +79,8 @@ from starlette.routing import Match, Route
 
 from demand.config import Settings, get_settings
 from demand.logs import get_logger
-from demand.schemas import HOUR_START, ZONE_ID, feature_columns
+from demand.schemas import HOUR_START, ZONE_ID
+from demand.serving.forecasting import predict_day
 from demand.serving.metrics import UNMATCHED, ApiMetrics
 from demand.serving.model_loader import LoadedModel, load_model
 from demand.serving.schemas import (
@@ -90,7 +92,7 @@ from demand.serving.schemas import (
     ModelInfoResponse,
     ReadyResponse,
 )
-from demand.serving.snapshot import DataSnapshot, RequestRefusedError, day_features, load_snapshot
+from demand.serving.snapshot import DataSnapshot, RequestRefusedError, load_snapshot
 
 log = get_logger(__name__)
 
@@ -108,26 +110,26 @@ class Service:
 def forecast_day(
     service: Service, zones: Sequence[int], day: date, settings: Settings
 ) -> ForecastResponse:
-    """The forecasts of every hour of ``day`` for ``zones``.
+    """The forecasts of every hour of ``day`` for ``zones``, as the API answers them.
+
+    They come from ``predict_day``, the function the batch forecast of the replay calls.
 
     Raises:
         RequestRefusedError: If a zone or the day cannot be forecast (``check_request``).
     """
-    issued, rows = day_features(service.snapshot, zones, day, settings)
-    values = np.asarray(
-        service.model.predictor.predict(rows[feature_columns(settings)]), dtype="float64"
-    )
+    predicted = predict_day(service.model.predictor, service.snapshot, zones, day, settings)
+    rows = predicted.rows
     info = service.model.info
     return ForecastResponse(
         date=day,
         registered_model=info.registered_model,
         model_version=info.version,
-        issued_at=issued.to_pydatetime(),
+        issued_at=predicted.issued.to_pydatetime(),
         hours=len(rows) // len(zones),
         forecasts=[
             HourlyForecast(zone_id=zone, hour_start=hour.to_pydatetime(), forecast=value)
             for zone, hour, value in zip(
-                rows[ZONE_ID].tolist(), rows[HOUR_START], values.tolist(), strict=True
+                rows[ZONE_ID].tolist(), rows[HOUR_START], predicted.values.tolist(), strict=True
             )
         ],
     )

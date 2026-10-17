@@ -235,7 +235,7 @@ Run the tests of the gates, of the error classes, and of the two kinds of failur
 .venv\Scripts\python.exe -m pytest tests/unit/test_cli.py -q -k "expected_failure or unexpected_failure"
 ```
 
-You should see `47 passed`, then `14 passed`, then `2 passed, 18 deselected`.
+You should see `47 passed`, then `14 passed`, then `2 passed, 24 deselected`.
 
 ## Key takeaways
 

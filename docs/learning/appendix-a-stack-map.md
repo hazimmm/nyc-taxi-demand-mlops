@@ -75,9 +75,11 @@ The service also needs the libraries of the modelling table: MLflow loads the mo
 
 ## Monitoring and retraining (Phase 5)
 
+The replay of Chapter 34 needs no new tool. Its simulated clock and its scores are plain Python with pandas, pyarrow and Pandera; it loads the champion with MLflow and forecasts with the code of the service. Its files are in `data/predictions/` and its report is `reports/replay_report.json`.
+
 | Tool | What it is | Problem it solves here | Status |
 |---|---|---|---|
-| Prefect | A workflow scheduler | Runs the pipeline steps on a schedule | Declared (its server joins Docker Compose with the first flow) |
+| Prefect | A workflow scheduler | Runs the pipeline steps on a schedule; it will call the steps of the replay | Declared (the replay runs without it; its server joins Docker Compose when the steps are scheduled) |
 | Evidently | Library for data and model monitoring | Drift and accuracy reports | Declared |
 | Prometheus and Grafana | See the Containers table | Store and show the numbers of drift and accuracy, and alert on them | In use for the API; the monitoring numbers are planned |
 
@@ -99,4 +101,4 @@ The service also needs the libraries of the modelling table: MLflow loads the mo
 
 ---
 
-[Previous: Chapter 33 – The whole stack with Docker Compose](33-the-whole-stack-with-docker-compose.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)
+[Previous: Chapter 34 – The clean exam: replaying May and June](34-the-replay-of-may-and-june.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)

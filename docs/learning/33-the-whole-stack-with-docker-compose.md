@@ -126,19 +126,20 @@ Grafana is set up by **provisioning**: at every start it reads files that define
 
 Anyone who opens Grafana sees the dashboards as a Viewer, without a login, and can change nothing. The admin login comes from `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` in `.env`, or `admin` and `admin` when they are not set. That default is for a laptop behind `127.0.0.1` only.
 
-Prefect, the scheduler of the plan, is not in the stack. It arrives in Phase 5 with the first flow that uses it. Until then it would be a container that runs and does nothing.
+Prefect, the scheduler of the plan, is not in the stack. The replay of Chapter 34 runs as plain functions without it. Prefect arrives when the steps of Phase 5 are scheduled; until then it would be a container that runs and does nothing.
 
 ## From zero
 
 ```powershell
 .venv\Scripts\dvc.exe repro
+New-Item -ItemType Directory -Force data\predictions, data\predictions-stack | Out-Null
 docker compose up -d --wait mlflow
 docker compose run --rm pipeline train
 docker compose run --rm pipeline promote
 docker compose up -d --wait
 ```
 
-1. `dvc repro` builds the data on your machine (Chapter 21).
+1. `dvc repro` builds the data on your machine (Chapter 21). The second line creates two folders for the replay of Chapter 34. The `pipeline` service mounts `data/predictions-stack` on `data/predictions` inside the read-only checkout. Both must exist on the host, because Docker cannot create a mount point inside a read-only mount. It is a folder of its own because the stack's MLflow store numbers its versions separately from the store on the host, so the two replays must not share files.
 2. `up -d --wait mlflow` starts an empty MLflow server and returns when it is healthy. `-d` runs the containers in the background.
 3. `train` trains and registers version 1. It took 43 seconds when the container engineer ran it. Commit first: the gate of step 4 refuses a model trained from changed files.
 4. `promote` prints the decision shown above.
@@ -238,4 +239,4 @@ The same coincidence as on the host. The fixture of the tests records the model 
 
 ---
 
-[Previous: Chapter 32 – Images: the service with everything it needs](32-images.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 32 – Images: the service with everything it needs](32-images.md) | [Contents](README.md) | [Next: Chapter 34 – The clean exam: replaying May and June](34-the-replay-of-may-and-june.md)

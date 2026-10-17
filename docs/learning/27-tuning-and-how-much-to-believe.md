@@ -133,7 +133,7 @@ One detail weakens the agreement a little. The March and April searches use the 
 > [!IMPORTANT]
 > A score measured on the data that chose the settings is too good. Report the honest size from data the choice did not see.
 
-Two chosen values lie near the upper end of their range: 110 of at most 128 leaves, and 161 of at most 200 rows per leaf. The ranges were not widened, because every wider search is one more look at April, and each look makes the April scores less clean. The clean exam is still the replay of May and June, which `tune` never reads.
+Two chosen values lie near the upper end of their range: 110 of at most 128 leaves, and 161 of at most 200 rows per leaf. The ranges were not widened, because every wider search is one more look at April, and each look makes the April scores less clean. The clean exam is still the replay of May and June, which `tune` never reads. Chapter 34 takes it.
 
 ## The new values
 

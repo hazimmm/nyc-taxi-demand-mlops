@@ -110,6 +110,13 @@ services:
       PYTHONPATH: /repo/src
     volumes:
       - .:/repo:ro
+      # The replay writes its forecasts here (src/demand/flows/forecast_flow.py). A
+      # folder of its own: the stack's MLflow store numbers its versions independently
+      # of the store on the host, so the two replays must not share files. Both folders
+      # must exist on the host first (in PowerShell:
+      # New-Item -ItemType Directory -Force data/predictions, data/predictions-stack):
+      # Docker cannot create the mount point inside the read-only checkout.
+      - ./data/predictions-stack:/repo/data/predictions
       - pipeline-reports:/work/reports
       # Training stores the cleaning report of the silver layer with the model, and
       # looks for it in the reports folder. It is mounted from the host (written there

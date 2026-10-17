@@ -131,7 +131,7 @@ This project learned the lesson once already. An early trial, made before this f
 
 Chapter 23 warned that folds stop being a clean test once they are used to choose. That has now happened four times, on the same four weeks. The score of the chosen settings is therefore a little too good, by an amount nobody knows.
 
-Two honest statements remained before tuning. With seed 42 the model was 10.0% better than the baseline. As the mean of three seeds it was 9.6% better, and that is the fairer number. Tuning used the same four weeks a fifth time, and Chapter 27 measures how much that flatters the score. The clean test is the replay of May and June, which no decision has touched.
+Two honest statements remained before tuning. With seed 42 the model was 10.0% better than the baseline. As the mean of three seeds it was 9.6% better, and that is the fairer number. Tuning used the same four weeks a fifth time, and Chapter 27 measures how much that flatters the score. The clean test is the replay of May and June, which no decision has touched (Chapter 34).
 
 ## Try it yourself
 

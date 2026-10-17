@@ -15,6 +15,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Base image | The image that a Dockerfile starts from, named in its first `FROM`. Here the official Python image `python:3.12.15-slim-trixie`, pinned by digest. | 32 |
 | Base value (SHAP) | The output a model gives on average over its training rows, before any input of a row has contributed. Here about 4.49 on the log scale, which is about 89 pickups. | 28 |
 | Baseline | A very simple method that sets the minimum a model must beat. Here: "the same hour one week ago", a copy of the feature `lag_168h`, named `weekly_naive`. | 1, 22 |
+| Bias (of forecasts) | The mean of forecast minus actual. Negative means the forecasts were too low on average. In the replay it is −8.41 pickups per zone and hour. | 34 |
 | Binary file | A file that is not text. Git must not change any byte of it. | 12 |
 | Bind mount | A folder or file of your machine made visible inside a container. Here `data/gold` and `data/silver/weather` for the API, and the whole checkout for the pipeline, all read-only. | 32, 33 |
 | Branch (git) | A named line of commits. Work happens on `dev`. | 12 |
@@ -26,6 +27,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Cardinality (of a metric) | The number of distinct combinations of label values of a series. Each combination is a time series of its own, so a label must have few values: here the route and the status, never a day or a zone. | 31 |
 | Categorical feature | An input whose values are labels from a fixed list, not amounts. Here: `zone_id`. A tree can put any group of labels on one side of a question. | 24 |
 | Champion / challenger | The model in use / a new model that must beat it to replace it. As aliases: `champion` points at the served version, and `challenger` at the newest version the promotion gate judged and did not promote. | 1, 29 |
+| Clean exam | The score on a hold-out that no decision has used. Here the replay of May and June 2025: MAE 27.80, against 24.11 in the April backtest that chose the settings. | 23, 27, 34 |
 | Cleaning report | The record of a cleaning run: rows in, rows removed by each rule, rows out. Here: `reports/silver_cleaning_report.json`. | 16 |
 | Cleaning rule | A condition that marks a row as not valid, with a name and a fixed place in the order of the rules. | 16 |
 | Checksum | A short code calculated from the content of a file. If the content changes, the code changes. | 4, 15 |
@@ -33,6 +35,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | CI | Continuous integration: automatic checks that run on every push. Planned for Phase 7. | 13 |
 | CLI | Command-line interface: a program controlled by typed commands. | 9 |
 | Client / server | The program that sends a request / the program that waits for requests and answers them. | 30 |
+| Closing step | The last step of the replay. It moves the simulated clock to 00:00 on 1 July 2025, the end of the demand history, forecasts nothing, and scores 29 and 30 June. Every later step repeats it and changes nothing. | 34 |
 | Code review | Reading a change before it is accepted, to find mistakes and to check that code, tests and documents agree. | 13 |
 | Complete (of an hourly count) | Said of the count of an hour once the hour has ended. The pickups of 18:00 are complete at 19:00. | 2 |
 | Complete grid | A table with one row for every combination of zone and hour, whether something happened or not. An hour without pickups is a row with 0. | 18 |
@@ -98,6 +101,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Gradient boosting | Building many decision trees in a row, where each new tree is trained on what the trees before it still get wrong. The forecast is the sum of all trees. | 24 |
 | Ground truth | The real value that a prediction tried to match. | 3 |
 | Hard-coded | Said of a value written directly in the code. | 7 |
+| Hold-out | A period of data kept away from training and from every decision, so that its score is unbiased. Here May and June 2025. | 34 |
 | Health check | A command that Docker runs inside a container at intervals, which marks it healthy or unhealthy. The API image asks `/ready`. Compose can start a service only when another is healthy (`condition: service_healthy`). | 32, 33 |
 | HTTP | The protocol of the web: the agreed format of requests and responses between a client and a server. | 30 |
 | HTTP method | The word at the start of a request that says what the client wants. GET asks to read and changes nothing; POST sends data to be processed or stored. | 30 |
@@ -110,7 +114,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | In-sample / out-of-sample (score) | A score measured on the data that chose the settings / on data that took no part in the choice. An in-sample score is too good. | 27 |
 | Ingest | To bring data from outside sources into the project. The first stage of the pipeline. | 14 |
 | Input example | A few rows of valid model inputs, stored next to the model. Here: the first five training rows. | 26 |
-| Issue moment | The moment a forecast is made, which fixes what it may know. Here 00:00 on the day before the forecast day, or 01:00 around the night the clocks go back. The service reports it as `issued_at`. | 2, 30 |
+| Issue moment | The moment a forecast is made, which fixes what it may know. Here 00:00 on the day before the forecast day, or 01:00 around the night the clocks go back. The service reports it as `issued_at`; the replay stores it as `generated_at`. | 2, 30, 34 |
 | JSON | A standard text format for structured data. The service answers in it. | 9, 30 |
 | Label (metric) | A name and a value that split a Prometheus series, such as `status="422"`. | 31 |
 | Lag feature | A past value of the target used as an input. | 2, 19 |
@@ -118,11 +122,13 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Layer cache | Docker's reuse of a step whose instruction and copied files have not changed since the last build. The reason the lock is installed before the code is copied. | 32 |
 | Lazy import | Importing a module at the moment it is needed, not at the top of the file. | 9 |
 | Lazy validation | Checking a table against a schema in a way that runs every rule and reports all failures together, where the normal way stops at the first. | 20 |
+| Lead time | The time from the issue moment of a forecast to the start of the hour it forecasts. Here 24 hours for 00:00 on the forecast day and 47 hours for 23:00. | 34 |
 | Leakage test | A test that changes the target at one hour, builds the features again, and checks that no row earlier than that hour plus the horizon changed. | 19 |
 | Lifespan | The function that FastAPI runs once when the application starts. Here it loads the model and the data, before uvicorn opens the port. | 31 |
 | LightGBM | A library for gradient boosting. Here: the forecasting model, wrapped in the class `LightGbmForecaster`. | 24 |
 | Linear interpolation | Filling missing values on a straight line between the known value before the gap and the known value after it. | 17 |
 | Linter | A tool that reads code and reports likely mistakes and bad habits. | 11 |
+| Live MAE | The MAE of the forecasts that were issued in use, scored when their days are over. Here the MAE of the replay, 27.80. Divided by the backtest MAE of the same version it gives `live_to_backtest_mae`, 1.15. | 34 |
 | Liveness / readiness | Two questions that Kubernetes asks a container with automatic requests called probes: is the process alive (if not, it is restarted), and can it answer now (if not, it gets no requests but is not restarted). Here `/health` and `/ready`. | 31 |
 | Localize | To attach a timezone to a timestamp that was recorded without one. The clock time stays the same. | 17 |
 | Lock file | A list of the exact version of every installed library. | 6 |
@@ -166,7 +172,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Pin | To fix a library to one exact version. | 6 |
 | Placeholder | A function that exists by name and only raises `NotImplementedError` until the real one is written. | 9 |
 | Placeholder value | A value such as zero, or a copy of another field, that a source writes where it has no measurement. | 16 |
-| Pooled MAE | The MAE over all test rows of all folds together. With folds of equal size, as here, it equals the mean of the fold MAEs. | 29 |
+| Pooled MAE | The MAE over all test rows of all folds together. With folds of equal size, as here, it equals the mean of the fold MAEs. In the replay, the MAE over all 28,800 scored rows of the 60 days. | 29, 34 |
 | Port | A number that tells a computer which program a network request is for. The service listens on 8000. | 30 |
 | Port mapping | A rule that makes a port of a container reachable from the machine, such as `127.0.0.1:8000:8000`. Bound to `127.0.0.1`, it is not reachable from the network. | 33 |
 | Producer / consumer | The step that writes a table / the step that reads it. | 8 |
@@ -183,12 +189,14 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Raw layer | Data exactly as downloaded, never modified. Also called bronze. | 4 |
 | Read-only filesystem | A container whose files cannot be written (`read_only: true`). Writing into the API container fails with `Read-only file system`. | 33 |
 | Remote (DVC) | A shared storage place to which the DVC cache can be sent, so that other people can fetch the same data. This project has none. | 21 |
+| Replay | Playing historical days that the model has never seen one at a time, each at the moment the system would have handled it. Here 2 May to 30 June 2025, with `python -m demand forecast`. | 3, 34 |
 | Request / response | The question a client sends to a server / the answer, with a status code and a body. | 30 |
 | Restart policy | What Docker does when a container ends. `unless-stopped` starts it again, with growing pauses, unless a person stopped it. | 33 |
 | Reversal | A row with negative amounts that cancels the charge of a trip, for example after a refund. It is not a second trip. | 16 |
 | RMSE | Root mean squared error: like the MAE, with large errors counted much more. It is never smaller than the MAE. | 22 |
 | Rollback | Making an earlier model version champion again, by hand, because the newer one behaved badly. Here: `python -m demand set-champion VERSION --reason TEXT`. | 29 |
 | Rolling statistic | A summary, such as the mean, over a moving window of time. Here every window ends one horizon before the target hour. | 2, 19 |
+| Rolling window (of a score) | A score over the last few days, moved forward one day at a time. With 7 days, the ratio of live to backtest MAE in the replay peaked at 1.41 for the window that ends on 28 May. | 34 |
 | Rolling-origin backtest | A backtest repeated with a training end date that moves forward. | 3 |
 | Run (MLflow) | One recorded execution of the training, with an id. It holds parameters (settings chosen before), metrics (numbers produced), tags (where it came from) and artifacts (files). | 26 |
 | Sampler | The part of Optuna that proposes the next values. Here TPE, seeded with `project.seed`: ten random trials, then more trials near the values that scored well. | 27 |
@@ -202,7 +210,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | SHA-256 | A method for calculating a checksum of 64 characters. | 15 |
 | SHAP value | The contribution of one input to one forecast. The base value plus the SHAP values of all inputs of a row is exactly the output of the model. | 28 |
 | Silver layer | Cleaned data: valid rows, fixed types, no duplicates. One row is one valid trip, or one hour of weather. | 4, 16 |
-| Simulated clock | Replaying unseen historical data one day at a time, as if it were happening now. | 3 |
+| Simulated clock | A "now" that the program sets itself, without the wall clock, to replay unseen historical data one day at a time as if it were happening. Here its position is the newest file in `data/predictions/forecasts/`. | 3, 34 |
 | Slot | The group of hours that an hour is compared with when outliers are flagged: the same zone, the same hour of the day and the same kind of day (working day or weekend). | 18 |
 | sMAPE | Symmetric mean absolute percentage error: for each hour the error divided by the average of the actual and the forecast, from 0 to 200 percent. Hours with few or no pickups decide it. | 22 |
 | Snapshot (data) | A copy of data as it was at one moment, read once and never written. The service reads the gold demand and the silver weather as a snapshot at startup, in place of live feeds the project does not have. | 30 |
@@ -243,6 +251,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Warm-up rows | The first rows of every zone, for which the history is too short to fill all lags and windows. Here 215 hours per zone. They are dropped, not filled. | 19 |
 | Web framework | A library in which a web application is written. It maps paths to functions and turns their results into responses. Here: FastAPI. | 30 |
 | Web service | A program that starts, prepares itself and then waits for requests over the network, and answers each one. | 30 |
+| Write-once | Said of a record that is never changed after it is written. Here a forecast file in `data/predictions/forecasts/`; the actual values go into a separate table, `scored/`. | 34 |
 | YAML | A text format for configuration that is easy for people to read. | 7 |
 | Z-score | The distance of a value from the mean of its group, counted in standard deviations. | 18 |
 

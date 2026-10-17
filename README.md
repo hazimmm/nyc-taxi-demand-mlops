@@ -60,6 +60,7 @@ Starts the API on port 8000 with the champion model. `GET /predict?date=2025-05-
 
 ```powershell
 dvc repro                                   # build the data on the host first
+New-Item -ItemType Directory -Force data/predictions, data/predictions-stack   # replay mount points
 docker compose up -d --wait mlflow          # an empty MLflow server of the stack's own
 docker compose run --rm pipeline train      # train and register a model in it
 docker compose run --rm pipeline promote    # make it champion if it passes the gate

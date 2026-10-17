@@ -45,7 +45,7 @@ The backtest scored a recipe: these inputs, these parameters. The final fit uses
 
 *Figure 26.2 – From 2 May on, every forecast of this model is one it could really have made.*
 
-**The one exception.** The forecast for 1 May was due at 00:00 on 30 April. At that moment the pickups of 30 April did not exist, and this model has learned from them. Its features for 1 May are still correct: they read nothing newer than 48 hours before each hour. But the model is one day younger than it could have been. Whoever scores the replay must start at 2 May, or say that 1 May is included. The docstring of `training.py` states this, and the code agrees with it: the function `final_training_rows` returns the whole table and only refuses a row after 30 April.
+**The one exception.** The forecast for 1 May was due at 00:00 on 30 April. At that moment the pickups of 30 April did not exist, and this model has learned from them. Its features for 1 May are still correct: they read nothing newer than 48 hours before each hour. But the model is one day younger than it could have been. Whoever scores the replay must start at 2 May, or say that 1 May is included. The replay of Chapter 34 starts at 2 May and does not forecast 1 May at all. The docstring of `training.py` states this, and the code agrees with it: the function `final_training_rows` returns the whole table and only refuses a row after 30 April.
 
 ## What DVC does not answer
 
@@ -213,7 +213,7 @@ You should see `48 passed, 2 warnings`. The warnings come from MLflow and its da
 ## Key takeaways
 
 - One training run does four things: the backtest, the final fit on all 53,280 training rows, the explanation of Chapter 28, and the record.
-- The backtest scores belong to the recipe. The final model has no score of its own until the replay.
+- The backtest scores belong to the recipe. The final model gets a score of its own in the replay of Chapter 34.
 - The final fit needs no gap. Its forecasts are consistent from 2 May on, and the forecast for 1 May is the one exception.
 - DVC answers "is the pipeline up to date?". MLflow answers "which model is this, what made it, and how good was it?".
 - A run holds parameters, metrics, tags and artifacts. The git commit, the dirty flag and the data version make it reproducible.
@@ -228,7 +228,7 @@ You should see `48 passed, 2 warnings`. The warnings come from MLflow and its da
 <details>
 <summary>Answer</summary>
 
-Those 3,360 rows are training rows of the final model. A score on them is a training error, and Chapter 24 showed the size of the difference: 13.35 on training rows against 24.11 on test weeks. The honest number for that week is the score of fold 4, 26.31, which comes from a model that was fitted on rows up to 22 April only. The final model gets its own score when the replay of May and June runs.
+Those 3,360 rows are training rows of the final model. A score on them is a training error, and Chapter 24 showed the size of the difference: 13.35 on training rows against 24.11 on test weeks. The honest number for that week is the score of fold 4, 26.31, which comes from a model that was fitted on rows up to 22 April only. The final model gets its own score in the replay of May and June (Chapter 34).
 
 </details>
 
@@ -237,7 +237,7 @@ Those 3,360 rows are training rows of the final model. A score on them is a trai
 <details>
 <summary>Answer</summary>
 
-It has to say that 1 May is included although this model could not have made that forecast in time: the forecast for 1 May was due at 00:00 on 30 April, and the model has learned from the pickups of 30 April. The effect is probably small, because one more day is 480 of 53,280 training rows and 1 May is one of 61 test days. "Probably small" is not measured. The clean choice is to start the score at 2 May.
+It has to say that 1 May is included although this model could not have made that forecast in time: the forecast for 1 May was due at 00:00 on 30 April, and the model has learned from the pickups of 30 April. The effect is probably small, because one more day is 480 of 53,280 training rows and 1 May is one of 61 test days. "Probably small" is not measured. The clean choice is to start the score at 2 May, and that is what the replay of Chapter 34 does.
 
 </details>
 

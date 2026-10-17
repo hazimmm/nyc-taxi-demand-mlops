@@ -103,9 +103,9 @@ flowchart LR
 
 *Figure 3.3 – The two periods of the project.*
 
-Each simulated day works like this. The clock says "it is 00:00 on 9 May". The forecast job writes the forecast for all 24 hours of 10 May. It uses pickups up to the end of 8 May and nothing newer, because that is all that exists at that moment (Chapter 2). Then the clock moves to 10 May. Later, the real pickups of 10 May "arrive", and the forecast can be compared with them.
+Each step of the clock works like this. The clock says "it is 00:00 on 9 May". The forecast job writes the forecast for all 24 hours of 10 May. It uses pickups up to the end of 8 May and nothing newer, because that is all that exists at that moment (Chapter 2). The next step moves the clock to 00:00 on 10 May and forecasts 11 May. When the clock reaches 00:00 on 11 May, 10 May is over: its real pickups "arrive", and its forecast is compared with them.
 
-The first replayed day is calculated in the code, not written a second time. This is a property of the data settings in [`src/demand/config.py`](../../src/demand/config.py):
+The first day after the training period is calculated in the code, not written a second time. This is a property of the data settings in [`src/demand/config.py`](../../src/demand/config.py):
 
 ```python
     @property
@@ -116,11 +116,13 @@ The first replayed day is calculated in the code, not written a second time. Thi
 
 Line by line: `@property` makes this a value you read like a field, without brackets. The function takes the last training day and adds one day. So if someone changes `train_end_date`, the replay start moves with it. The two dates cannot disagree, because only one of them is stored.
 
+The clock exists now. `python -m demand forecast` runs one step, and the position of the clock is the newest forecast file on disk. The first day it forecasts is 2 May, one day after this date, because the forecast for 1 May was due before the model existed (Chapter 26). Chapter 34 builds the clock and reports its result.
+
 ## Why this is honest
 
 A simulation can be used to mislead. This one is honest for three reasons.
 
-First, the model never learns from May and June. The errors measured during the replay are real results on unseen data.
+First, the model never learns from May and June. The errors measured during the replay are real results on unseen data. No setting was chosen on them either, so they are the clean exam that the backtest cannot be once it has been used for choices (Chapters 23 and 27).
 
 Second, the delay of the truth is simulated too, and the next section explains why that matters.
 

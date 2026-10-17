@@ -80,6 +80,24 @@ def test_set_champion_passes_the_version_and_the_reason(
     assert calls[0][1:] == (1, "version 2 failed in May")
 
 
+def test_forecast_runs_one_step_unless_told_otherwise(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[object, ...]] = []
+    _fake_module(
+        monkeypatch, "demand.flows.forecast_flow", run_forecast=lambda *args: calls.append(args)
+    )
+
+    runner.invoke(app, ["forecast"])
+    runner.invoke(app, ["forecast", "--days", "61"])
+
+    assert [call[1:] for call in calls] == [(1,), (61,)]
+
+
+def test_forecast_refuses_zero_steps() -> None:
+    result = runner.invoke(app, ["forecast", "--days", "0"])
+
+    assert result.exit_code == 2
+
+
 def test_set_champion_needs_a_reason() -> None:
     result = runner.invoke(app, ["set-champion", "1"])
 

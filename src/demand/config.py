@@ -135,7 +135,11 @@ class DataConfig(_Section):
 
     @property
     def replay_start_date(self) -> date:
-        """First day replayed as "production" by the simulated clock."""
+        """First day after the training period.
+
+        The replay forecasts from the day after it (``flows.clock.first_replay_day``): the
+        forecast for this day was due before the model's last training rows existed.
+        """
         return self.train_end_date + timedelta(days=1)
 
 

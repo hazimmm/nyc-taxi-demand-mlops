@@ -30,7 +30,7 @@ A test week runs from 00:00 on its first day to 23:00 on its last, in local time
 
 ## Nothing after 30 April is read
 
-May and June are kept for the simulated clock (Chapter 3). A backtest that had looked at them would spoil that later test. The code in [`src/demand/models/backtest.py`](../../src/demand/models/backtest.py) protects them twice.
+May and June are kept for the simulated clock (Chapter 3). A backtest that had looked at them would spoil that later test, which Chapter 34 takes. The code in [`src/demand/models/backtest.py`](../../src/demand/models/backtest.py) protects them twice.
 
 The first protection is in the function that loads the table:
 
@@ -133,7 +133,7 @@ Good Friday and Easter Sunday, 20 April, are not federal holidays. So `is_holida
 - **Pickups are assumed to be known when the hour ends.** A real data feed is late. This project has no feed at all (Chapter 3).
 - **The weather column is assumed to be what a forecast would have said up to 47 hours ahead.** This is not verified. The archive of past forecasts may hold forecasts made closer to the hour, which are more accurate (Chapter 2).
 - **The folds lie inside the period that also chose the 20 zones** and gave the outlier flag its yardstick. This is the same for every forecaster, so comparisons between forecasters stay fair.
-- **The folds stop being a clean test once they are used to choose.** Chapter 25 makes four choices on these four weeks, and Chapter 27 tunes the model on them. The score of the chosen settings is then too good. Chapter 27 estimates by how much, and May and June remain the clean test.
+- **The folds stop being a clean test once they are used to choose.** Chapter 25 makes four choices on these four weeks, and Chapter 27 tunes the model on them. The score of the chosen settings is then too good. Chapter 27 estimates by how much, and May and June remain the clean test (Chapter 34).
 
 ## What a model adds
 
@@ -257,7 +257,7 @@ The test of Chapter 19 is about the inputs of a row. The gap is about the target
 <details>
 <summary>Answer</summary>
 
-No. The best of thirty is partly good and partly lucky on these four weeks, and the luck does not repeat. The folds were used to choose, so they are no longer an unbiased estimate for the chosen settings. The error to expect is somewhat higher. The honest number comes from data that took no part in any choice: the replay of May and June. This is why those months are never read by the backtest.
+No. The best of thirty is partly good and partly lucky on these four weeks, and the luck does not repeat. The folds were used to choose, so they are no longer an unbiased estimate for the chosen settings. The error to expect is somewhat higher. The honest number comes from data that took no part in any choice: the replay of May and June. This is why those months are never read by the backtest. For the real model, the backtest said 24.11 and the replay gave 27.80 (Chapter 34).
 
 </details>
 
