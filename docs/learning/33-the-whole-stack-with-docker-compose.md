@@ -81,9 +81,9 @@ flowchart TD
     T["pipeline<br/>train, promote"] -->|"registers versions"| M
 ```
 
-*Figure 33.3 – The services and who calls whom. All run on one network that Compose creates.*
+*Figure 33.3 – The services and who calls whom. All run on one network that Compose creates. Phase 5 added a sixth, `pushgateway`, which Prometheus also scrapes (Chapter 36).*
 
-A **service** in Compose is one kind of container with its image and settings. `mlflow`, `api`, `prometheus` and `grafana` stay up. `pipeline` runs one command and ends, so it has a **profile**: a label that keeps it out of `docker compose up`. `docker compose run --rm pipeline train` starts it anyway.
+A **service** in Compose is one kind of container with its image and settings. `mlflow`, `api`, `prometheus` and `grafana` stay up, and since Phase 5 `pushgateway` too. `pipeline` runs one command and ends, so it has a **profile**: a label that keeps it out of `docker compose up`. `docker compose run --rm pipeline train` starts it anyway.
 
 The services reach each other by name: the API calls `http://mlflow:5000`, and Prometheus calls `api:8000`. These names exist only on the network of the stack.
 
@@ -122,7 +122,7 @@ The API container has four more settings.
 
 [`monitoring/prometheus/prometheus.yml`](../../monitoring/prometheus/prometheus.yml) tells Prometheus to send `GET /metrics` to `api:8000` every 15 seconds. This is a **scrape**. A target that does not answer is recorded as down, which is the point of a monitor that asks.
 
-Grafana is set up by **provisioning**: at every start it reads files that define its data source, Prometheus, and its dashboards. Nobody builds them by clicking in the web page, and the page cannot change them. The dashboard "Prediction API", in the folder "NYC taxi demand", has four panels: the served model version, requests per second, the 95th percentile of the response time, and the error rate. The request panels leave out `/health`, `/ready` and `/metrics`: those requests come from Docker's health check and from Prometheus, not from clients.
+Grafana is set up by **provisioning**: at every start it reads files that define its data source, Prometheus, and its dashboards. Nobody builds them by clicking in the web page, and the page cannot change them. The dashboard "Prediction API", in the folder "NYC taxi demand", has four panels: the served model version, requests per second, the 95th percentile of the response time, and the error rate. The request panels leave out `/health`, `/ready` and `/metrics`: those requests come from Docker's health check and from Prometheus, not from clients. A second dashboard, "Model monitoring", shows the numbers of the monitoring command; Chapter 36 explains it, and why they reach Prometheus through the Pushgateway.
 
 Anyone who opens Grafana sees the dashboards as a Viewer, without a login, and can change nothing. The admin login comes from `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` in `.env`, or `admin` and `admin` when they are not set. That default is for a laptop behind `127.0.0.1` only.
 
@@ -143,7 +143,7 @@ docker compose up -d --wait
 2. `up -d --wait mlflow` starts an empty MLflow server and returns when it is healthy. `-d` runs the containers in the background.
 3. `train` trains and registers version 1. It took 43 seconds when the container engineer ran it. Commit first: the gate of step 4 refuses a model trained from changed files.
 4. `promote` prints the decision shown above.
-5. `up -d --wait` starts the rest and returns when all four services are healthy.
+5. `up -d --wait` starts the rest and returns when all the services that stay up are healthy: four in Phase 4, five since the Pushgateway of Chapter 36.
 
 The container engineer also ran the steps out of order. With step 5 before step 3, the API exits with code 3 and the message `No model is registered under 'taxi-demand' in http://mlflow:5000…`. Between steps 3 and 4 the message is `The alias 'champion' is not set on 'taxi-demand' (aliases set: none; versions: [1])…`. In both cases `docker compose ps` shows `Restarting (3)`, and the API comes up by itself after `promote`.
 
@@ -163,7 +163,7 @@ docker compose up -d --wait
 docker compose ps --format "table {{.Service}}\t{{.Status}}"
 ```
 
-You should see four lines, each with `Up` and `(healthy)`. Ask the service which model it serves.
+You should see five lines, `api`, `grafana`, `mlflow`, `prometheus` and `pushgateway`, each with `Up` and `(healthy)`. Ask the service which model it serves.
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8000/ready

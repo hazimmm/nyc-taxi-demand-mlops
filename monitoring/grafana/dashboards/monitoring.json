@@ -1,0 +1,531 @@
+{
+  "uid": "demand-monitoring",
+  "title": "Model monitoring",
+  "description": "Input drift, prediction drift and live accuracy of the champion, as the monitoring command last pushed them (src/demand/monitoring/). One run is one set of numbers: the history of May and June is in the JSON reports, not here.",
+  "tags": [
+    "demand",
+    "monitoring"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Evaluated as of",
+      "description": "The simulated moment of the last monitoring run (demand_monitoring_now_timestamp_seconds): 00:00 on the day given to the command, or where the replay clock stands. Empty until the command has pushed once since the Pushgateway started.",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "demand_monitoring_now_timestamp_seconds * 1000",
+          "legendFormat": "now",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "dateTimeAsIso"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Alert: accuracy",
+      "description": "ALERT when live MAE / backtest MAE reached monitoring.mae_degradation_ratio in the last run (demand_monitoring_alert). Accuracy is the only check that raises an alert, the signal the retraining feature acts on. A check that could not be evaluated never alerts: see 'Checks evaluated'. Why: src/demand/monitoring/checks.py.",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "demand_monitoring_alert",
+          "legendFormat": "{{check}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "no alert",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "ALERT",
+                  "color": "red",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Warnings: drift",
+      "description": "WARNING when input drift or prediction drift crossed its threshold in the last run (demand_monitoring_warning). A warning triggers nothing: the input-drift test also fires in almost every week of the training period, so it is shown to explain an accuracy alert, not to act on. Why: src/demand/monitoring/checks.py.",
+      "gridPos": {
+        "x": 10,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "demand_monitoring_warning",
+          "legendFormat": "{{check}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "no drift",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "WARNING",
+                  "color": "orange",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Checks evaluated",
+      "description": "1 when the check had what it needs in the last run (demand_monitoring_evaluated): a full window of days, and for prediction drift a reference whose MAE matches the registry. The JSON report (reports/monitoring_report.json) says why a check was not evaluated.",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "demand_monitoring_evaluated",
+          "legendFormat": "{{check}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "not evaluated",
+                  "color": "orange",
+                  "index": 0
+                },
+                "1": {
+                  "text": "evaluated",
+                  "color": "blue",
+                  "index": 1
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Share of drifted model inputs",
+      "description": "Drifted / tested model inputs (10 of the 16; demand_monitoring_input_drift_share), against monitoring.drift_share_threshold of the config (dashed). The share reaching the line raises the input-drift warning (never an alert). Prometheus stamps each number with the wall-clock time it collected it; the simulated day the numbers belong to is in the panel 'Evaluated as of'.",
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "demand_monitoring_input_drift_share",
+          "legendFormat": "share"
+        },
+        {
+          "refId": "B",
+          "expr": "demand_monitoring_input_drift_share_threshold",
+          "legendFormat": "threshold"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "threshold"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Live MAE / backtest MAE",
+      "description": "The MAE of the last days that are over, divided by the backtest MAE of the model version (demand_monitoring_live_to_backtest_mae), against monitoring.mae_degradation_ratio of the config (dashed, 1.25). Reaching the line raises the accuracy alert. Prometheus stamps each number with the wall-clock time it collected it; the simulated day the numbers belong to is in the panel 'Evaluated as of'.",
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "demand_monitoring_live_to_backtest_mae",
+          "legendFormat": "live / backtest"
+        },
+        {
+          "refId": "B",
+          "expr": "demand_monitoring_live_to_backtest_mae_threshold",
+          "legendFormat": "threshold"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 3,
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "threshold"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "Drift distance per model input",
+      "description": "Normed Wasserstein distance of each tested input between the window and the last days of the training period (demand_monitoring_input_drift_distance). An input has drifted at 0.1 or more (red).",
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "demand_monitoring_input_drift_distance",
+          "legendFormat": "{{column}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "MAE: live, weekly baseline, backtest",
+      "description": "How many pickups the forecasts were off by, per zone and hour, on average over the last days that are over: the model live, the weekly baseline (lag_168h) on the same rows, and what the backtest promised for the model version.",
+      "gridPos": {
+        "x": 12,
+        "y": 13,
+        "w": 12,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "demand_monitoring_live_mae",
+          "legendFormat": "live",
+          "instant": true
+        },
+        {
+          "refId": "B",
+          "expr": "demand_monitoring_baseline_mae",
+          "legendFormat": "baseline",
+          "instant": true
+        },
+        {
+          "refId": "C",
+          "expr": "demand_monitoring_backtest_mae",
+          "legendFormat": "backtest",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "none",
+        "textMode": "value_and_name"
+      }
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Prediction drift distance",
+      "description": "Normed Wasserstein distance between the forecasts of the window and the backtest's out-of-sample forecasts (demand_monitoring_prediction_drift_distance); drifted at 0.1 or more. Empty when the check was not evaluated.",
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "demand_monitoring_prediction_drift_distance",
+          "legendFormat": "distance",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "textMode": "value"
+      }
+    }
+  ]
+}

@@ -126,7 +126,7 @@ Read these as links with the calendar, not as proven causes. The replay also had
 
 The backtest said 24.11, and the clean exam says 27.80. A gap was expected, for three reasons. The settings were chosen on April, and Chapter 27 measured that part of the tuning gain was luck. May and June have two holidays and heat beyond the training data. And the model was frozen on 30 April: its inputs stay fresh, but what it learned gets older every day.
 
-The config sets the alert threshold `monitoring.mae_degradation_ratio: 1.25`. Over the whole period the ratio is 1.15, below it. But one number for 60 days hides when the errors came. A **rolling window** score is computed over the last few days and moved forward one day at a time; the config sets `window_days: 7`. With 7 days, the ratio is above 1.25 for the windows that end on 26 to 30 May, with a peak of 1.41 on 28 May, and again on 24 and 25 June, at about 1.30 and 1.29. The engineer computed these by hand. No code computes them yet: that is the next feature.
+The config sets the alert threshold `monitoring.mae_degradation_ratio: 1.25`. Over the whole period the ratio is 1.15, below it. But one number for 60 days hides when the errors came. A **rolling window** score is computed over the last few days and moved forward one day at a time; the config sets `window_days: 7`. With 7 days, the ratio is above 1.25 for the windows that end on 26 to 30 May, with a peak of 1.41 on 28 May, and again on 24 and 25 June, at about 1.30 and 1.29. The engineer computed these by hand. The monitoring of Chapters 35 and 36 now computes them, as an alert on the days as of 27 to 31 May and 25 and 26 June.
 
 > [!IMPORTANT]
 > These numbers were reported as they came out. No model, feature or parameter was changed after they were seen.
@@ -135,7 +135,7 @@ The reason is the lesson of Chapter 27. Suppose someone adds a feature for long 
 
 ## What the next features build on
 
-The monitoring feature reads the three folders: `forecasts/` for prediction drift, also on days not yet over; `inputs/` for input drift against the training features; `scored/` for accuracy and the rolling window. Retraining needs a cutoff, the moment up to which a new model may learn, and the simulated clock gives it a "now".
+The monitoring of Chapters 35 and 36 reads the three folders: `forecasts/` for prediction drift, also on days not yet over; `inputs/` for input drift against the training features; `scored/` for accuracy and the rolling window. Retraining needs a cutoff, the moment up to which a new model may learn, and the simulated clock gives it a "now".
 
 ## Try it yourself
 
@@ -234,4 +234,4 @@ The step stops with the message that day 2025-06-19 is missing, and writes nothi
 
 ---
 
-[Previous: Chapter 33 – The whole stack with Docker Compose](33-the-whole-stack-with-docker-compose.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 33 – The whole stack with Docker Compose](33-the-whole-stack-with-docker-compose.md) | [Contents](README.md) | [Next: Chapter 35 – Watching a model when the truth arrives late](35-watching-a-model-when-the-truth-arrives-late.md)

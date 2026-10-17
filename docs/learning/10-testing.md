@@ -218,7 +218,7 @@ Run everything with coverage.
 .venv\Scripts\python.exe -m pytest --cov -q
 ```
 
-You should see `896 passed, 4 warnings` after about seven minutes, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.91%`. Three warnings come from MLflow and its database library (Chapter 26), and one from the test client of FastAPI (Chapter 30). The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
+You should see `950 passed, 14 warnings` after about eleven to twelve minutes, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.92%`. Three warnings come from MLflow and its database library (Chapter 26), one from the test client of FastAPI (Chapter 30), and ten from NumPy and Litestar, two libraries that Evidently imports (Chapter 35). The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
 
 ## Key takeaways
 

@@ -5,10 +5,12 @@
 #   docker compose up -d --wait mlflow            # start an empty MLflow server
 #   docker compose run --rm pipeline train        # train and register a model in it
 #   docker compose run --rm pipeline promote      # make it champion if it passes the gate
-#   docker compose up -d --wait                   # start the API, Prometheus and Grafana
+#   docker compose up -d --wait                   # the API, Prometheus, Pushgateway, Grafana
+#   python -m demand monitor --push-to http://localhost:9091   # on the host: monitoring numbers
 #
 #   http://localhost:8000/docs   the API            http://localhost:5000   MLflow
 #   http://localhost:9090        Prometheus         http://localhost:3000   Grafana
+#   http://localhost:9091        Pushgateway
 #
 #   docker compose down       # stop and remove the containers; the volumes are kept
 #   docker compose down -v    # ... and delete the volumes: the MLflow store, the metrics
@@ -193,6 +195,27 @@ services:
       start_interval: 2s
     # No depends_on the API on purpose: Prometheus must keep running when the API is
     # down, because recording that it is down is its job.
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------------------
+  # Pushgateway: keeps the numbers the monitoring command sent last, for Prometheus.
+  # `python -m demand monitor --push-to http://localhost:9091` sends them from the host
+  # (src/demand/monitoring/metrics.py says why a batch command pushes instead of being
+  # scraped). It keeps them in memory only: after a restart there is nothing until the
+  # next run of the command, and an empty panel says so.
+  # ------------------------------------------------------------------------------------
+  pushgateway:
+    image: prom/pushgateway:v1.11.3@sha256:74fa117cef2d7e383112d25139ff1c2d2e309c35389a9e0554a47136a1482e48
+    ports:
+      - "127.0.0.1:9091:9091"
+    healthcheck:
+      # Built on busybox, like the Prometheus image, so wget is there.
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:9091/-/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+      start_interval: 2s
     restart: unless-stopped
 
   # ------------------------------------------------------------------------------------

@@ -138,7 +138,7 @@ So accuracy cannot be the only thing a system watches. If the data changes on Mo
 
 **Accuracy** is the comparison between forecast and actual. It is the real measure, but it is available only after the actuals arrive.
 
-Drift is an early warning and accuracy is the proof. The table for stored forecasts already has a place for the late value: its `actual` column is allowed to be empty. Chapter 8 shows that line.
+Drift is an early warning and accuracy is the proof. Chapter 36 shows how literally to take this: in the real data, drift fired on almost every day, so in this project it may only warn, and only accuracy raises an alert. The table for stored forecasts already has a place for the late value: its `actual` column is allowed to be empty. Chapter 8 shows that line.
 
 ## Try it yourself
 

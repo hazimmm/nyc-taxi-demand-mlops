@@ -70,18 +70,20 @@ The service also needs the libraries of the modelling table: MLflow loads the mo
 | Docker | Builds images that hold a program with Python, its libraries and the files of the operating system, and runs them as containers | The same runtime on every machine: two images, one for the service (`docker/api.Dockerfile`) and one for the training commands and the MLflow server (`docker/pipeline.Dockerfile`), each from a base pinned by digest and with its own lock file | In use (Docker Desktop with the Linux engine; DVC stays on the host) | 32 |
 | python:3.12.15-slim-trixie | The official Python image on Debian 13, without compilers and manuals | The base of both images, 179 MB | In use (pinned by tag and digest) | 32 |
 | Docker Compose | Starts several containers together from one file, with their volumes, mounts, ports and network | `docker-compose.yml`: MLflow, the API, Prometheus and Grafana, and the training commands behind a profile; health checks decide the order of start | In use | 33 |
-| Prometheus server | A database for measurements over time that asks its targets for their numbers | Collects `/metrics` of the API every 15 seconds; its settings are in `monitoring/prometheus/prometheus.yml` | In use (in Docker Compose, image pinned by digest; alerts and drift numbers arrive in Phase 5) | 33 |
-| Grafana | A web application for dashboards | The dashboard "Prediction API" with four panels, set up from files in `monitoring/grafana/`; dashboards are visible without a login | In use (in Docker Compose, image pinned by digest) | 33 |
+| Prometheus server | A database for measurements over time that asks its targets for their numbers | Collects `/metrics` of the API and the monitoring numbers held by the Pushgateway every 15 seconds; its settings are in `monitoring/prometheus/prometheus.yml` | In use (in Docker Compose, image pinned by digest; no alert rules) | 33, 36 |
+| Grafana | A web application for dashboards | The dashboards "Prediction API", with four panels, and "Model monitoring", with nine, set up from files in `monitoring/grafana/`; dashboards are visible without a login | In use (in Docker Compose, image pinned by digest) | 33, 36 |
 
 ## Monitoring and retraining (Phase 5)
 
-The replay of Chapter 34 needs no new tool. Its simulated clock and its scores are plain Python with pandas, pyarrow and Pandera; it loads the champion with MLflow and forecasts with the code of the service. Its files are in `data/predictions/` and its report is `reports/replay_report.json`.
+The replay of Chapter 34 needs no new tool. Its simulated clock and its scores are plain Python with pandas, pyarrow and Pandera; it loads the champion with MLflow and forecasts with the code of the service. Its files are in `data/predictions/` and its report is `reports/replay_report.json`. The accuracy check of monitoring needs no new tool either; the two drift checks use Evidently.
 
-| Tool | What it is | Problem it solves here | Status |
-|---|---|---|---|
-| Prefect | A workflow scheduler | Runs the pipeline steps on a schedule; it will call the steps of the replay | Declared (the replay runs without it; its server joins Docker Compose when the steps are scheduled) |
-| Evidently | Library for data and model monitoring | Drift and accuracy reports | Declared |
-| Prometheus and Grafana | See the Containers table | Store and show the numbers of drift and accuracy, and alert on them | In use for the API; the monitoring numbers are planned |
+| Tool | What it is | Problem it solves here | Status | Chapter |
+|---|---|---|---|---|
+| Prefect | A workflow scheduler | Runs the pipeline steps on a schedule; it will call the steps of the replay | Declared (the replay and monitoring run without it; its server joins Docker Compose when the steps are scheduled) | – |
+| Evidently | Library for data and model monitoring | The input-drift and prediction-drift checks: the normed Wasserstein distance per column with a fixed threshold of 0.1, and the HTML page `reports/monitoring_input_drift.html` | In use (version 0.7.23; only `monitoring/checks.py` imports it) | 35 |
+| prometheus-client | See the Serving table | Builds the gauges of a monitoring report and sends them to the Pushgateway with one HTTP PUT | In use (only `monitoring/metrics.py`, `serving/metrics.py` and `serving/app.py` import it) | 36 |
+| Prometheus Pushgateway | A small server that keeps the last numbers a batch job pushed, for Prometheus to scrape | `python -m demand monitor --push-to http://localhost:9091` sends the numbers there, because a command that has ended cannot be scraped | In use (in Docker Compose, image `prom/pushgateway:v1.11.3` pinned by digest; numbers kept in memory only) | 36 |
+| Prometheus and Grafana | See the Containers table | Store and show the numbers of drift and accuracy | In use: the dashboard "Model monitoring" | 36 |
 
 ## Kubernetes (Phase 6)
 
@@ -101,4 +103,4 @@ The replay of Chapter 34 needs no new tool. Its simulated clock and its scores a
 
 ---
 
-[Previous: Chapter 34 – The clean exam: replaying May and June](34-the-replay-of-may-and-june.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)
+[Previous: Chapter 36 – Alerts that mean something, and the numbers in Grafana](36-alerts-that-mean-something.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)

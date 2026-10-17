@@ -4,6 +4,7 @@ import json
 import sys
 import types
 from collections.abc import Iterator
+from datetime import date
 
 import pytest
 from typer.testing import CliRunner
@@ -90,6 +91,27 @@ def test_forecast_runs_one_step_unless_told_otherwise(monkeypatch: pytest.Monkey
     runner.invoke(app, ["forecast", "--days", "61"])
 
     assert [call[1:] for call in calls] == [(1,), (61,)]
+
+
+def test_monitor_passes_the_day_and_the_pushgateway(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[object, ...]] = []
+    _fake_module(
+        monkeypatch, "demand.flows.monitoring_flow", run_monitoring=lambda *args: calls.append(args)
+    )
+
+    runner.invoke(app, ["monitor"])
+    runner.invoke(app, ["monitor", "--as-of", "2025-05-29", "--push-to", "http://localhost:9091"])
+
+    assert [call[1:] for call in calls] == [
+        (None, None),
+        (date(2025, 5, 29), "http://localhost:9091"),
+    ]
+
+
+def test_monitor_refuses_a_day_in_another_format() -> None:
+    result = runner.invoke(app, ["monitor", "--as-of", "29-05-2025"])
+
+    assert result.exit_code == 2
 
 
 def test_forecast_refuses_zero_steps() -> None:

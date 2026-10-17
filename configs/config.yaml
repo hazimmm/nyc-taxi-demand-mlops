@@ -100,6 +100,6 @@ serving:
 monitoring:
   reference_days: 28
   window_days: 7
-  drift_share_threshold: 0.3      # share of drifted features that raises an alert
+  drift_share_threshold: 0.3      # share of drifted inputs that raises a warning (never an alert)
   mae_degradation_ratio: 1.25     # live MAE / backtest MAE that raises an alert
   retrain_cooldown_days: 7

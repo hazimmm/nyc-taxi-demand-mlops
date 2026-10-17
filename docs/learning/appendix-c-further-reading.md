@@ -82,6 +82,14 @@ Official documentation for the tools that the repository uses today, a few books
 - **Forecasting: Principles and Practice** (see above) – the section on residual diagnostics: residuals whose mean is not zero mean that the forecasts are biased, as the replay's are.
 - **pandas documentation** – `read_parquet`, whose path may be a folder: Chapter 34 reads all the files of `data/predictions/scored/` as one table this way.
 
+## Monitoring
+
+- **Evidently documentation** – the quickstart for data drift, and the page "Customize Data Drift", which lists every drift method with its default threshold and the rule by which Evidently chooses a method by itself (Chapter 35). <https://docs.evidentlyai.com> and <https://docs.evidentlyai.com/metrics/customize_data_drift>
+- **SciPy documentation** – `scipy.stats.wasserstein_distance`, the function that Evidently divides by the standard deviation of the reference. <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.wasserstein_distance.html>
+- **When to use the Pushgateway** – a page of the Prometheus documentation. It says that the usual valid use of a Pushgateway is the outcome of a batch job, and names its costs: one more component that can fail, and series that stay until they are deleted (Chapter 36). <https://prometheus.io/docs/practices/pushing/>
+- **Pushgateway README** – how to push, why a PUT replaces every metric of its group, and the flag `--persistence.file`, which this project does not use, so the numbers live in memory only. <https://github.com/prometheus/pushgateway>
+- **Designing Machine Learning Systems** (see above) – the same chapter on distribution shifts discusses how to detect shifts and why many detected shifts are harmless, which is the subject of Chapter 36.
+
 ## Command line, tests and code quality
 
 - **Typer documentation** – commands, arguments, testing a CLI. <https://typer.tiangolo.com>

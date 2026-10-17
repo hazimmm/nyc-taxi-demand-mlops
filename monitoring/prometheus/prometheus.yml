@@ -24,3 +24,15 @@ scrape_configs:
       # replica; with several replicas (Kubernetes, phase 6) the targets are found by
       # service discovery instead of being listed.
       - targets: ["api:8000"]
+
+  # The numbers of the monitoring command (src/demand/monitoring/metrics.py). It runs
+  # once a day and ends, so it cannot be scraped; it pushes them to the Pushgateway,
+  # which keeps the last ones and is scraped here like any other target. Prometheus
+  # stores them with the time of the scrape (the wall clock); the simulated day they
+  # belong to is the series demand_monitoring_now_timestamp_seconds.
+  - job_name: demand-monitoring
+    # Keep the labels the numbers were pushed with (job="demand_monitoring", check,
+    # column) instead of replacing them with the labels of the Pushgateway target.
+    honor_labels: true
+    static_configs:
+      - targets: ["pushgateway:9091"]

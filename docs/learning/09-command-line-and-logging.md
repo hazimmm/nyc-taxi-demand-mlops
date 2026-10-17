@@ -211,11 +211,11 @@ The two extra values are separate fields. The `+00:00` at the end of the time sh
 Run a command whose stage does not exist yet.
 
 ```powershell
-.venv\Scripts\python.exe -m demand monitor
+.venv\Scripts\python.exe -m demand retrain
 $LASTEXITCODE
 ```
 
-You should see `Not implemented yet: demand.flows.monitoring_flow` and then the number `1`. This is the branch "no" of Figure 9.1: the module of the monitoring stage is not written, and the command says so in one line, without a long error report, and with a failure code.
+You should see `Not implemented yet: demand.flows.retrain_flow` and then the number `1`. This is the branch "no" of Figure 9.1: the module of the retraining stage is not written, and the command says so in one line, without a long error report, and with a failure code.
 
 No real command is a placeholder today, so the other way to this message cannot be shown with a command. A test shows it. It puts a fake stage in the place of a real one, and the fake only raises `NotImplementedError("validate arrives later")`.
 
@@ -223,7 +223,7 @@ No real command is a placeholder today, so the other way to this message cannot 
 .venv\Scripts\python.exe -m pytest tests/unit/test_cli.py -q -k "placeholder"
 ```
 
-You should see `1 passed, 25 deselected`. The test checks that the command prints `Not implemented yet: validate arrives later` and that the exit code is 1.
+You should see `1 passed, 27 deselected`. The test checks that the command prints `Not implemented yet: validate arrives later` and that the exit code is 1.
 
 Run the test that checks every stage command.
 
@@ -231,7 +231,7 @@ Run the test that checks every stage command.
 .venv\Scripts\python.exe -m pytest tests/unit/test_cli.py -q -k "each_command"
 ```
 
-You should see `11 passed, 15 deselected`. Two stages do not exist yet, so how can their commands be tested? Chapter 10 explains the method: the test puts a fake module in the place of the real one.
+You should see `11 passed, 17 deselected`. One stage does not exist yet, so how can its command be tested? Chapter 10 explains the method: the test puts a fake module in the place of the real one.
 
 ## Key takeaways
 

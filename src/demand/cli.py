@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
+from datetime import datetime
 from enum import StrEnum
 from typing import Annotated
 
@@ -138,9 +139,27 @@ def forecast(
 
 
 @app.command()
-def monitor() -> None:
+def monitor(
+    as_of: Annotated[
+        datetime | None,
+        typer.Option(
+            "--as-of",
+            formats=["%Y-%m-%d"],
+            help="Evaluate at 00:00 on this day (YYYY-MM-DD) instead of at the replay clock.",
+        ),
+    ] = None,
+    push_to: Annotated[
+        str | None,
+        typer.Option(help="Pushgateway to send the numbers to, e.g. http://localhost:9091."),
+    ] = None,
+) -> None:
     """Check input drift, prediction drift and live accuracy."""
-    _run_stage("demand.flows.monitoring_flow", "run_monitoring")
+    _run_stage(
+        "demand.flows.monitoring_flow",
+        "run_monitoring",
+        None if as_of is None else as_of.date(),
+        push_to,
+    )
 
 
 @app.command()

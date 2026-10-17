@@ -5,9 +5,11 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Term | Meaning | Ch. |
 |---|---|---|
 | Actuals | The real observed values, here the real pickups, known only after the hour has passed. | 3 |
+| Alert / warning (monitoring) | An alert means "act on this"; a warning means "look at this". Here only the accuracy check raises an alert, which the retraining feature will read; the two drift checks raise warnings, which nothing acts on. | 35, 36 |
 | Alias (model registry) | A name that points at one version of a registered model and can be moved to another. `models:/taxi-demand@champion` loads whichever version the alias `champion` points at now. The service resolves it to a version number once, at startup. | 26, 29, 31 |
 | Allow-list | A list of what is let in, where everything else is left out. `.dockerignore` is one: its first line, `*`, leaves out everything, and the next lines let back in what the images are built from. | 32 |
 | Artifact | A file that is stored with a training run, such as a report or the model. | 26 |
+| As of (monitoring) | The moment at which monitoring is evaluated: 00:00 on the day given to `--as-of`, or the position of the replay clock. Nothing that did not exist at that moment is read. | 35 |
 | ASGI | The standard interface between a Python web server and a web application. uvicorn and FastAPI meet at it, so either can be replaced alone. | 30 |
 | Atomic | Said of an operation that happens completely or not at all, with no state in between. Renaming a file inside one folder is atomic. | 14 |
 | Automated test | A small function that runs a piece of code and checks the result with `assert`. | 10 |
@@ -15,6 +17,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Base image | The image that a Dockerfile starts from, named in its first `FROM`. Here the official Python image `python:3.12.15-slim-trixie`, pinned by digest. | 32 |
 | Base value (SHAP) | The output a model gives on average over its training rows, before any input of a row has contributed. Here about 4.49 on the log scale, which is about 89 pickups. | 28 |
 | Baseline | A very simple method that sets the minimum a model must beat. Here: "the same hour one week ago", a copy of the feature `lag_168h`, named `weekly_naive`. | 1, 22 |
+| Batch job | A command that runs once, writes its result and ends, such as `python -m demand monitor`. Prometheus cannot scrape it, so it pushes its numbers to a Pushgateway. | 36 |
 | Bias (of forecasts) | The mean of forecast minus actual. Negative means the forecasts were too low on average. In the replay it is −8.41 pickups per zone and hour. | 34 |
 | Binary file | A file that is not text. Git must not change any byte of it. | 12 |
 | Bind mount | A folder or file of your machine made visible inside a container. Here `data/gold` and `data/silver/weather` for the API, and the whole checkout for the pipeline, all read-only. | 32, 33 |
@@ -45,7 +48,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Container | A program started from an image. It sees the files of the image as its own filesystem and has its own network, and sees nothing of the machine unless it is given access. Many containers can run from one image. | 32 |
 | Conventional commits | A format for commit messages: `type: description`. | 12 |
 | CORS | Cross-origin resource sharing: rules that let a web page from another address call a service from a browser. Left out of this service on purpose. | 31 |
-| Counter, gauge, histogram | Three kinds of Prometheus series: a number that only goes up; a value that can go up and down; counts of values in ranges, with their number and their sum. | 31 |
+| Counter, gauge, histogram | Three kinds of Prometheus series: a number that only goes up; a value that can go up and down; counts of values in ranges, with their number and their sum. Every number of the monitoring report is sent as a gauge. | 31, 36 |
 | Coverage | The share of the code that the tests execute. | 10 |
 | Coverage gate | A rule that fails the test run when coverage is under a limit. Here 80%, applied with `--cov`. | 10 |
 | CrashLoopBackOff | The state Kubernetes shows for a container that exits again and again, restarted with growing pauses. Docker Compose shows the same situation as `Restarting (3)`. | 33 |
@@ -65,7 +68,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Docker Compose | A tool that starts several containers together from one file, here `docker-compose.yml`, with their volumes, mounts, ports and network. | 33 |
 | Dockerfile | A text file with one instruction per step, from which an image is built. Here `docker/api.Dockerfile` and `docker/pipeline.Dockerfile`. | 32 |
 | Docstring | A text at the start of a file, class or function that documents it. | 5 |
-| Drift | A change in the data compared with the training period. | 3 |
+| Drift | A change in the data compared with the training period. It says that the world changed, not that the model became worse. See *input drift* and *prediction drift*. | 3, 35 |
 | DVC | Data Version Control: a tool next to git that runs a pipeline of stages and repeats only the stages for which something changed. It can also store versions of data files. | 21 |
 | `dvc.lock` | The record that DVC writes after a run: a checksum of every file a stage read and wrote, and the value of every config key it uses. Stored in git. | 21 |
 | `dvc.yaml` | The file that describes the stages of the pipeline for DVC. | 21 |
@@ -82,6 +85,8 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Exponential backoff | Waiting twice as long after every failed attempt before trying again. | 14 |
 | Extra | See *optional dependency group*. | 6 |
 | Fail closed / fail open | What a check does when it cannot do its job. Fail closed: stop with an error. Fail open: let everything pass. | 8 |
+| False alarm | A check that fires when nothing that it should report has happened. | 36 |
+| False-alarm rate | The share of quiet periods on which a check fires. The input-drift test fired in 10 of 11 weeks of the training period, so its rate is near 100% and it may not trigger an action. | 36 |
 | Feature | An input column of a model. | 1, 19 |
 | Feature importance (gain) | For each input, the share of the improvement during training that came from tree questions about that input. It shows what the trees used, not a direction or a cause. | 24 |
 | Final fit | Fitting the chosen recipe once more on all training rows, after the backtest. The result is the model that is stored. | 26 |
@@ -113,6 +118,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Import path | The list of folders where Python searches for code to import. | 5 |
 | In-sample / out-of-sample (score) | A score measured on the data that chose the settings / on data that took no part in the choice. An in-sample score is too good. | 27 |
 | Ingest | To bring data from outside sources into the project. The first stage of the pipeline. | 14 |
+| Input drift | A change in the distribution of the model inputs compared with the reference. Here 10 of the 16 inputs are tested, and the inputs count as drifted when the share of drifted columns is 0.3 or more. | 35 |
 | Input example | A few rows of valid model inputs, stored next to the model. Here: the first five training rows. | 26 |
 | Issue moment | The moment a forecast is made, which fixes what it may know. Here 00:00 on the day before the forecast day, or 01:00 around the night the clocks go back. The service reports it as `issued_at`; the replay stores it as `generated_at`. | 2, 30, 34 |
 | JSON | A standard text format for structured data. The service answers in it. | 9, 30 |
@@ -162,6 +168,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Optuna | A library that searches for hyper-parameters: it proposes values, sees the score, and proposes better ones. Used by `python -m demand tune`. | 27 |
 | Outlier flag | A true/false column that marks an hour whose pickups are far from normal for its slot. The hour is kept. Here: `is_outlier`. | 18 |
 | Over-fitting to the validation set | Settings chosen on a validation set fit it better than they fit new data, so its score for them is too good. Here about 30% of the in-sample tuning gain did not hold on weeks the search had not seen. | 27 |
+| p-value | The probability of a difference at least as large as the one seen, if both samples came from the same distribution. It assumes independent rows, which hours of a time series are not, so this project's drift test uses no p-value. | 35 |
 | Package | A folder of Python files that can be imported by its name. | 5 |
 | Parameter (of a model) | A value that training finds in the data, such as the threshold of a tree question. Compare *hyper-parameter*. | 27 |
 | Parametrised test | One test function that runs once for each entry in a list of inputs. | 10 |
@@ -175,19 +182,23 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Pooled MAE | The MAE over all test rows of all folds together. With folds of equal size, as here, it equals the mean of the fold MAEs. In the replay, the MAE over all 28,800 scored rows of the 60 days. | 29, 34 |
 | Port | A number that tells a computer which program a network request is for. The service listens on 8000. | 30 |
 | Port mapping | A rule that makes a port of a container reachable from the machine, such as `127.0.0.1:8000:8000`. Bound to `127.0.0.1`, it is not reachable from the network. | 33 |
+| Prediction drift | A change in the distribution of the forecasts compared with forecasts of the same recipe on hours it had not learned from: here the backtest's fold forecasts, computed again. | 35 |
 | Producer / consumer | The step that writes a table / the step that reads it. | 8 |
 | Profile (Compose) | A label that keeps a service out of `docker compose up`. The service `pipeline` has one, because it runs a command and ends. | 33 |
 | Prometheus text format | The plain-text format of `/metrics`: lines `# HELP` and `# TYPE` for each series, then one line per value with its labels. | 31 |
 | Promotion gate | The rule that decides whether the newest model version becomes champion, run as `python -m demand promote`. It is not part of `dvc repro`, so rebuilding never changes the served model. | 29 |
-| Provisioning (Grafana) | Setting up Grafana from files at every start: here the Prometheus data source and the dashboard "Prediction API". | 33 |
+| Provisioning (Grafana) | Setting up Grafana from files at every start: here the Prometheus data source and the dashboards "Prediction API" and "Model monitoring". | 33, 36 |
 | Pruning (of a trial) | Stopping a trial early when its first results look bad. Not used here. | 27 |
+| Pull / push (metrics) | Prometheus pulls: it asks a running program for its numbers. A batch job pushes: it sends its numbers to a Pushgateway before it ends. | 36 |
 | Pure function | A function whose result depends only on its arguments and that reads and writes nothing outside itself. | 16 |
 | Push | To send commits to the shared copy of the repository. | 12 |
+| Pushgateway | A small server of the Prometheus project that keeps the last numbers a batch job pushed, and lets Prometheus scrape them. Here the service `pushgateway` on port 9091; it keeps the numbers in memory only. | 36 |
 | Quality gate | A check that can stop a pipeline. A stage runs one on its table before it writes it. The command `validate` runs one on the files of a layer before the next stage reads them. | 8, 20 |
 | Query parameter | A pair of a name and a value in the address of a request, after `?` and separated by `&`, such as `date=2025-05-14`. A name may appear more than once. | 30 |
 | Random split | Putting rows into training and test sets by chance. Wrong for data ordered in time. | 3 |
 | Raw layer | Data exactly as downloaded, never modified. Also called bronze. | 4 |
 | Read-only filesystem | A container whose files cannot be written (`read_only: true`). Writing into the API container fails with `Read-only file system`. | 33 |
+| Reference (drift) | The data that a window is compared with. For input drift, the inputs of the last 28 training days, 3 to 30 April (13,440 rows); for prediction drift, the backtest's out-of-sample forecasts. | 35 |
 | Remote (DVC) | A shared storage place to which the DVC cache can be sent, so that other people can fetch the same data. This project has none. | 21 |
 | Replay | Playing historical days that the model has never seen one at a time, each at the moment the system would have handled it. Here 2 May to 30 June 2025, with `python -m demand forecast`. | 3, 34 |
 | Request / response | The question a client sends to a server / the answer, with a status code and a body. | 30 |
@@ -196,19 +207,20 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | RMSE | Root mean squared error: like the MAE, with large errors counted much more. It is never smaller than the MAE. | 22 |
 | Rollback | Making an earlier model version champion again, by hand, because the newer one behaved badly. Here: `python -m demand set-champion VERSION --reason TEXT`. | 29 |
 | Rolling statistic | A summary, such as the mean, over a moving window of time. Here every window ends one horizon before the target hour. | 2, 19 |
-| Rolling window (of a score) | A score over the last few days, moved forward one day at a time. With 7 days, the ratio of live to backtest MAE in the replay peaked at 1.41 for the window that ends on 28 May. | 34 |
+| Rolling window (of a score) | A score over the last few days, moved forward one day at a time. With 7 days, the ratio of live to backtest MAE in the replay peaked at 1.41 for the window that ends on 28 May. The accuracy check of monitoring computes it. | 34, 35 |
 | Rolling-origin backtest | A backtest repeated with a training end date that moves forward. | 3 |
 | Run (MLflow) | One recorded execution of the training, with an id. It holds parameters (settings chosen before), metrics (numbers produced), tags (where it came from) and artifacts (files). | 26 |
 | Sampler | The part of Optuna that proposes the next values. Here TPE, seeded with `project.seed`: ten random trials, then more trials near the values that scored well. | 27 |
 | Schema | The formal definition of a table: columns, types and rules. | 8 |
-| Scrape | One request of Prometheus for the `/metrics` page of a target. Here every 15 seconds. | 33 |
+| Scrape | One request of Prometheus for the `/metrics` page of a target. Here every 15 seconds, of the API and of the Pushgateway. | 33, 36 |
 | Search space | The ranges in which a search may choose each hyper-parameter. | 27 |
 | Seasonal naive forecast | The forecast "the same as one season ago". Here the season is a week. See *baseline*. | 22 |
 | Seed | The number from which a computer starts its sequence of random-looking numbers. The same seed gives the same random choices. Here: `project.seed`. | 25 |
 | Seed check | Scoring the current and the best hyper-parameters again with two more seeds, to see whether a gain is larger than the noise. | 27 |
-| Service (Compose) | One kind of container in `docker-compose.yml`, with its image and settings: `mlflow`, `api`, `prometheus`, `grafana` and `pipeline`. | 33 |
+| Service (Compose) | One kind of container in `docker-compose.yml`, with its image and settings: `mlflow`, `api`, `prometheus`, `pushgateway`, `grafana` and `pipeline`. | 33, 36 |
 | SHA-256 | A method for calculating a checksum of 64 characters. | 15 |
 | SHAP value | The contribution of one input to one forecast. The base value plus the SHAP values of all inputs of a row is exactly the output of the model. | 28 |
+| Share of drifted columns | The number of tested columns that drifted, divided by the number tested. At 1 July it is 0.5: 5 of 10. | 35 |
 | Silver layer | Cleaned data: valid rows, fixed types, no duplicates. One row is one valid trip, or one hour of weather. | 4, 16 |
 | Simulated clock | A "now" that the program sets itself, without the wall clock, to replay unseen historical data one day at a time as if it were happening. Here its position is the newest file in `data/predictions/forecasts/`. | 3, 34 |
 | Slot | The group of hours that an hour is compared with when outliers are flagged: the same zone, the same hour of the day and the same kind of day (working day or weekend). | 18 |
@@ -249,8 +261,10 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Virtual environment | A folder with its own Python and its own installed libraries, separate from all others. | 6 |
 | Volume | Storage that lives outside every container, so that data outlives it. See *named volume* and *bind mount*. | 32 |
 | Warm-up rows | The first rows of every zone, for which the history is too short to fill all lags and windows. Here 215 hours per zone. They are dropped, not filled. | 19 |
+| Wasserstein distance (normed) | The average distance the values of one distribution must travel to become the other, divided by the standard deviation of the reference. A column has drifted at 0.1 or more, a tenth of a standard deviation. | 35 |
 | Web framework | A library in which a web application is written. It maps paths to functions and turns their results into responses. Here: FastAPI. | 30 |
 | Web service | A program that starts, prepares itself and then waits for requests over the network, and answers each one. | 30 |
+| Window (monitoring) | The last days a check looks at: 7 here. For drift, the last 7 forecast days issued; for accuracy, the last 7 days that are over, which end two days earlier. | 35 |
 | Write-once | Said of a record that is never changed after it is written. Here a forecast file in `data/predictions/forecasts/`; the actual values go into a separate table, `scored/`. | 34 |
 | YAML | A text format for configuration that is easy for people to read. | 7 |
 | Z-score | The distance of a value from the mean of its group, counted in standard deviations. | 18 |
