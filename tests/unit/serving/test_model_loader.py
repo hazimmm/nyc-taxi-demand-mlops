@@ -167,6 +167,26 @@ def test_loading_writes_nothing_into_the_store(store: Store) -> None:
     assert not list(store.folder.rglob("registered_model_meta"))
 
 
+def test_the_model_comes_from_the_configured_store_and_not_from_mlflows_default(
+    store: Store, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Another store set for the whole process, as MLFLOW_TRACKING_URI would set it, and an
+    # empty working folder: MLflow's own lookup of a models:/ address would ask these.
+    decoy = tmp_path / "decoy"
+    decoy.mkdir()
+    monkeypatch.chdir(decoy)
+    uri_before = mlflow.get_tracking_uri()
+    mlflow.set_tracking_uri(f"sqlite:///{(decoy / 'other.db').as_posix()}")
+    inputs = store.table[feature_columns(store.settings)]
+    try:
+        loaded = load_model(store.serving("models:/taxi-demand@champion"))
+    finally:
+        mlflow.set_tracking_uri(uri_before)
+
+    assert loaded.predictor.predict(inputs).tolist() == store.forecaster.predict(inputs).tolist()
+    assert not (decoy / "mlflow.db").exists()
+
+
 def test_an_alias_that_is_not_set_is_refused_with_what_is_set(store: Store) -> None:
     with pytest.raises(
         ModelLoadError,

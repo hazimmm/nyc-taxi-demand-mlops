@@ -47,7 +47,7 @@ The baseline, the metrics and the backtest of Chapters 22 and 23 need no new too
 | Tool | What it is | Problem it solves here | Status | Chapter |
 |---|---|---|---|---|
 | LightGBM | A library for gradient-boosted decision trees | The forecasting model: 600 trees with the Poisson objective and the zone as a category, behind the `Forecaster` interface | In use (parameters from the config, tuned with Optuna and pasted by hand) | 24, 25, 27 |
-| MLflow | Records of training runs, and a model registry | Every training run is recorded with its parameters, scores, git commit and data version; the model is stored with a signature and registered as a version of `taxi-demand`; the alias `champion` names the version to serve, and the promotion gate moves it; the service resolves the alias once and loads that version from a temporary copy | In use (a local SQLite file and the folder `mlruns`; only `tracking.py`, `registry.py` and `serving/model_loader.py` import it) | 26, 29, 31 |
+| MLflow | Records of training runs, and a model registry | Every training run is recorded with its parameters, scores, git commit and data version; the model is stored with a signature and registered as a version of `taxi-demand`; the alias `champion` names the version to serve, and the promotion gate moves it; the service resolves the alias once and loads that version from a temporary copy | In use (on the laptop a local SQLite file and the folder `mlruns`; in Docker Compose an MLflow server with its store in two named volumes; only `tracking.py`, `registry.py` and `serving/model_loader.py` import it) | 26, 29, 31, 33 |
 | scikit-learn | General machine-learning library | LightGBM's class `LGBMRegressor` follows its interface and needs it installed | Declared (no code of the project imports it) | – |
 | Optuna | Library that searches for good model parameters | `python -m demand tune`: a seeded search over five LightGBM hyper-parameters, at most 30 trials or 900 seconds, that prints a block for the config | In use (only `tuning.py` imports it) | 27 |
 | SHAP | Library that explains model predictions | Splits each forecast of the final model into contributions per input; a training run stores the mean sizes and a summary plot | In use (only `explain.py` imports it) | 28 |
@@ -61,23 +61,25 @@ The service also needs the libraries of the modelling table: MLflow loads the mo
 |---|---|---|---|---|
 | FastAPI | A web framework, built on the library Starlette: maps paths to Python functions, checks requests with Pydantic, writes JSON and the page `/docs` | The prediction service: five endpoints in `serving/app.py`, and a test client that calls them without a network | In use | 30, 31 |
 | uvicorn | A web server: receives HTTP requests on a port and hands them to the application through the ASGI interface | `python -m demand serve` runs the service with one worker process on port 8000 | In use | 30, 31 |
-| prometheus-client | Library that publishes numbers from a running program in the Prometheus text format | `/metrics`: requests by route and status, response times, the forecasts returned, and the served version | In use (Prometheus itself arrives in Phase 5) | 31 |
+| prometheus-client | Library that publishes numbers from a running program in the Prometheus text format | `/metrics`: requests by route and status, response times, the forecasts returned, and the served version | In use (a Prometheus server collects it in Docker Compose) | 31, 33 |
 
 ## Containers (Phase 4)
 
-| Tool | What it is | Problem it solves here | Status |
-|---|---|---|---|
-| Docker | Packs a program and its dependencies into an image | The same runtime everywhere | Planned ([`.dockerignore`](../../.dockerignore) is present) |
-| Docker Compose | Starts several containers together | The development stack | Planned |
+| Tool | What it is | Problem it solves here | Status | Chapter |
+|---|---|---|---|---|
+| Docker | Builds images that hold a program with Python, its libraries and the files of the operating system, and runs them as containers | The same runtime on every machine: two images, one for the service (`docker/api.Dockerfile`) and one for the training commands and the MLflow server (`docker/pipeline.Dockerfile`), each from a base pinned by digest and with its own lock file | In use (Docker Desktop with the Linux engine; DVC stays on the host) | 32 |
+| python:3.12.15-slim-trixie | The official Python image on Debian 13, without compilers and manuals | The base of both images, 179 MB | In use (pinned by tag and digest) | 32 |
+| Docker Compose | Starts several containers together from one file, with their volumes, mounts, ports and network | `docker-compose.yml`: MLflow, the API, Prometheus and Grafana, and the training commands behind a profile; health checks decide the order of start | In use | 33 |
+| Prometheus server | A database for measurements over time that asks its targets for their numbers | Collects `/metrics` of the API every 15 seconds; its settings are in `monitoring/prometheus/prometheus.yml` | In use (in Docker Compose, image pinned by digest; alerts and drift numbers arrive in Phase 5) | 33 |
+| Grafana | A web application for dashboards | The dashboard "Prediction API" with four panels, set up from files in `monitoring/grafana/`; dashboards are visible without a login | In use (in Docker Compose, image pinned by digest) | 33 |
 
 ## Monitoring and retraining (Phase 5)
 
 | Tool | What it is | Problem it solves here | Status |
 |---|---|---|---|
-| Prefect | A workflow scheduler | Runs the pipeline steps on a schedule | Declared |
+| Prefect | A workflow scheduler | Runs the pipeline steps on a schedule | Declared (its server joins Docker Compose with the first flow) |
 | Evidently | Library for data and model monitoring | Drift and accuracy reports | Declared |
-| Prometheus | A database for measurements over time | Stores service and monitoring numbers | Planned |
-| Grafana | Dashboards | Shows the measurements | Planned |
+| Prometheus and Grafana | See the Containers table | Store and show the numbers of drift and accuracy, and alert on them | In use for the API; the monitoring numbers are planned |
 
 ## Kubernetes (Phase 6)
 
@@ -97,4 +99,4 @@ The service also needs the libraries of the modelling table: MLflow loads the mo
 
 ---
 
-[Previous: Chapter 31 – Starting, proving and watching the service](31-starting-proving-and-watching-the-service.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)
+[Previous: Chapter 33 – The whole stack with Docker Compose](33-the-whole-stack-with-docker-compose.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)

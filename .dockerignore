@@ -1,19 +1,29 @@
-.git
-.venv
-.env
-.env.*
+# What `docker build` may see of the project folder (the "build context").
+#
+# An allow-list: everything is left out, then the few things the images are built from
+# are let back in. The other way round (listing what to leave out) sends any new folder
+# to the build by default, and this folder holds 760 MB of data, a model store and a
+# Windows virtual environment, none of which belongs in an image. Data and the MLflow
+# store reach the containers at run time (bind mounts and the network), never at build
+# time. See docker/api.Dockerfile.
+#
+# This file does not affect the bind mounts of docker-compose.yml: those see the folder
+# as it is on disk.
+
+*
+
+# The package: its metadata (pyproject.toml names README.md as its readme, so the build
+# needs it) and its source.
+!pyproject.toml
+!README.md
+!src/
+
+# The configuration the images carry (the zones, the features, the model parameters).
+!configs/
+
+# The lock files the images install from.
+!docker/requirements-*.lock
+
+# Python leaves these next to the source when the code is run on this machine.
 **/__pycache__
-.mypy_cache
-.pytest_cache
-.ruff_cache
-.coverage
-htmlcov
-data
-reports
-mlruns
-mlartifacts
-mlflow.db
-tests
-docs
-k8s
-.github
+**/*.py[cod]

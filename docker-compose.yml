@@ -1,0 +1,240 @@
+# The whole stack on one machine: the prediction API, the MLflow server it takes the
+# model from, and Prometheus and Grafana to watch it. The first time:
+#
+#   dvc repro                                     # on the host: build the data (phase 1)
+#   docker compose up -d --wait mlflow            # start an empty MLflow server
+#   docker compose run --rm pipeline train        # train and register a model in it
+#   docker compose run --rm pipeline promote      # make it champion if it passes the gate
+#   docker compose up -d --wait                   # start the API, Prometheus and Grafana
+#
+#   http://localhost:8000/docs   the API            http://localhost:5000   MLflow
+#   http://localhost:9090        Prometheus         http://localhost:3000   Grafana
+#
+#   docker compose down       # stop and remove the containers; the volumes are kept
+#   docker compose down -v    # ... and delete the volumes: the MLflow store, the metrics
+#
+# **The model store of the stack is its own.** The MLflow server below keeps its database
+# and its model files in two named volumes. It does not use mlflow.db and mlruns/ of the
+# project folder: that store records its model files by absolute Windows paths
+# (file:C:/...), which do not exist inside a Linux container, and the API must not depend
+# on one machine's folder. A clone of the repository has no store at all. So the stack
+# builds its own: the pipeline service trains on the data in data/ and registers the model
+# with this server, the same commands as on the host. The store on the host is not read
+# or changed by any of this.
+#
+# **Where the data comes from.** data/ is built on the host by `dvc repro` and mounted
+# read-only. Nothing in the stack writes to the project folder.
+#
+# Ports are published on 127.0.0.1 only: reachable from this machine, not from the network
+# it is on. Nothing here has a login worth the name (MLflow and Prometheus have none), so
+# that line is the only protection, and it is enough for a laptop.
+#
+# Prefect is not here yet. Phase 5 adds its server together with the first flow that
+# uses it; until then it would be a container that runs and does nothing.
+
+name: nyc-taxi-demand
+
+# One build of the pipeline image, used by two services (`x-` keys are ignored by compose
+# and exist to be referred to with *pipeline-build).
+x-pipeline-build: &pipeline-build
+  context: .
+  dockerfile: docker/pipeline.Dockerfile
+
+services:
+  # ------------------------------------------------------------------------------------
+  # MLflow: the tracking server and model registry.
+  # ------------------------------------------------------------------------------------
+  mlflow:
+    # The MLflow of the pipeline image, so that server and clients run the same version
+    # (docker/pipeline.Dockerfile says why).
+    image: nyc-taxi-demand/pipeline:local
+    build: *pipeline-build
+    entrypoint: ["mlflow"]
+    command:
+      - server
+      - --host=0.0.0.0
+      - --port=5000
+      # Runs, versions and aliases: a SQLite file in the backend volume. Four slashes:
+      # sqlite:/// followed by the absolute path /mlflow/...
+      - --backend-store-uri=sqlite:////mlflow/backend/mlflow.db
+      # Model files and reports: in the artifacts volume, and *served by this server*.
+      # A client sends and fetches files over HTTP (addresses that start with
+      # mlflow-artifacts:/), never by a path. So no container needs this volume except
+      # this one, and no file address names a folder of one machine, the problem of the
+      # store on the host.
+      - --artifacts-destination=/mlflow/artifacts
+      # MLflow refuses requests whose Host header it does not know (protection against
+      # DNS rebinding). "mlflow:5000" is how the other containers call it; the other two
+      # are the browser on the host.
+      - --allowed-hosts=mlflow:5000,localhost:5000,127.0.0.1:5000
+      # One worker is plenty for one person; each worker is a process of its own.
+      - --workers=1
+    volumes:
+      - mlflow-backend:/mlflow/backend
+      - mlflow-artifacts:/mlflow/artifacts
+    ports:
+      - "127.0.0.1:5000:5000"
+    healthcheck:
+      # /health answers 200 once the server is up. Python, as in the API image: there is
+      # no curl in it. The first start creates the database (some seconds).
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------------------
+  # The batch commands, run one at a time: `docker compose run --rm pipeline <command>`.
+  # ------------------------------------------------------------------------------------
+  pipeline:
+    image: nyc-taxi-demand/pipeline:local
+    build: *pipeline-build
+    # A profile keeps it out of `docker compose up`: it is a command that runs and ends,
+    # not a service that stays up. `docker compose run` starts it all the same.
+    profiles: ["pipeline"]
+    # The commands run from the project folder, mounted read-only, as they run on the
+    # host: they read configs/config.yaml, data/ and dvc.lock from there, and git reads
+    # .git, so that the model is recorded with the commit and data version it came from
+    # (the promotion gate refuses a model without them).
+    working_dir: /repo
+    environment:
+      DEMAND_MLFLOW__TRACKING_URI: http://mlflow:5000
+      # The reports go to a volume; the reports/ of the project folder stays as it is.
+      DEMAND_PATHS__REPORTS_DIR: /work/reports
+      # Python imports the package from the mounted src/ before the copy installed in the
+      # image. So the code that runs is the code of the commit that git records, even if
+      # the image was built from an older checkout. The libraries still come from the
+      # image: after a change to the dependencies, rebuild it (`docker compose build`).
+      PYTHONPATH: /repo/src
+    volumes:
+      - .:/repo:ro
+      - pipeline-reports:/work/reports
+      # Training stores the cleaning report of the silver layer with the model, and
+      # looks for it in the reports folder. It is mounted from the host (written there
+      # by `dvc repro`), read-only, into the volume. create_host_path: false makes a
+      # missing file an error, instead of Docker creating an empty folder of that name.
+      - type: bind
+        source: ./reports/silver_cleaning_report.json
+        target: /work/reports/silver_cleaning_report.json
+        read_only: true
+        bind:
+          create_host_path: false
+    depends_on:
+      mlflow:
+        condition: service_healthy
+
+  # ------------------------------------------------------------------------------------
+  # The prediction API.
+  # ------------------------------------------------------------------------------------
+  api:
+    image: nyc-taxi-demand/api:local
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    environment:
+      DEMAND_MLFLOW__TRACKING_URI: http://mlflow:5000
+    volumes:
+      # The two tables the service reads at startup (src/demand/serving/snapshot.py), and
+      # nothing else of data/. Read-only: the service never writes data.
+      - ./data/gold:/app/data/gold:ro
+      - ./data/silver/weather:/app/data/silver/weather:ro
+    # Nothing in the container can be written except /tmp, a folder in memory, where
+    # the model is downloaded at startup (src/demand/serving/model_loader.py). A bug or
+    # an attacker cannot change the program or leave files behind, and a restart always
+    # starts from the image as it was built.
+    read_only: true
+    tmpfs:
+      - /tmp
+    # No Linux capabilities (the service binds port 8000, above 1024, and needs none),
+    # and no way to gain privileges later (through a setuid program).
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    ports:
+      - "127.0.0.1:8000:8000"
+    # The health check is in the image (HEALTHCHECK in docker/api.Dockerfile).
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    # The service exits (code 3) when it cannot load the model, for example when no
+    # version is champion yet. Docker then starts it again, waiting longer each time,
+    # and `docker compose ps` shows "Restarting (3)". It comes up by itself once a
+    # champion exists. Kubernetes does the same (CrashLoopBackOff).
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------------------
+  # Prometheus: collects the API's /metrics every 15 s.
+  # ------------------------------------------------------------------------------------
+  prometheus:
+    # Pinned by version and by digest, as the Python base of the images
+    # (docker/api.Dockerfile explains why both).
+    image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # The time series. Kept 15 days (Prometheus's default), then deleted.
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    healthcheck:
+      # The image is built on busybox, which has wget.
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:9090/-/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+      start_interval: 2s
+    # No depends_on the API on purpose: Prometheus must keep running when the API is
+    # down, because recording that it is down is its job.
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------------------
+  # Grafana: draws what Prometheus collected.
+  # ------------------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:13.2.4@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f
+    environment:
+      # Anyone who opens the page sees the dashboards without logging in, and can change
+      # nothing ("Viewer"). Editing needs the admin login, read from .env (the variables
+      # are in .env.example) or "admin" / "admin" if it is not set. The defaults are for
+      # a laptop only, behind the 127.0.0.1 ports; they are applied when Grafana creates
+      # its database, so after the first start the password is changed in Grafana itself
+      # (or by deleting the grafana-data volume).
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # No usage statistics sent to Grafana Labs, no update checks.
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      # The data source and the dashboards, set up from files at every start.
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+      # Grafana's own database (users, preferences).
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
+    depends_on:
+      # Grafana starts without Prometheus too, but its first page would show errors.
+      prometheus:
+        condition: service_healthy
+    restart: unless-stopped
+
+# Named volumes: storage that Docker keeps outside every container, so it survives
+# `docker compose down` and a rebuild of the images. `docker volume ls` lists them (with
+# the prefix nyc-taxi-demand_); `docker compose down -v` deletes them.
+volumes:
+  mlflow-backend:
+  mlflow-artifacts:
+  pipeline-reports:
+  prometheus-data:
+  grafana-data:

@@ -244,12 +244,12 @@ You should see `11 passed, 13 deselected`. Many stages do not exist yet, so how 
 
 ## Exercises
 
-**1.** The web service image installs the `serving` group only. Someone moves `import mlflow` to the top of `cli.py` "to keep imports tidy". What happens when the container starts with `python -m demand serve`?
+**1.** The image of the training commands (Chapter 32) installs the `ml` group, without the library `prometheus-client` that only the web service uses. Someone moves `import prometheus_client` to the top of `cli.py` "to keep imports tidy". What happens when that container runs `demand train`?
 
 <details>
 <summary>Answer</summary>
 
-It fails immediately with `ModuleNotFoundError: No module named 'mlflow'`. Python executes all imports at the top of `cli.py` before it looks at which command was asked for. MLflow is in the `ml` group, which this image does not have. The `serve` command never needs MLflow in this file, but it cannot start. This is the first reason for lazy imports. (The real service of Chapter 30 does load the model with MLflow, so its image will need the `ml` group too. The lesson stays: the imports of `cli.py` must not decide what a command needs.)
+It fails immediately with `ModuleNotFoundError: No module named 'prometheus_client'`. Python executes all imports at the top of `cli.py` before it looks at which command was asked for. The library is in the `serving` group, which this image does not have. The `train` command never needs it, but it cannot start. This is the first reason for lazy imports: the imports of `cli.py` must not decide what a command needs.
 
 </details>
 

@@ -61,7 +61,20 @@ Official documentation for the tools that the repository uses today, a few books
 - **MDN Web Docs on HTTP** – an overview of HTTP, request methods (GET and POST), and the list of response status codes, including 404, 422 and 503. <https://developer.mozilla.org/en-US/docs/Web/HTTP>
 - **Prometheus documentation** – the pages "Metric types" (counter, gauge, histogram), "Metric and label naming", and "Instrumentation", whose section "Do not overuse labels" explains the cost of cardinality. <https://prometheus.io/docs/concepts/metric_types/>, <https://prometheus.io/docs/practices/naming/> and <https://prometheus.io/docs/practices/instrumentation/>
 - **Prometheus Python client** – the pages on Counter, Gauge, Histogram, labels and registries. <https://prometheus.github.io/client_python/>
-- **Kubernetes documentation** – the page "Configure Liveness, Readiness and Startup Probes", for Phase 6. <https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/>
+- **Kubernetes documentation** – the page "Configure Liveness, Readiness and Startup Probes", for Phase 6; and the page "Configure a Security Context for a Pod or Container", which describes `runAsNonRoot` (Chapter 32). <https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/>
+
+## Containers
+
+- **Docker overview** – what images, containers and registries are, and how the parts of Docker fit together. <https://docs.docker.com/get-started/docker-overview/>
+- **Dockerfile reference** – every instruction used in `docker/`: `FROM`, `ARG`, `RUN` with `--mount=type=cache`, `COPY --from`, `ENV`, `USER`, `HEALTHCHECK` and the exec form of `CMD`. <https://docs.docker.com/reference/dockerfile/>
+- **Multi-stage builds** – the two stages of Chapter 32. <https://docs.docker.com/build/building/multi-stage/>
+- **Building best practices** – pinning base images by digest, the order of steps for the layer cache, `apt-get` with `--no-install-recommends`, and a user without privileges. <https://docs.docker.com/build/building/best-practices/>
+- **Build context** – what `docker build` sends, and the section on `.dockerignore` files. <https://docs.docker.com/build/concepts/context/>
+- **Volumes** – named volumes, and how a new volume is filled from the image. <https://docs.docker.com/engine/storage/volumes/>
+- **Compose file reference** – services, `depends_on`, `healthcheck`, `restart`, `profiles`, `read_only`, `tmpfs`, `cap_drop` and the long form of `volumes`. <https://docs.docker.com/reference/compose-file/>
+- **Control startup and shutdown order in Compose** – `depends_on` with `condition: service_healthy`. <https://docs.docker.com/compose/how-tos/startup-order/>
+- **Prometheus configuration** – `global`, `scrape_interval` and `scrape_configs`. <https://prometheus.io/docs/prometheus/latest/configuration/configuration/>
+- **Provision Grafana** – data sources and dashboards set up from files. <https://grafana.com/docs/grafana/latest/administration/provisioning/>
 
 ## Command line, tests and code quality
 

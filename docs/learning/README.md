@@ -74,14 +74,22 @@ This part follows the prediction service of Phase 3. It starts from zero, with w
 | [30. A forecast over HTTP: the prediction service](30-a-forecast-over-http.md) | Requests and responses, methods, paths, query parameters and status codes, FastAPI and uvicorn, `/docs`, a whole day with GET, features built inside the service, the issue moment, the data snapshot and the days it allows, strict validation and 422 | 15 min |
 | [31. Starting, proving and watching the service](31-starting-proving-and-watching-the-service.md) | Loading once at startup, an alias resolved to a version once, a service that refuses to start, liveness and readiness, a store that is only read, the skew check on 2,860 real rows, `/health`, `/ready`, `/model-info`, metrics for Prometheus and their labels, and the limits | 14 min |
 
+### Part VI – Containers
+
+This part follows the containers of Phase 4. It starts from zero, with what an image and a container are, and builds the two images of the project: one for the service, and one for the training commands and the MLflow server. Then it starts the whole stack with one file, with its own model store, and with Prometheus and Grafana to watch the service. On the way, the containers find a bug that the tests had missed.
+
+| Chapter | What it covers | Time |
+|---|---|---|
+| [32. Images: the service with everything it needs](32-images.md) | Images, containers, volumes and networks, the Dockerfile and its layers, a base pinned by tag and digest, two stages, one lock per image, a user by number, a health check against `/ready`, `.dockerignore` as an allow-list, the pipeline image, and why DVC stays on the host | 14 min |
+| [33. The whole stack with Docker Compose](33-the-whole-stack-with-docker-compose.md) | A store that names Windows paths, an MLflow server of the stack's own, the same model trained again, a bug found by a second environment, five services started in order, `Restarting (3)`, volumes, mounts and ports, a read-only container, Prometheus and Grafana from files, the commands from zero, and the limits | 14 min |
+
 ### Later parts
 
 These parts have no chapters yet. They are written when their code is added.
 
 | Part | Topic | Arrives with |
 |---|---|---|
-| VI | Containers: Docker and Docker Compose | Phase 4 |
-| VII | Monitoring and retraining: Prefect, Evidently, Prometheus, Grafana | Phase 5 |
+| VII | Monitoring and retraining: Prefect, Evidently, and drift numbers in Prometheus and Grafana | Phase 5 |
 | VIII | Kubernetes with kind and Kustomize | Phase 6 |
 | IX | CI/CD, the public demo and documentation | Phase 7 |
 
@@ -108,3 +116,4 @@ These parts have no chapters yet. They are written when their code is added.
 | 9 – Tuning and SHAP explanations (Phase 2) | `python -m demand tune` searches five LightGBM hyper-parameters with Optuna on the four test weeks, writes a report and prints a block for the config, and changes nothing itself; the block was pasted, and the model now has an MAE of 24.11 against 27.70 for the baseline (12.98% better; about 0.6 of the in-sample gain of 0.90 held on weeks the search did not see); `python -m demand train` now also explains the final model with SHAP and stores `shap_importance.json`, `shap_summary.png` and 16 metrics with the MLflow run; the lag of two weeks was tested again and not added | 27 and 28 added; 1, 9, 10, 11, 21, 23, 24, 25 and 26 updated; appendices A to C extended |
 | 10 – The promotion gate and the model card (Phase 2) | `python -m demand promote` makes the newest model version champion only if its backtest MAE is at least 0.2 lower than that of the weekly baseline and of the current champion, with no fold higher, and only when both were scored on the same backtest; a version is judged once, so a rollback by hand is not undone; `python -m demand set-champion VERSION --reason TEXT` sets the champion by hand and records why; every decision is written as tags on the version and to `reports/promotion_report.json`; `docs/model-card.md` describes version 2; Part IV is complete | 29 added; 1, 9, 10, 11, 26 and 28 updated; appendices A to C extended |
 | 11 – The prediction service (Phase 3) | `python -m demand serve` starts a FastAPI service on port 8000. `GET /predict?date=...&zone=...` returns the forecast of every hour of one day for the zones asked, built inside the service with the training feature function from the demand known at the issue moment, and names the model version that computed it; the service forecasts the days 2025-01-10 to 2025-06-30 of its data snapshot and refuses anything else with a 422 that says what can be asked; `/health`, `/ready`, `/model-info` and `/metrics` describe it; the alias `champion` is resolved to a version once at startup, and without it the service does not start; the model is loaded without writing into `mlruns`; `serve` now sets up the JSON logging of Chapter 9, so the events of the service, such as `service ready`, appear as JSON lines | 30 and 31 added; 1, 4, 5, 6, 9, 10, 11, 19, 26 and 29 updated; appendices A to C extended |
+| 12 – Containers (Phase 4) | Two Docker images, one for the service and one for the training commands and the MLflow server, each from a Python base pinned by digest, in two stages, with its own lock file compiled from `requirements.lock`, and run as user 10001; `.dockerignore` became an allow-list; `docker-compose.yml` starts MLflow with its own store in named volumes, the API, Prometheus and Grafana with a provisioned dashboard, and runs `train` and `promote` behind a profile; the data is still built on the host with `dvc repro`; the loader now asks the configured registry where the model's files are, because MLflow looked a `models:/` version up in the registry of the whole process | 32 and 33 added; 1, 5, 6, 9, 10, 30 and 31 updated; appendices A to C extended |

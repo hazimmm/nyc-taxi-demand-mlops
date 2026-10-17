@@ -17,7 +17,7 @@ A notebook cell runs and ends. A **web service** is a program that starts, prepa
 
 The program that asks is the **client**, and the program that answers is the **server**. In Chapter 14 this project was a client of the TLC and Open-Meteo. Now it is the server. The question is a **request**, the answer is a **response**, and both are written in **HTTP**, the agreed format of the web. A browser, the program `curl` and the library httpx all use it.
 
-A server listens on a **port**, a number that tells the computer which program a request is for. The config sets port 8000 and host `0.0.0.0`, which means "accept requests on every network address of this computer"; a container will need that in Phase 4. From the same computer you send requests to `127.0.0.1`, the address that always means "this computer".
+A server listens on a **port**, a number that tells the computer which program a request is for. The config sets port 8000 and host `0.0.0.0`, which means "accept requests on every network address of this computer"; a container needs that, as Chapter 33 explains. From the same computer you send requests to `127.0.0.1`, the address that always means "this computer".
 
 ## One request, piece by piece
 

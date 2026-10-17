@@ -61,6 +61,8 @@ ml = [
     "shap>=0.45",
 ]
 serving = [
+    # The service loads the model from MLflow, and the model is a LightGBM forecaster.
+    "demand[ml]",
     "fastapi>=0.111",
     "prometheus-client>=0.20",
     "uvicorn[standard]>=0.30",
@@ -82,11 +84,11 @@ The group `ml` holds the libraries for training. The group `serving` holds the l
 
 *Table 6.1 – The dependency groups of this project.*
 
-The groups matter most in Part VI, when each part of the system gets its own container image with only its own group.
+The groups matter most in Part VI, where each part of the system gets its own container image with only its own group. The image of the service installs `serving` and the image of the training commands installs `ml` (Chapter 32).
 
 ## Recording exactly what is installed
 
-Your dependencies have dependencies of their own. pandas needs numpy. MLflow needs dozens of libraries. These are called **transitive dependencies**: libraries you did not ask for, which arrive because something you asked for needs them. This project declares about 30 libraries. Installing them brings 281 in total.
+Your dependencies have dependencies of their own. pandas needs numpy. MLflow needs dozens of libraries. These are called **transitive dependencies**: libraries you did not ask for, which arrive because something you asked for needs them. This project declares about 30 libraries. Installing them brings 282 in total.
 
 A **lock file** is a list of the exact version of every one of them. To fix a library to one exact version is to **pin** it. The lock file of this project is [`requirements.lock`](../../requirements.lock). Its first lines are:
 
@@ -104,7 +106,7 @@ aiohttp==3.14.5
 
 Read it from the top. The first two lines say that nobody wrote this file by hand. A tool named uv created it with the command shown. The command reads `pyproject.toml`, includes every group (`--all-extras`), and finds one set of exact versions that satisfies all the ranges together. The option `--universal` produces one file that is valid on Windows and on Linux, which matters because the code is written on Windows and will run in Linux containers.
 
-Then come the entries. `aiohappyeyeballs==2.7.1` uses `==`, so it is one exact version. The line below it, `# via aiohttp`, explains why it is here: the library aiohttp needs it. The entry for aiohttp shows three libraries that need it. With these comments you can trace every one of the 281 lines back to something you declared.
+Then come the entries. `aiohappyeyeballs==2.7.1` uses `==`, so it is one exact version. The line below it, `# via aiohttp`, explains why it is here: the library aiohttp needs it. The entry for aiohttp shows three libraries that need it. With these comments you can trace every one of the 282 lines back to something you declared.
 
 So the two files have different jobs, and the project needs both.
 
@@ -119,6 +121,9 @@ flowchart LR
 > [!WARNING]
 > Do not edit the lock file by hand. If you need a new library, add it to `pyproject.toml` and create the lock file again with the command from its first lines. A hand-edited lock file may contain versions that do not work together.
 
+> [!NOTE]
+> Each container image has a smaller lock file of its own in the folder `docker/`: `requirements-api.lock` and `requirements-pipeline.lock`. They are made with the same command for one group, and with `-c requirements.lock`, which forces every version to be the one this file pins. After a change to `requirements.lock`, create them again with the commands in their first lines. Chapter 32 explains them.
+
 ## Worked example: installing in the right order
 
 The setup steps in the [project README](../../README.md) contain these two lines, with the virtual environment active:
@@ -128,7 +133,7 @@ python -m pip install -r requirements.lock
 python -m pip install -e . --no-deps
 ```
 
-The first line installs the 281 pinned libraries. `-r` means "read the list from this file".
+The first line installs the 282 pinned libraries. `-r` means "read the list from this file".
 
 The second line installs the project itself in editable mode, as explained in Chapter 5. The option `--no-deps` is important. Without it, pip would read the ranges in `pyproject.toml` and decide for itself which versions satisfy them. Usually it would agree with what is installed, but the decision would no longer belong to the lock file. `--no-deps` says: "install only this project and do not touch its dependencies."
 
@@ -160,7 +165,7 @@ Count the pinned libraries.
 (Select-String -Path requirements.lock -Pattern '^[a-zA-Z0-9_.\-]+==').Count
 ```
 
-You should see `281`.
+You should see `282`.
 
 ## Key takeaways
 
@@ -177,7 +182,7 @@ You should see `281`.
 <details>
 <summary>Answer</summary>
 
-Two reasons. First, it would pin only the libraries you list. The transitive dependencies, which are most of the 281, would still float. Second, an exact version in `pyproject.toml` claims that the code works with that version only, which is false and makes every upgrade a manual edit of many lines. Ranges describe compatibility, and the lock file describes one tested installation. They are different facts and belong in different files.
+Two reasons. First, it would pin only the libraries you list. The transitive dependencies, which are most of the 282, would still float. Second, an exact version in `pyproject.toml` claims that the code works with that version only, which is false and makes every upgrade a manual edit of many lines. Ranges describe compatibility, and the lock file describes one tested installation. They are different facts and belong in different files.
 
 </details>
 

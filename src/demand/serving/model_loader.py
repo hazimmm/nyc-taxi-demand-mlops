@@ -19,13 +19,17 @@ replaces the pods one by one, each new pod resolves the alias when it starts, an
 old pods serve until the new ones are ready. The same restart picks up a new data
 snapshot.
 
-**Nothing is written into the store.** Loading a ``models:/`` address makes MLflow write a
-small file, ``registered_model_meta``, into the folder it loads from. With a store on
-this machine that folder is the model's own folder in ``mlruns``, so a plain
-``mlflow.pyfunc.load_model("models:/...")`` changes the store (and fails on a read-only
-filesystem). Here the model files are copied into a temporary folder first, the model is
-loaded from there, and the folder is deleted; MLflow's file is written into the copy. The
-store is only read, and the loaded model needs no file afterwards.
+**Nothing is written into the store, and only the configured store is asked.** Loading a
+``models:/`` address has two problems in MLflow 3.17. It writes a small file,
+``registered_model_meta``, into the folder it loads from, which with a store on this
+machine is the model's own folder in ``mlruns`` (and fails on a read-only filesystem).
+And it looks the version up in the registry set for the whole process
+(``MLFLOW_TRACKING_URI``, or ``sqlite:///mlflow.db`` in the working folder), not in
+``mlflow.tracking_uri`` of the config: a service pointed at a server could report one
+version and load another from a local file. So the address of the version's files is
+asked of the configured registry (``get_model_version_download_uri``), those files are
+copied into a temporary folder, the model is loaded from there, and the folder is
+deleted. The store is only read, and the loaded model needs no file afterwards.
 
 **What startup checks, and why a failure stops it.** The store must exist (a SQLite file
 that is not there would otherwise be created, empty, by the first query), the alias must
@@ -180,9 +184,12 @@ def load_model(settings: Settings) -> LoadedModel:
     version = resolve_alias(registry, target) if isinstance(target, str) else target
     stored = registry.version(version)
 
+    # Where the files of the version are, asked of the configured registry (see the module
+    # docstring for why a models:/ address is not used here).
+    source = registry.client.get_model_version_download_uri(name, str(version))
     with tempfile.TemporaryDirectory(prefix="demand-model-") as folder:
         local = mlflow.artifacts.download_artifacts(
-            artifact_uri=f"models:/{name}/{version}", dst_path=folder, tracking_uri=tracking_uri
+            artifact_uri=source, dst_path=folder, tracking_uri=tracking_uri
         )
         predictor = mlflow.pyfunc.load_model(local)
 

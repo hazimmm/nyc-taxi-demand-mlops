@@ -51,8 +51,12 @@ nyc-taxi-demand-mlops/
 ├── requirements.lock       exact versions of all dependencies
 ├── dvc.yaml                the stages of the pipeline (Chapter 21)
 ├── dvc.lock                checksums of what the pipeline read and wrote
+├── docker-compose.yml      the whole stack on one machine (Chapter 33)
+├── .dockerignore           what an image build may see (Chapter 32)
 ├── configs/
 │   └── config.yaml         all settings
+├── docker/                 the Dockerfiles and one lock file per image (Chapter 32)
+├── monitoring/             the settings of Prometheus and Grafana (Chapter 33)
 ├── src/
 │   └── demand/             the package
 │       ├── __init__.py
@@ -75,7 +79,7 @@ nyc-taxi-demand-mlops/
 
 *Figure 5.1 – The main folders and files.*
 
-Each file inside `demand` has one responsibility. Settings are in one file, contracts in another, commands in a third. The sub-folder `data` holds the pipeline of Part III, `models` holds the modelling code of Part IV, and `serving` the web service of Part V. The other two are empty packages that reserve a place for the later parts of the system.
+Each file inside `demand` has one responsibility. Settings are in one file, contracts in another, commands in a third. The sub-folder `data` holds the pipeline of Part III, `models` holds the modelling code of Part IV, and `serving` the web service of Part V. The other two are empty packages that reserve a place for the later parts of the system. The folders `docker/` and `monitoring/` hold no Python: they describe how the code is packed into images and how the running service is watched.
 
 ## Why the code is inside `src/`
 

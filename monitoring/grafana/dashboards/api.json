@@ -1,0 +1,84 @@
+{
+  "uid": "demand-api",
+  "title": "Prediction API",
+  "description": "Requests, latency and errors of the prediction API, from its /metrics page. Probe and scrape traffic (/health, /ready, /metrics) is left out of the request panels: it comes from Docker and Prometheus, not from clients.",
+  "tags": ["demand", "api"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Served model version",
+      "description": "The version each running API process loaded at startup (demand_model_info). Two values here mean two replicas serve different versions.",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (version) (demand_model_info)",
+          "legendFormat": "version {{version}}",
+          "instant": true
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "name" }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Requests per second, by endpoint",
+      "description": "rate() over 5 minutes of demand_api_requests_total: how many requests each route answered per second.",
+      "gridPos": { "x": 6, "y": 0, "w": 18, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (endpoint) (rate(demand_api_requests_total{endpoint!~\"/health|/ready|/metrics\"}[5m]))",
+          "legendFormat": "{{endpoint}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Latency, 95th percentile, by endpoint",
+      "description": "95 out of 100 requests were answered faster than this, estimated from the buckets of demand_api_request_duration_seconds over 5 minutes.",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le, endpoint) (rate(demand_api_request_duration_seconds_bucket{endpoint!~\"/health|/ready|/metrics\"}[5m])))",
+          "legendFormat": "{{endpoint}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Error rate",
+      "description": "The share of client requests answered with a status of 400 or more, over 5 minutes (src/demand/serving/metrics.py). When there are requests and none of them fails, the line is drawn at 0; with no client requests at all there is nothing to divide by and the panel is empty. 4xx means the client asked for something the service does not answer (a zone or a day outside its range); 5xx means a bug.",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum(rate(demand_api_requests_total{endpoint!~\"/health|/ready|/metrics\", status=~\"4..\"}[5m])) or vector(0)) / sum(rate(demand_api_requests_total{endpoint!~\"/health|/ready|/metrics\"}[5m]))",
+          "legendFormat": "4xx"
+        },
+        {
+          "refId": "B",
+          "expr": "(sum(rate(demand_api_requests_total{endpoint!~\"/health|/ready|/metrics\", status=~\"5..\"}[5m])) or vector(0)) / sum(rate(demand_api_requests_total{endpoint!~\"/health|/ready|/metrics\"}[5m]))",
+          "legendFormat": "5xx"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0 }, "overrides": [] }
+    }
+  ]
+}

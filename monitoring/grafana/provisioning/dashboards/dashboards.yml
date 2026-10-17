@@ -1,0 +1,18 @@
+# Tells Grafana to load every dashboard JSON file found in a folder at startup.
+# docker-compose.yml mounts monitoring/grafana/dashboards there, read-only. A dashboard
+# is changed by editing its JSON file (or by building it in the web page, exporting it
+# as JSON and saving it over the file); Grafana reads the folder again every 30 s.
+
+apiVersion: 1
+
+providers:
+  - name: demand
+    folder: NYC taxi demand
+    type: file
+    # The files are the source: a dashboard cannot be deleted or saved from the web page,
+    # so the page and the files never disagree.
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards

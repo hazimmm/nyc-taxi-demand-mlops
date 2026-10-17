@@ -41,23 +41,26 @@ ERROR:    Application startup failed. Exiting.
 
 The **exit code** (Chapter 9) is 3, uvicorn's code for a failed startup. The message comes at the end of a traceback, not as the one line of Chapter 20, because uvicorn prints the error itself.
 
-The alternative would be a service that starts without a model and answers 503 on `/ready` until it has one. The docstring of `app.py` explains why that is worse. It needs a loop inside the process that keeps retrying, and without that loop the process waits for ever. Kubernetes, the system of Phase 6 that runs the containers, asks two different questions with automatic requests named probes. A **liveness** probe asks "is the process alive?", and Kubernetes restarts a container that fails it. A **readiness** probe asks "can it answer now?", and Kubernetes sends requests only to containers that pass it, but restarts none. A service with no model would be alive, never ready, and never restarted. A process that exits is restarted, with a growing pause between attempts, its message is in the log, and it comes up by itself once the alias is back. Phase 6 shows this in practice.
+The alternative would be a service that starts without a model and answers 503 on `/ready` until it has one. The docstring of `app.py` explains why that is worse. It needs a loop inside the process that keeps retrying, and without that loop the process waits for ever. Kubernetes, the system of Phase 6 that runs the containers, asks two different questions with automatic requests named probes. A **liveness** probe asks "is the process alive?", and Kubernetes restarts a container that fails it. A **readiness** probe asks "can it answer now?", and Kubernetes sends requests only to containers that pass it, but restarts none. A service with no model would be alive, never ready, and never restarted. A process that exits is restarted, with a growing pause between attempts, its message is in the log, and it comes up by itself once the alias is back. Chapter 33 shows this with Docker Compose, and Phase 6 with Kubernetes.
 
 In practice a client never sees the 503 of Chapter 30. Until `lifespan` has finished the port is closed, and a probe that cannot connect counts as not ready too. The 503 is for an application used without its startup, as in the tests.
 
 ## Reading the store without writing to it
 
-Chapter 26 showed that loading a model through the registry makes MLflow write a small file, `registered_model_meta`, into the model's folder in `mlruns`. A service that did this would change the store at every start, and it would fail where the store is read-only, as it can be when it is mounted into a container. So the loader copies the model's files into a temporary folder first, and loads from there:
+Chapter 26 showed that loading a model through the registry, with a `models:/` address, makes MLflow write a small file, `registered_model_meta`, into the model's folder in `mlruns`. A service that did this would change the store at every start, and it would fail where the store is read-only, as it can be in a container. So the loader never loads a `models:/` address. It asks the configured registry where the files of the version are, copies them into a temporary folder, and loads the model from there:
 
 ```python
+    source = registry.client.get_model_version_download_uri(name, str(version))
     with tempfile.TemporaryDirectory(prefix="demand-model-") as folder:
         local = mlflow.artifacts.download_artifacts(
-            artifact_uri=f"models:/{name}/{version}", dst_path=folder, tracking_uri=tracking_uri
+            artifact_uri=source, dst_path=folder, tracking_uri=tracking_uri
         )
         predictor = mlflow.pyfunc.load_model(local)
 ```
 
-MLflow's file is written into the copy, and the folder is deleted when the block ends. The model stays in memory and needs no file afterwards. The progress bar `Downloading artifacts` in the startup log is this copy of seven files. The test `test_loading_writes_nothing_into_the_store` compares the files of a store before and after a load.
+The folder is deleted when the block ends. The model stays in memory and needs no file afterwards. The progress bar `Downloading artifacts` in the startup log is this copy of seven files. The test `test_loading_writes_nothing_into_the_store` compares the files of a store before and after a load.
+
+The first line has a second reason, which the containers of Chapter 33 found: with a `models:/` address, MLflow 3.17 looks the version up in the registry set for the whole process, which need not be the registry of the config. That chapter tells the story and the test that now guards it.
 
 ## Proving that training and serving agree
 
@@ -95,7 +98,7 @@ Chapter 30 claimed that a served row equals the training row of the same hour. T
 
 ## Metrics for Prometheus
 
-**Prometheus**, which arrives in Phase 5, is a database for measurements over time. It asks every copy of the service for `/metrics` every few seconds and keeps the numbers; Grafana draws them. The page is plain text: a line `# HELP` and a line `# TYPE` for each series, then one line per value.
+**Prometheus**, which runs next to the service in Chapter 33, is a database for measurements over time. It asks every copy of the service for `/metrics` every few seconds and keeps the numbers; Grafana draws them. The page is plain text: a line `# HELP` and a line `# TYPE` for each series, then one line per value.
 
 ```text
 # TYPE demand_api_requests_total counter
@@ -187,14 +190,14 @@ Run all tests of the service.
 .venv\Scripts\python.exe -m pytest tests/unit/serving -q
 ```
 
-You should see `91 passed, 3 warnings`. The warnings come from FastAPI's test client and from MLflow.
+You should see `92 passed, 3 warnings`. The warnings come from FastAPI's test client and from MLflow.
 
 ## Key takeaways
 
 - At startup the service loads the model and the data once and forecasts one day as a check. The port opens only afterwards.
 - The alias is resolved to a version number once. That number is in every answer, so it always names the model that computed it. A new champion needs a restart.
 - Without its model the service does not start: exit code 3 and a message. Kubernetes restarts a container that exits, but not one that is only not ready.
-- The model is copied to a temporary folder before it is loaded, so the store is only read.
+- The configured registry is asked where the model's files are, and they are copied to a temporary folder before the model is loaded, so the store is only read.
 - A unit test and a check on 2,860 real rows showed that served features equal training features, bit for bit.
 - Metrics have labels with few values: the route and the status, never the day or the zone.
 
@@ -232,4 +235,4 @@ A request may name several zones, so the label would hold combinations of zones,
 
 ---
 
-[Previous: Chapter 30 – A forecast over HTTP: the prediction service](30-a-forecast-over-http.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 30 – A forecast over HTTP: the prediction service](30-a-forecast-over-http.md) | [Contents](README.md) | [Next: Chapter 32 – Images: the service with everything it needs](32-images.md)

@@ -1,0 +1,24 @@
+# Grafana "provisioning": what Grafana sets up by itself when it starts, from files, so
+# that nobody has to click it together in the web page (and nobody can forget to).
+#
+# This file gives Grafana one data source, the Prometheus server of docker-compose.yml.
+# The fixed uid is how the dashboards in monitoring/grafana/dashboards refer to it.
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    # "proxy": Grafana's server asks Prometheus, over the compose network, by service
+    # name. The browser never talks to Prometheus directly.
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    # It comes from this file, so the web page must not change it: a change there would
+    # be lost at the next start anyway.
+    editable: false
+    jsonData:
+      # Matches scrape_interval in monitoring/prometheus/prometheus.yml, so Grafana
+      # never asks for finer steps than the data has.
+      timeInterval: 15s

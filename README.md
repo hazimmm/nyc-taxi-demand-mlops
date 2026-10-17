@@ -56,6 +56,18 @@ python -m demand serve
 
 Starts the API on port 8000 with the champion model. `GET /predict?date=2025-05-14&zone=161` returns the 24 hourly forecasts of that day, built from the data known at 00:00 on the day before; `/docs` shows every endpoint. `/health`, `/ready`, `/model-info` and `/metrics` (Prometheus) describe the running service. A new champion is picked up by restarting it.
 
+## Run with Docker
+
+```powershell
+dvc repro                                   # build the data on the host first
+docker compose up -d --wait mlflow          # an empty MLflow server of the stack's own
+docker compose run --rm pipeline train      # train and register a model in it
+docker compose run --rm pipeline promote    # make it champion if it passes the gate
+docker compose up -d --wait                 # API, Prometheus, Grafana
+```
+
+API at http://localhost:8000/docs, MLflow at http://localhost:5000, Prometheus at http://localhost:9090, Grafana at http://localhost:3000 (dashboards open without a login; admin login from `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` in `.env`, `admin`/`admin` if unset, for a laptop only). The stack keeps its own model store in Docker volumes and never reads `mlflow.db` or `mlruns/`; it reads `data/` read-only. Commit before `train`: the gate refuses a model trained from changed files. Until a champion exists the API exits with code 3 and `docker compose ps` shows it restarting. `docker compose down` stops everything and keeps the volumes; `docker compose down -v` deletes them.
+
 ## Learning book as a PDF
 
 ```powershell

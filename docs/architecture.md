@@ -127,6 +127,7 @@ flowchart LR
 | **Two monitors:** drift at once, accuracy when actuals arrive. | Ground truth is always late. |
 | **Gated retraining** with cooldown and rollback. | An automatically retrained model must not replace a better one. |
 | **DVC for the pipeline definition, Prefect for scheduling**, both calling the same functions. | Reproducibility in development, automation in production, no duplicated logic. |
+| **Docker Compose has its own MLflow server and store** in named volumes; the pipeline container trains and promotes a champion in it. Prefect joins Compose in phase 5, when its first flow exists. | A local `mlflow.db` stores Windows paths that a container cannot open, and a fresh clone has no store at all: the stack must rebuild its model from the data. |
 
 ## Contracts
 

@@ -1,0 +1,26 @@
+# What Prometheus collects, and how often. docker-compose.yml mounts this file into the
+# prometheus container, read-only; edit it and run `docker compose restart prometheus`.
+#
+# Prometheus *pulls*: every scrape_interval it sends GET /metrics to every target below
+# and stores what comes back as time series (src/demand/serving/metrics.py lists the
+# series of the API). A target that does not answer is marked down, and the series `up`
+# of that target is 0 for that moment: the gap is a fact Prometheus records, which is the
+# point of a monitor that pulls.
+
+global:
+  # 15 s is Prometheus's usual choice: fine enough to see a burst of errors within a
+  # minute, coarse enough that the scrapes themselves are a negligible share of the
+  # API's requests (every scrape is counted under endpoint="/metrics").
+  scrape_interval: 15s
+  # A scrape that takes longer than this counts as failed.
+  scrape_timeout: 5s
+
+scrape_configs:
+  - job_name: demand-api
+    metrics_path: /metrics
+    static_configs:
+      # The service name and container port in docker-compose.yml, reached over the
+      # network compose creates; not the port published on the host. One target per
+      # replica; with several replicas (Kubernetes, phase 6) the targets are found by
+      # service discovery instead of being listed.
+      - targets: ["api:8000"]
