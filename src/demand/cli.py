@@ -149,5 +149,6 @@ def serve() -> None:
         raise _not_implemented(module)
     import uvicorn
 
+    configure_logging()
     settings = get_settings()
     uvicorn.run(f"{module}:app", host=settings.serving.host, port=settings.serving.port)

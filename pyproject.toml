@@ -34,6 +34,8 @@ ml = [
     "shap>=0.45",
 ]
 serving = [
+    # The service loads the model from MLflow, and the model is a LightGBM forecaster.
+    "demand[ml]",
     "fastapi>=0.111",
     "prometheus-client>=0.20",
     "uvicorn[standard]>=0.30",

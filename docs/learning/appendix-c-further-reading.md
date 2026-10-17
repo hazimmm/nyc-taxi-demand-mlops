@@ -54,6 +54,15 @@ Official documentation for the tools that the repository uses today, a few books
 - **Interpretable Machine Learning** by Christoph Molnar – a free online book. Read the chapter on Shapley values and SHAP, and its sections on the limits of feature importance. <https://christophm.github.io/interpretable-ml-book/>
 - **matplotlib documentation** – backends (the `Agg` backend draws without a window) and `savefig`. <https://matplotlib.org>
 
+## Serving
+
+- **FastAPI documentation** – the tutorial, in particular the pages "Query Parameters", "Query Parameter Models" (the form `ForecastQuery` uses), "Handling Errors" and "Testing"; and in the advanced guide, "Lifespan Events". <https://fastapi.tiangolo.com/tutorial/>
+- **Uvicorn documentation** – the pages on settings, deployment, and the lifespan of an application. <https://uvicorn.dev>
+- **MDN Web Docs on HTTP** – an overview of HTTP, request methods (GET and POST), and the list of response status codes, including 404, 422 and 503. <https://developer.mozilla.org/en-US/docs/Web/HTTP>
+- **Prometheus documentation** – the pages "Metric types" (counter, gauge, histogram), "Metric and label naming", and "Instrumentation", whose section "Do not overuse labels" explains the cost of cardinality. <https://prometheus.io/docs/concepts/metric_types/>, <https://prometheus.io/docs/practices/naming/> and <https://prometheus.io/docs/practices/instrumentation/>
+- **Prometheus Python client** – the pages on Counter, Gauge, Histogram, labels and registries. <https://prometheus.github.io/client_python/>
+- **Kubernetes documentation** – the page "Configure Liveness, Readiness and Startup Probes", for Phase 6. <https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/>
+
 ## Command line, tests and code quality
 
 - **Typer documentation** – commands, arguments, testing a CLI. <https://typer.tiangolo.com>

@@ -249,7 +249,7 @@ You should see `11 passed, 13 deselected`. Many stages do not exist yet, so how 
 <details>
 <summary>Answer</summary>
 
-It fails immediately with `ModuleNotFoundError: No module named 'mlflow'`. Python executes all imports at the top of `cli.py` before it looks at which command was asked for. MLflow is in the `ml` group, which this image does not have. The `serve` command never needs MLflow in this file, but it cannot start. This is the first reason for lazy imports.
+It fails immediately with `ModuleNotFoundError: No module named 'mlflow'`. Python executes all imports at the top of `cli.py` before it looks at which command was asked for. MLflow is in the `ml` group, which this image does not have. The `serve` command never needs MLflow in this file, but it cannot start. This is the first reason for lazy imports. (The real service of Chapter 30 does load the model with MLflow, so its image will need the `ml` group too. The lesson stays: the imports of `cli.py` must not decide what a command needs.)
 
 </details>
 

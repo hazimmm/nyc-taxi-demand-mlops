@@ -65,13 +65,21 @@ This part follows the modelling of Phase 2. It starts with the forecast that nee
 | [28. Explaining a forecast: SHAP](28-explaining-the-model-with-shap.md) | Contributions that add up to a forecast, factors on the log scale, Good Friday input by input, what a training run stores, SHAP share against gain, and what SHAP does not tell | 14 min |
 | [29. Which model is served: the promotion gate and the model card](29-which-model-is-served.md) | Aliases, why `dvc repro` never changes the served model, a margin of 0.2 taken from the seed noise, scores that can be compared, a rollback that a routine promotion undid, the record of a decision, the model card, and a look back at Part IV | 14 min |
 
+### Part V – Serving
+
+This part follows the prediction service of Phase 3. It starts from zero, with what a web service is, and builds up to the real service: one request and its answer, the data it forecasts from, and how it refuses what it cannot answer. Then it shows how the service starts, how it was proved to build the same features as training, and what it reports to the systems that watch it.
+
+| Chapter | What it covers | Time |
+|---|---|---|
+| [30. A forecast over HTTP: the prediction service](30-a-forecast-over-http.md) | Requests and responses, methods, paths, query parameters and status codes, FastAPI and uvicorn, `/docs`, a whole day with GET, features built inside the service, the issue moment, the data snapshot and the days it allows, strict validation and 422 | 15 min |
+| [31. Starting, proving and watching the service](31-starting-proving-and-watching-the-service.md) | Loading once at startup, an alias resolved to a version once, a service that refuses to start, liveness and readiness, a store that is only read, the skew check on 2,860 real rows, `/health`, `/ready`, `/model-info`, metrics for Prometheus and their labels, and the limits | 14 min |
+
 ### Later parts
 
 These parts have no chapters yet. They are written when their code is added.
 
 | Part | Topic | Arrives with |
 |---|---|---|
-| V | Serving: the FastAPI prediction service | Phase 3 |
 | VI | Containers: Docker and Docker Compose | Phase 4 |
 | VII | Monitoring and retraining: Prefect, Evidently, Prometheus, Grafana | Phase 5 |
 | VIII | Kubernetes with kind and Kustomize | Phase 6 |
@@ -99,3 +107,4 @@ These parts have no chapters yet. They are written when their code is added.
 | 8 – The LightGBM model, training and MLflow tracking (Phase 2) | `python -m demand train` scores the baseline and a LightGBM model on the four test weeks, fits the final model on all training rows, and records the run in MLflow with a registered model version; the model has an MAE of 24.93 against 27.70 for the baseline; `dvc repro` runs `train` as its sixth stage, in place of `backtest`; `python -m demand backtest` now scores both forecasters and keeps nothing | 24, 25 and 26 added; 1, 5, 9, 10, 11, 21, 22 and 23 updated; appendices A to C extended |
 | 9 – Tuning and SHAP explanations (Phase 2) | `python -m demand tune` searches five LightGBM hyper-parameters with Optuna on the four test weeks, writes a report and prints a block for the config, and changes nothing itself; the block was pasted, and the model now has an MAE of 24.11 against 27.70 for the baseline (12.98% better; about 0.6 of the in-sample gain of 0.90 held on weeks the search did not see); `python -m demand train` now also explains the final model with SHAP and stores `shap_importance.json`, `shap_summary.png` and 16 metrics with the MLflow run; the lag of two weeks was tested again and not added | 27 and 28 added; 1, 9, 10, 11, 21, 23, 24, 25 and 26 updated; appendices A to C extended |
 | 10 – The promotion gate and the model card (Phase 2) | `python -m demand promote` makes the newest model version champion only if its backtest MAE is at least 0.2 lower than that of the weekly baseline and of the current champion, with no fold higher, and only when both were scored on the same backtest; a version is judged once, so a rollback by hand is not undone; `python -m demand set-champion VERSION --reason TEXT` sets the champion by hand and records why; every decision is written as tags on the version and to `reports/promotion_report.json`; `docs/model-card.md` describes version 2; Part IV is complete | 29 added; 1, 9, 10, 11, 26 and 28 updated; appendices A to C extended |
+| 11 – The prediction service (Phase 3) | `python -m demand serve` starts a FastAPI service on port 8000. `GET /predict?date=...&zone=...` returns the forecast of every hour of one day for the zones asked, built inside the service with the training feature function from the demand known at the issue moment, and names the model version that computed it; the service forecasts the days 2025-01-10 to 2025-06-30 of its data snapshot and refuses anything else with a 422 that says what can be asked; `/health`, `/ready`, `/model-info` and `/metrics` describe it; the alias `champion` is resolved to a version once at startup, and without it the service does not start; the model is loaded without writing into `mlruns`; `serve` now sets up the JSON logging of Chapter 9, so the events of the service, such as `service ready`, appear as JSON lines | 30 and 31 added; 1, 4, 5, 6, 9, 10, 11, 19, 26 and 29 updated; appendices A to C extended |

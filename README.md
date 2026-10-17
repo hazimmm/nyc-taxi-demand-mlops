@@ -48,6 +48,14 @@ python -m demand promote
 
 `dvc repro` trains and registers a new model version in MLflow but never changes which version is served. `promote` makes the newest version champion only if its backtest MAE beats both the current champion and the weekly baseline by at least 0.2, with no test week worse. Each version is judged once, so a later `promote` never undoes a rollback (rule and reasons in `src/demand/models/promotion.py`). `python -m demand set-champion VERSION --reason TEXT` sets the champion by hand, for a rollback or to bring a judged version back, and records why. What the current model is for and where it is weak: [docs/model-card.md](docs/model-card.md).
 
+## Prediction service
+
+```powershell
+python -m demand serve
+```
+
+Starts the API on port 8000 with the champion model. `GET /predict?date=2025-05-14&zone=161` returns the 24 hourly forecasts of that day, built from the data known at 00:00 on the day before; `/docs` shows every endpoint. `/health`, `/ready`, `/model-info` and `/metrics` (Prometheus) describe the running service. A new champion is picked up by restarting it.
+
 ## Learning book as a PDF
 
 ```powershell

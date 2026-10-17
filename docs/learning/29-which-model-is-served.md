@@ -1,6 +1,6 @@
 # Chapter 29 – Which model is served: the promotion gate and the model card
 
-Every run of `python -m demand train` adds a version to the model registry. This repository holds two. In Phase 3 a web service will load the model at the address `models:/taxi-demand@champion`. Which version should that address give, who decides, and how will a person find out next year why it was chosen? This chapter answers these questions and closes Part IV.
+Every run of `python -m demand train` adds a version to the model registry. This repository holds two. The web service of Part V loads the model at the address `models:/taxi-demand@champion`. Which version should that address give, who decides, and how will a person find out next year why it was chosen? This chapter answers these questions and closes Part IV.
 
 ## What you will learn
 
@@ -142,7 +142,7 @@ Part IV started from a number to beat: the baseline, 27.70. The first LightGBM m
 
 Not proven yet: all these scores come from four April weeks that also helped to choose the settings. The clean exam is the replay of May and June, which no decision has read.
 
-Phase 3 builds on two pieces: the service loads `models:/taxi-demand@champion`, and the model signature of Chapter 26 checks every request before the model sees it.
+Part V builds on two pieces: the service of Chapter 30 loads `models:/taxi-demand@champion`, and the signature of Chapter 26 checks every table of inputs it builds.
 
 ## Try it yourself
 
@@ -152,7 +152,7 @@ Run the gate.
 .venv\Scripts\python.exe -m demand promote
 ```
 
-The lead has already promoted version 2 in this repository's store, so you should see `"nothing to decide: the newest version was judged before, and a version is judged once"` with `"version": 2, "earlier_decision": "promoted", "champion": 2`. In a store without a champion you would see `"promotion decided"` with `"outcome": "promoted", "champion_before": null`, as the lead did. MLflow may first print a line that starts with `INFO mlflow.agent.hint`; it can be ignored.
+The lead has already promoted version 2 in this repository's store, so you should see `"nothing to decide: the newest version was judged before, and a version is judged once"` with `"version": 2, "earlier_decision": "promoted", "champion": 2`. In a store without a champion you would see `"promotion decided"` with `"outcome": "promoted", "champion_before": null`, as the lead did. MLflow may first print a line with `INFO mlflow.agent.hint`; it can be ignored.
 
 > [!WARNING]
 > `set-champion` changes the served model and overwrites the record of a version. Rehearse on a copy of the database: the gate reads and writes only the database and its report. Do not load models from the copy.
@@ -240,4 +240,4 @@ Nothing happens: the newest version is still 2, it carries `promotion.decision =
 
 ---
 
-[Previous: Chapter 28 – Explaining a forecast: SHAP](28-explaining-the-model-with-shap.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 28 – Explaining a forecast: SHAP](28-explaining-the-model-with-shap.md) | [Contents](README.md) | [Next: Chapter 30 – A forecast over HTTP: the prediction service](30-a-forecast-over-http.md)

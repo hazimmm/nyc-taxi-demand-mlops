@@ -197,7 +197,10 @@ class MlflowConfig(_Section):
 
 
 class ServingConfig(_Section):
-    """API settings. ``model_uri`` is a registry alias or a local model directory."""
+    """API settings. ``model_uri`` names a registered model version.
+
+    Either ``models:/<name>@<alias>`` or ``models:/<name>/<version>``.
+    """
 
     model_uri: str
     host: str = "0.0.0.0"

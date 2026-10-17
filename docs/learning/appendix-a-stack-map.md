@@ -16,7 +16,7 @@ The **Status** column has three values.
 | venv | Python's built-in tool for virtual environments | Keeps this project's libraries separate from all others | In use | 6 |
 | hatchling | A build backend | Makes the code installable, so `import demand` works from anywhere | In use | 5 |
 | uv | A fast Python packaging tool, used here to create the lock file | One lock file valid on Windows and Linux | In use | 6 |
-| pydantic, pydantic-settings | Libraries that check data against typed classes | Settings that are checked when the program starts | In use | 7 |
+| pydantic, pydantic-settings | Libraries that check data against typed classes | Settings that are checked when the program starts; the shapes of the requests and responses of the API | In use | 7, 30 |
 | PyYAML | Reads YAML files | A config file that people can read | In use | 7 |
 | python-dotenv | Reads a `.env` file into environment variables | Local values and secrets in one file that is not in git | In use | 7 |
 | Pandera | Schema checks for pandas tables | Data contracts between the data layers | In use (the silver and gold stages validate every table before writing it; the `validate` command checks the files of a layer with the same schemas, in lazy mode) | 8, 17, 18, 20 |
@@ -34,7 +34,7 @@ The **Status** column has three values.
 |---|---|---|---|---|
 | NYC TLC trip records | Public monthly files of taxi trips | The demand data | In use (downloaded by the ingest stage, cleaned by the silver stage, counted per zone and hour by the gold stage) | 14, 15, 16, 18 |
 | Open-Meteo | Free weather service, no key needed | Weather features | In use (downloaded by the ingest stage, cleaned by the silver stage, joined to the demand table by the gold stage) | 15, 17, 18 |
-| httpx | Library for web requests | Downloads with time limits and retries; `MockTransport` for tests without a network | In use | 14 |
+| httpx | Library for web requests | Downloads with time limits and retries; `MockTransport` for tests without a network; FastAPI's test client sends its requests with it | In use | 14, 30 |
 | pyarrow | Reader and writer for Parquet files | The file format of the raw, silver and gold tables; the footer check before a file is accepted; the filter that keeps the rows after the training period out of the backtest | In use | 14, 17, 18, 23 |
 | DuckDB | A database engine that runs inside the Python process | Reads and counts large files without loading everything into memory | Declared (used in this book to look at the raw data and to check a cleaning rule) | 15, 16 |
 | holidays | Library of public holidays | The `is_holiday` feature: the federal holidays of the United States | In use | 19 |
@@ -47,7 +47,7 @@ The baseline, the metrics and the backtest of Chapters 22 and 23 need no new too
 | Tool | What it is | Problem it solves here | Status | Chapter |
 |---|---|---|---|---|
 | LightGBM | A library for gradient-boosted decision trees | The forecasting model: 600 trees with the Poisson objective and the zone as a category, behind the `Forecaster` interface | In use (parameters from the config, tuned with Optuna and pasted by hand) | 24, 25, 27 |
-| MLflow | Records of training runs, and a model registry | Every training run is recorded with its parameters, scores, git commit and data version; the model is stored with a signature and registered as a version of `taxi-demand`; the alias `champion` names the version to serve, and the promotion gate moves it | In use (a local SQLite file and the folder `mlruns`; only `tracking.py` and `registry.py` import it) | 26, 29 |
+| MLflow | Records of training runs, and a model registry | Every training run is recorded with its parameters, scores, git commit and data version; the model is stored with a signature and registered as a version of `taxi-demand`; the alias `champion` names the version to serve, and the promotion gate moves it; the service resolves the alias once and loads that version from a temporary copy | In use (a local SQLite file and the folder `mlruns`; only `tracking.py`, `registry.py` and `serving/model_loader.py` import it) | 26, 29, 31 |
 | scikit-learn | General machine-learning library | LightGBM's class `LGBMRegressor` follows its interface and needs it installed | Declared (no code of the project imports it) | – |
 | Optuna | Library that searches for good model parameters | `python -m demand tune`: a seeded search over five LightGBM hyper-parameters, at most 30 trials or 900 seconds, that prints a block for the config | In use (only `tuning.py` imports it) | 27 |
 | SHAP | Library that explains model predictions | Splits each forecast of the final model into contributions per input; a training run stores the mean sizes and a summary plot | In use (only `explain.py` imports it) | 28 |
@@ -55,10 +55,13 @@ The baseline, the metrics and the backtest of Chapters 22 and 23 need no new too
 
 ## Serving (Phase 3)
 
-| Tool | What it is | Problem it solves here | Status |
-|---|---|---|---|
-| FastAPI, uvicorn | A web framework and the server that runs it | The prediction service | Declared |
-| prometheus-client | Library that publishes numbers from a running program | Request counts and response times | Declared |
+The service also needs the libraries of the modelling table: MLflow loads the model, and the model is a LightGBM forecaster.
+
+| Tool | What it is | Problem it solves here | Status | Chapter |
+|---|---|---|---|---|
+| FastAPI | A web framework, built on the library Starlette: maps paths to Python functions, checks requests with Pydantic, writes JSON and the page `/docs` | The prediction service: five endpoints in `serving/app.py`, and a test client that calls them without a network | In use | 30, 31 |
+| uvicorn | A web server: receives HTTP requests on a port and hands them to the application through the ASGI interface | `python -m demand serve` runs the service with one worker process on port 8000 | In use | 30, 31 |
+| prometheus-client | Library that publishes numbers from a running program in the Prometheus text format | `/metrics`: requests by route and status, response times, the forecasts returned, and the served version | In use (Prometheus itself arrives in Phase 5) | 31 |
 
 ## Containers (Phase 4)
 
@@ -94,4 +97,4 @@ The baseline, the metrics and the backtest of Chapters 22 and 23 need no new too
 
 ---
 
-[Previous: Chapter 29 – Which model is served: the promotion gate and the model card](29-which-model-is-served.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)
+[Previous: Chapter 31 – Starting, proving and watching the service](31-starting-proving-and-watching-the-service.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)

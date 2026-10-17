@@ -64,8 +64,8 @@ nyc-taxi-demand-mlops/
 │       ├── errors.py       failures that are reported in one line (Chapter 20)
 │       ├── data/           the data pipeline (Part III)
 │       ├── models/         the baseline, the backtest, the model and its training (Part IV)
-│       ├── serving/        this and the next two: empty until their part is built
-│       ├── monitoring/
+│       ├── serving/        the prediction service (Part V)
+│       ├── monitoring/     this and the next: empty until their part is built
 │       └── flows/
 ├── tests/
 │   ├── conftest.py
@@ -75,7 +75,7 @@ nyc-taxi-demand-mlops/
 
 *Figure 5.1 – The main folders and files.*
 
-Each file inside `demand` has one responsibility. Settings are in one file, contracts in another, commands in a third. The sub-folder `data` holds the pipeline of Part III, and `models` holds the modelling code of Part IV. The other three are empty packages that reserve a place for the later parts of the system.
+Each file inside `demand` has one responsibility. Settings are in one file, contracts in another, commands in a third. The sub-folder `data` holds the pipeline of Part III, `models` holds the modelling code of Part IV, and `serving` the web service of Part V. The other two are empty packages that reserve a place for the later parts of the system.
 
 ## Why the code is inside `src/`
 

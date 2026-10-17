@@ -66,7 +66,8 @@ flowchart TB
     TRAIN -->|"params · metrics · artefacts"| CHAL
     CHAMP -->|"load model"| API
     CHAMP -->|"load model"| BATCH
-    GOLD -->|"features"| API
+    GOLD -->|"demand history"| API
+    SILVER -->|"weather"| API
     GOLD -->|"features"| BATCH
     USER -->|"request"| API
     API -->|"request metrics"| PROM

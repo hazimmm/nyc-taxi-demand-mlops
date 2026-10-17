@@ -67,7 +67,7 @@ serving = [
 ]
 ```
 
-The group `ml` holds the libraries for training. The group `serving` holds the libraries for the web service. The full set of groups is in the table.
+The group `ml` holds the libraries for training. The group `serving` holds the libraries for the web service. The service of Chapter 30 needs `ml` as well, because it loads the model with MLflow and the model is a LightGBM forecaster; the group `serving` alone is not enough to run it. The full set of groups is in the table.
 
 | Group | Used for |
 |---|---|

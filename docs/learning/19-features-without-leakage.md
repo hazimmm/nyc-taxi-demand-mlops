@@ -125,7 +125,7 @@ flowchart LR
     F --> B["Forecast: history is the<br/>demand so far, targets are<br/>the hours of tomorrow"]
 ```
 
-*Figure 19.4 – One function, two uses. The forecast job, the API and the drift monitor of later phases will call the same function.*
+*Figure 19.4 – One function, two uses. The API of Chapter 30 calls it; the forecast job and the drift monitor of later phases will call it too. Chapter 31 shows that the API's rows equal the training rows.*
 
 Training passes the whole demand table as both arguments. That history reaches far beyond each target hour, and it is still safe, because the function cannot read past *t* − 48. The safety is in the function, not in the care of the caller.
 
@@ -245,7 +245,7 @@ The newest complete hour is Wednesday 14:00, which ended at 15:00. All 24 rows o
 
 </details>
 
-**3. Interview question.** "How do you make sure that your features do not leak the target?"**4. Interview question.** "How do you make sure that your features do not leak the target?"
+**3. Interview question.** "How do you make sure that your features do not leak the target?"
 
 <details>
 <summary>Points of a good answer</summary>

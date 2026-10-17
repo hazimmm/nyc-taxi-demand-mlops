@@ -79,7 +79,7 @@ Here is how it happens. The training code marks weekends with `dayofweek >= 5`, 
 > [!WARNING]
 > Skew produces no error message. Like leakage, it shows only as forecasts that are worse than the tests promised.
 
-The decision in this project: one feature function, used by training, by the batch forecast job and by the web service, and a test that checks that all three get identical output. The function is `build_features`, and Chapter 19 explains it together with the test that compares training rows with serving rows. This chapter looks at a smaller part of the same idea: the list of model inputs has a single definition.
+The decision in this project: one feature function, used by training, by the batch forecast job and by the web service, and a test that checks that all three get identical output. The function is `build_features`, and Chapter 19 explains it together with the test that proves it reads nothing from the future. Chapter 31 shows the comparison for the web service: its rows equal the training rows, bit for bit, in a test and on 2,860 real rows. The batch job does not exist yet. This chapter looks at a smaller part of the same idea: the list of model inputs has a single definition.
 
 ## Worked example: the list of model inputs
 

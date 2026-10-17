@@ -94,17 +94,17 @@ The model is stored with a **model signature**: the names and types of its 16 in
 
 When the model is loaded through MLflow, every table is checked against the signature before the forecaster sees it. Columns in another order are put back in order. A column the signature does not name is dropped with a warning. A missing column is refused. A column of the wrong type is refused too: the zone as a decimal number gives `Incompatible input types for column zone_id. Can not safely convert float64 to int64.`
 
-This matters for the serving phase. A web request arrives as JSON, where 161 and 161.0 are easy to confuse and the order of fields means nothing. The signature turns such differences into an error before the model is asked.
+This matters for the service of Chapter 30. It builds its rows itself, and the signature checks them every time before the model sees them. At startup the service also checks that the signature names exactly the columns its config builds (Chapter 31), because an extra column would only be dropped with a warning.
 
 ## The registry
 
 Chapter 1 introduced the **model registry**. Every training run registers its model under the name `taxi-demand` and gets a **model version**: 1 for the first run, 2 for the second. In this repository, version 1 is the model before tuning. The training run of Chapter 27, with the tuned values, adds version 2 next to it. Version 1 is not changed or removed. A later step can then say "load `models:/taxi-demand/1`".
 
-A version can also carry a label that moves, an alias. The config names two, `champion` and `challenger`. Training sets neither: which version is served is decided by the promotion gate of Chapter 29, a command of its own. In this repository the gate has made version 2 the champion, so the service of Phase 3 will load it as `models:/taxi-demand@champion`.
+A version can also carry a label that moves, an alias. The config names two, `champion` and `challenger`. Training sets neither: which version is served is decided by the promotion gate of Chapter 29, a command of its own. In this repository the gate has made version 2 the champion, so the service of Chapter 30 loads it as `models:/taxi-demand@champion`.
 
-## MLflow in two modules
+## MLflow in three modules
 
-Only two modules of the project import `mlflow`. `tracking.py` writes the runs: the forecaster, the backtest and the training code hand it plain values and get back a run id and a version number. `registry.py`, added with Chapter 29, reads versions and moves aliases. Two things follow. MLflow could be replaced by changing two files. And the command `python -m demand backtest` never loads MLflow, which takes between one and two seconds to import here: `pipeline.py` imports the training module inside the function `run_training`, the lazy import of Chapter 9.
+Only three modules of the project import `mlflow`. `tracking.py` writes the runs: the forecaster, the backtest and the training code hand it plain values and get back a run id and a version number. `registry.py`, added with Chapter 29, reads versions and moves aliases. `serving/model_loader.py`, added with Chapter 31, loads the served model. Two things follow. MLflow could be replaced by changing three files. And the command `python -m demand backtest` never loads MLflow, which takes between one and two seconds to import here: `pipeline.py` imports the training module inside the function `run_training`, the lazy import of Chapter 9.
 
 ## Four limits
 
@@ -184,7 +184,7 @@ You should see the same forecasts twice, the second time from columns in reverse
 
 With `models:/taxi-demand/1`, the model before tuning, the first forecast is 145.66432939.
 
-and then a traceback whose last line ends with `Incompatible input types for column zone_id. Can not safely convert float64 to int64.` Loading through the registry writes one small file, `registered_model_meta`, next to the model in `mlruns`. It holds the name and the version.
+and then a traceback whose last line ends with `Incompatible input types for column zone_id. Can not safely convert float64 to int64.` Loading through the registry writes one small file, `registered_model_meta`, next to the model in `mlruns`. It holds the name and the version. Chapter 31 shows how the service avoids this write.
 
 Check that the backtest path does not load MLflow.
 
