@@ -105,7 +105,7 @@ The two days are the time a forecast waits, from its issue moment on the day bef
 
 ## Only what existed at "now"
 
-Without options, `monitor` evaluates at the position of the replay clock, 00:00 on 1 July. With `--as-of 2025-05-29` it evaluates at 00:00 on that day. That shows on which days a check would have fired, and the retraining feature will use it to replay its decisions day by day.
+Without options, `monitor` evaluates at the position of the replay clock, 00:00 on 1 July. With `--as-of 2025-05-29` it evaluates at 00:00 on that day. That shows on which days a check would have fired. The retraining flow of Chapter 37 evaluates monitoring in the same way, as of the moment of each step.
 
 The rule is the rule of Chapter 2, applied to monitoring: **monitoring may only read what existed at its "now"**. A forecast and its inputs exist from their issue moment, a scored day from the end of the day. `monitoring_flow.py` chooses the days from the file names and opens only the chosen files.
 

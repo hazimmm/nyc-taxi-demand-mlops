@@ -60,7 +60,7 @@ The lesson goes beyond this project: **a check must be tested for how often it f
 
 The owner of this project was asked how to handle this, and asked the lead engineer to decide. The decision has two parts.
 
-**What the checks may do.** The two drift checks raise **warnings**: "look at this". Only the accuracy check raises an **alert**: "act on this". The report keeps them apart, in `alerts` and `warnings`, each entry with the check and a sentence giving the number and the threshold. The retraining feature will read `alerts` only. The test `test_drift_alone_never_raises_an_alert` gives both drift checks a clear drift and accuracy a ratio of 1.0, and expects warnings and no alert.
+**What the checks may do.** The two drift checks raise **warnings**: "look at this". Only the accuracy check raises an **alert**: "act on this". The report keeps them apart, in `alerts` and `warnings`, each entry with the check and a sentence giving the number and the threshold. The retraining flow of Chapter 37 reads only the accuracy alert. The test `test_drift_alone_never_raises_an_alert` gives both drift checks a clear drift and accuracy a ratio of 1.0, and expects warnings and no alert.
 
 **What stayed the same.** Every threshold: 0.1 per column, 0.3 for the share, 0.1 for the forecasts, 1.25 for accuracy.
 
@@ -123,7 +123,7 @@ Grafana provisions a second dashboard from [`monitoring/grafana/dashboards/monit
 
 ## What monitoring does not decide
 
-Monitoring changes no model, no alias, no threshold and no file of the replay. Whether to retrain, when, and on which rows is the next feature, which will read `alerts` of this report and nothing else. `python -m demand retrain` still answers "Not implemented yet".
+Monitoring changes no model, no alias, no threshold and no file of the replay. Whether to retrain, when, and on which rows is decided by the retraining flow of Chapter 37, which reads the accuracy alert and nothing else.
 
 ## Try it yourself
 
@@ -225,4 +225,4 @@ The distance was 0.000032 above the threshold, on the only day of 56 that crosse
 
 ---
 
-[Previous: Chapter 35 – Watching a model when the truth arrives late](35-watching-a-model-when-the-truth-arrives-late.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 35 – Watching a model when the truth arrives late](35-watching-a-model-when-the-truth-arrives-late.md) | [Contents](README.md) | [Next: Chapter 37 – Retraining, and a rule that was not changed](37-retraining-and-a-rule-that-was-not-changed.md)

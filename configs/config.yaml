@@ -102,4 +102,4 @@ monitoring:
   window_days: 7
   drift_share_threshold: 0.3      # share of drifted inputs that raises a warning (never an alert)
   mae_degradation_ratio: 1.25     # live MAE / backtest MAE that raises an alert
-  retrain_cooldown_days: 7
+  retrain_cooldown_days: 7        # days after a retrain (tag retrain.now) before the next one

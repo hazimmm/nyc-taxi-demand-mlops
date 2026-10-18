@@ -5,7 +5,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Term | Meaning | Ch. |
 |---|---|---|
 | Actuals | The real observed values, here the real pickups, known only after the hour has passed. | 3 |
-| Alert / warning (monitoring) | An alert means "act on this"; a warning means "look at this". Here only the accuracy check raises an alert, which the retraining feature will read; the two drift checks raise warnings, which nothing acts on. | 35, 36 |
+| Alert / warning (monitoring) | An alert means "act on this"; a warning means "look at this". Here only the accuracy check raises an alert, which the retraining flow reads; the two drift checks raise warnings, which nothing acts on. | 35, 36, 37 |
 | Alias (model registry) | A name that points at one version of a registered model and can be moved to another. `models:/taxi-demand@champion` loads whichever version the alias `champion` points at now. The service resolves it to a version number once, at startup. | 26, 29, 31 |
 | Allow-list | A list of what is let in, where everything else is left out. `.dockerignore` is one: its first line, `*`, leaves out everything, and the next lines let back in what the images are built from. | 32 |
 | Artifact | A file that is stored with a training run, such as a report or the model. | 26 |
@@ -29,7 +29,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Capability (Linux) | One part of the power of root, such as opening ports below 1024. The API container drops all of them (`cap_drop: ["ALL"]`). | 33 |
 | Cardinality (of a metric) | The number of distinct combinations of label values of a series. Each combination is a time series of its own, so a label must have few values: here the route and the status, never a day or a zone. | 31 |
 | Categorical feature | An input whose values are labels from a fixed list, not amounts. Here: `zone_id`. A tree can put any group of labels on one side of a question. | 24 |
-| Champion / challenger | The model in use / a new model that must beat it to replace it. As aliases: `champion` points at the served version, and `challenger` at the newest version the promotion gate judged and did not promote. | 1, 29 |
+| Champion / challenger | The model in use / a new model that must beat it to replace it. As aliases: `champion` points at the served version, and `challenger` at the newest version the promotion gate judged and did not promote. In retraining, the challenger is the recipe trained again up to the cutoff; if it is rejected, it gets the alias `challenger`. | 1, 29, 37 |
 | Clean exam | The score on a hold-out that no decision has used. Here the replay of May and June 2025: MAE 27.80, against 24.11 in the April backtest that chose the settings. | 23, 27, 34 |
 | Cleaning report | The record of a cleaning run: rows in, rows removed by each rule, rows out. Here: `reports/silver_cleaning_report.json`. | 16 |
 | Cleaning rule | A condition that marks a row as not valid, with a name and a fixed place in the order of the rules. | 16 |
@@ -40,6 +40,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Client / server | The program that sends a request / the program that waits for requests and answers them. | 30 |
 | Closing step | The last step of the replay. It moves the simulated clock to 00:00 on 1 July 2025, the end of the demand history, forecasts nothing, and scores 29 and 30 June. Every later step repeats it and changes nothing. | 34 |
 | Code review | Reading a change before it is accepted, to find mistakes and to check that code, tests and documents agree. | 13 |
+| Comparison weeks (retraining) | The 28 days before the cutoff, on which the champion's real forecasts, a backtest of the retrained recipe and the weekly baseline are scored on the same 13,440 zone-hours. | 37 |
 | Complete (of an hourly count) | Said of the count of an hour once the hour has ended. The pickups of 18:00 are complete at 19:00. | 2 |
 | Complete grid | A table with one row for every combination of zone and hour, whether something happened or not. An hour without pickups is a row with 0. | 18 |
 | Configuration | The values that can change without the logic changing: dates, paths, limits, addresses. | 7 |
@@ -47,12 +48,14 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Constraint (lock file) | A file given to `uv pip compile` with `-c`, whose versions the new lock must use. The lock of each image is made with `-c requirements.lock`, so it holds the same versions as the main lock. | 32 |
 | Container | A program started from an image. It sees the files of the image as its own filesystem and has its own network, and sees nothing of the machine unless it is given access. Many containers can run from one image. | 32 |
 | Conventional commits | A format for commit messages: `type: description`. | 12 |
+| Cooldown | A period after an action in which the action is not repeated. Here a retrain waits at least `monitoring.retrain_cooldown_days` (7) calendar days after the last one, read from the tag `retrain.now` in the registry. | 37 |
 | CORS | Cross-origin resource sharing: rules that let a web page from another address call a service from a browser. Left out of this service on purpose. | 31 |
 | Counter, gauge, histogram | Three kinds of Prometheus series: a number that only goes up; a value that can go up and down; counts of values in ranges, with their number and their sum. Every number of the monitoring report is sent as a gauge. | 31, 36 |
 | Coverage | The share of the code that the tests execute. | 10 |
 | Coverage gate | A rule that fails the test run when coverage is under a limit. Here 80%, applied with `--cov`. | 10 |
 | CrashLoopBackOff | The state Kubernetes shows for a container that exits again and again, restarted with growing pauses. Docker Compose shows the same situation as `Restarting (3)`. | 33 |
 | CRLF / LF | The two ways to mark the end of a line: Windows (two characters) and Linux or macOS (one). | 12 |
+| Cutoff (retraining) | The last day a retrained model may learn from: the day before the moment of the retrain, so every training target ended before its first forecast. | 37 |
 | Data contract | A precise description of a table that can be checked automatically and that producer and consumer both rely on. | 8 |
 | Data leakage | Training or testing with information that is not available when the model is really used. | 2, 19 |
 | Daylight saving time | The summer clock, one hour ahead of the winter clock. The change skips one local hour in spring and repeats one in autumn. | 17 |
@@ -166,6 +169,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | OpenAPI | A standard format that describes the endpoints, parameters and answers of a web service. FastAPI writes it at `/openapi.json` and shows it at `/docs`. | 30 |
 | Optional dependency group | A named set of additional libraries, installed only where needed. | 6 |
 | Optuna | A library that searches for hyper-parameters: it proposes values, sees the score, and proposes better ones. Used by `python -m demand tune`. | 27 |
+| Orchestrator | A program that starts the steps of a pipeline on a schedule and in order. Here Prefect, which will call the daily step `run_day` once a day. | 37 |
 | Outlier flag | A true/false column that marks an hour whose pickups are far from normal for its slot. The hour is kept. Here: `is_outlier`. | 18 |
 | Over-fitting to the validation set | Settings chosen on a validation set fit it better than they fit new data, so its score for them is too good. Here about 30% of the in-sample tuning gain did not hold on weeks the search had not seen. | 27 |
 | p-value | The probability of a difference at least as large as the one seen, if both samples came from the same distribution. It assumes independent rows, which hours of a time series are not, so this project's drift test uses no p-value. | 35 |
@@ -203,9 +207,10 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Replay | Playing historical days that the model has never seen one at a time, each at the moment the system would have handled it. Here 2 May to 30 June 2025, with `python -m demand forecast`. | 3, 34 |
 | Request / response | The question a client sends to a server / the answer, with a status code and a body. | 30 |
 | Restart policy | What Docker does when a container ends. `unless-stopped` starts it again, with growing pauses, unless a person stopped it. | 33 |
+| Retraining | Training the same recipe again on newer data, with a later end of training and nothing tuned. Here `python -m demand retrain`, only after an accuracy alert about the champion; the new model is served only if it passes the promotion rule. | 37 |
 | Reversal | A row with negative amounts that cancels the charge of a trip, for example after a refund. It is not a second trip. | 16 |
 | RMSE | Root mean squared error: like the MAE, with large errors counted much more. It is never smaller than the MAE. | 22 |
-| Rollback | Making an earlier model version champion again, by hand, because the newer one behaved badly. Here: `python -m demand set-champion VERSION --reason TEXT`. | 29 |
+| Rollback | Making an earlier model version champion again, by hand, because the newer one behaved badly. Here: `python -m demand set-champion VERSION --reason TEXT`. It stays by hand after retraining, because an honest automatic rollback would need shadow forecasts. | 29, 37 |
 | Rolling statistic | A summary, such as the mean, over a moving window of time. Here every window ends one horizon before the target hour. | 2, 19 |
 | Rolling window (of a score) | A score over the last few days, moved forward one day at a time. With 7 days, the ratio of live to backtest MAE in the replay peaked at 1.41 for the window that ends on 28 May. The accuracy check of monitoring computes it. | 34, 35 |
 | Rolling-origin backtest | A backtest repeated with a training end date that moves forward. | 3 |
@@ -219,6 +224,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Seed check | Scoring the current and the best hyper-parameters again with two more seeds, to see whether a gain is larger than the noise. | 27 |
 | Service (Compose) | One kind of container in `docker-compose.yml`, with its image and settings: `mlflow`, `api`, `prometheus`, `pushgateway`, `grafana` and `pipeline`. | 33, 36 |
 | SHA-256 | A method for calculating a checksum of 64 characters. | 15 |
+| Shadow forecast | A forecast of a model that is not served, issued and scored next to the served one and shown to nobody. It would let two models be compared on the same days; this project does not build it, so rollback stays by hand. | 37 |
 | SHAP value | The contribution of one input to one forecast. The base value plus the SHAP values of all inputs of a row is exactly the output of the model. | 28 |
 | Share of drifted columns | The number of tested columns that drifted, divided by the number tested. At 1 July it is 0.5: 5 of 10. | 35 |
 | Silver layer | Cleaned data: valid rows, fixed types, no duplicates. One row is one valid trip, or one hour of weather. | 4, 16 |
@@ -241,6 +247,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Tag (model version) | A label that stays with one model version, such as `promotion.decision = promoted`. Compare *alias*, which can move. | 29 |
 | Target | The thing a model predicts. Here: the number of pickups. | 2 |
 | Test double | A simple object that stands in for a real one during a test. | 10 |
+| Test set | The data that judges a model and takes part in no decision. A choice tuned on it makes its score too good. Here the replay of May and June plays this role. | 37 |
 | Time-based split | Training on data before a date and testing on data after it. | 3 |
 | Timeout | The longest time a program waits for one operation before it treats it as failed. | 14 |
 | Timezone-aware timestamp | A timestamp that carries its timezone, so that it names exactly one moment. | 17 |
@@ -252,6 +259,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Transient error | A failure that may go away on its own, such as a short network problem. Worth a retry. | 14 |
 | Transitive dependency | A library that is installed because one of your dependencies needs it. | 6 |
 | Trial | One set of hyper-parameters scored with the backtest. Trial 0 is the config as it is. | 27 |
+| Trigger (retraining) | The condition that starts a retrain: an accuracy alert about the current champion, with a day left to forecast, the cooldown over, and the champion's forecasts for all comparison weeks. Drift never triggers it. | 37 |
 | Tuning | Searching for better hyper-parameters by trying them. | 27 |
 | Type hint | A note in the code that says which type a value has. | 11 |
 | Typed settings object | An object in which every setting has a declared name and type, built once at start-up. | 7 |

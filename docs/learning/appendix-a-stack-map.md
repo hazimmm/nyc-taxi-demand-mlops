@@ -75,11 +75,11 @@ The service also needs the libraries of the modelling table: MLflow loads the mo
 
 ## Monitoring and retraining (Phase 5)
 
-The replay of Chapter 34 needs no new tool. Its simulated clock and its scores are plain Python with pandas, pyarrow and Pandera; it loads the champion with MLflow and forecasts with the code of the service. Its files are in `data/predictions/` and its report is `reports/replay_report.json`. The accuracy check of monitoring needs no new tool either; the two drift checks use Evidently.
+The replay of Chapter 34 needs no new tool. Its simulated clock and its scores are plain Python with pandas, pyarrow and Pandera; it loads the champion with MLflow and forecasts with the code of the service. Its files are in `data/predictions/` and its report is `reports/replay_report.json`. The accuracy check of monitoring needs no new tool either; the two drift checks use Evidently. Retraining (Chapter 37) needs no new tool: it trains with LightGBM, records and registers with MLflow, and writes `reports/retrain_report.json`.
 
 | Tool | What it is | Problem it solves here | Status | Chapter |
 |---|---|---|---|---|
-| Prefect | A workflow scheduler | Runs the pipeline steps on a schedule; it will call the steps of the replay | Declared (the replay and monitoring run without it; its server joins Docker Compose when the steps are scheduled) | – |
+| Prefect | A workflow scheduler, or orchestrator | Runs the pipeline steps on a schedule; it will call `run_day` of `flows/retrain_flow.py` once a day: forecast, monitor, retrain if needed | Declared (the replay, monitoring and retraining run without it; it arrives with the last push of Phase 5) | – |
 | Evidently | Library for data and model monitoring | The input-drift and prediction-drift checks: the normed Wasserstein distance per column with a fixed threshold of 0.1, and the HTML page `reports/monitoring_input_drift.html` | In use (version 0.7.23; only `monitoring/checks.py` imports it) | 35 |
 | prometheus-client | See the Serving table | Builds the gauges of a monitoring report and sends them to the Pushgateway with one HTTP PUT | In use (only `monitoring/metrics.py`, `serving/metrics.py` and `serving/app.py` import it) | 36 |
 | Prometheus Pushgateway | A small server that keeps the last numbers a batch job pushed, for Prometheus to scrape | `python -m demand monitor --push-to http://localhost:9091` sends the numbers there, because a command that has ended cannot be scraped | In use (in Docker Compose, image `prom/pushgateway:v1.11.3` pinned by digest; numbers kept in memory only) | 36 |
@@ -103,4 +103,4 @@ The replay of Chapter 34 needs no new tool. Its simulated clock and its scores a
 
 ---
 
-[Previous: Chapter 36 – Alerts that mean something, and the numbers in Grafana](36-alerts-that-mean-something.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)
+[Previous: Chapter 37 – Retraining, and a rule that was not changed](37-retraining-and-a-rule-that-was-not-changed.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)

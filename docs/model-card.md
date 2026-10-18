@@ -83,6 +83,7 @@ Version 2 forecast every day from 2 May to 30 June 2025 as it would have in use:
 - **The worst days were around holidays:** Juneteenth, 19 June (MAE 46.9), the Saturday before Memorial Day (42.9) and Memorial Day, 26 May (39.7) [R]. `is_holiday` marked the two holidays, but the training rows contain only two holidays to learn from; the Saturday is not a holiday in the features.
 - **No decision was changed after these numbers were seen.** They are reported as they came out.
 - **Monitoring would have raised an accuracy alert** on 27–31 May (live MAE over the last 7 days up to 1.41 times the backtest MAE) and on 25–26 June (about 1.30), and on no other day (`python -m demand monitor --as-of` for every day). The input-drift check warned on every day, mostly because of the weather: late June reached 39.1 °C, against at most 29.8 °C in the training rows.
+- **Retraining would not have replaced it.** In a simulation of the same replay with retraining switched on (on a copy of the model store), the accuracy alert led to two retrains, on 30 May and 25 June. The gate rejected both: on the 4 weeks before each cutoff the retrained model's backtest MAE was 28.74 against 28.57 for this version's real forecasts (worse), and 25.53 against 27.11 (better overall, but worse in two of the four weeks). So this version served every day, and the simulated forecasts are byte-identical to the replay above.
 
 ## Known weaknesses
 

@@ -164,7 +164,11 @@ def monitor(
 
 @app.command()
 def retrain() -> None:
-    """Retrain and promote the model if it passes the promotion gate."""
+    """Retrain if live accuracy has alerted, and promote the new model if it passes the gate.
+
+    Monitoring is evaluated first, as of the newest forecast's issue moment, and its report
+    is rewritten.
+    """
     _run_stage("demand.flows.retrain_flow", "run_retrain")
 
 

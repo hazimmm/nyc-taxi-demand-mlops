@@ -90,6 +90,10 @@ Official documentation for the tools that the repository uses today, a few books
 - **Pushgateway README** – how to push, why a PUT replaces every metric of its group, and the flag `--persistence.file`, which this project does not use, so the numbers live in memory only. <https://github.com/prometheus/pushgateway>
 - **Designing Machine Learning Systems** (see above) – the same chapter on distribution shifts discusses how to detect shifts and why many detected shifts are harmless, which is the subject of Chapter 36.
 
+## Retraining
+
+- **Designing Machine Learning Systems** (see above) – the chapter "Continual Learning and Test in Production" discusses how often to retrain, why a retrained model must be evaluated against the one in production before it replaces it, and shadow deployment, the idea behind the shadow forecasts of Chapter 37.
+
 ## Command line, tests and code quality
 
 - **Typer documentation** – commands, arguments, testing a CLI. <https://typer.tiangolo.com>

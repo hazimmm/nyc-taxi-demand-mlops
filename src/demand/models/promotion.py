@@ -31,8 +31,8 @@ looks at the newest version and decides. It is not part of ``train``, for three 
 * Training answers "how good is this recipe?" and the gate answers "should it be
   served?". The second question deserves a moment in which a person can read the first
   answer (the backtest report, the SHAP values) before acting on it.
-* The later retraining flow can still run both in a row: it calls the training and then
-  this gate, and gets the ``Decision`` back.
+* The retraining flow (``flows/retrain_flow.py``) runs both in a row, with scores it
+  measures itself (below, "The retraining flow").
 
 **What "better" means.** Four choices, each with its reason:
 
@@ -82,10 +82,10 @@ When the two differ, the gate **refuses**: it raises ``IncomparableRunsError``, 
 which keys differ, and changes nothing. It does not re-score the champion on the
 challenger's folds. That would mean training the champion's recipe again inside this
 command, with its parameters read back from text, its feature config possibly no longer
-buildable, and a backtest of minutes; it is the job of the retraining phase, which will
-have to do it every time anyway, because new data means new folds. Until then a person
-who wants to replace a champion across a change of setup compares the two by hand and
-uses ``set-champion`` (below), which records that it was done by hand.
+buildable, and a backtest of minutes. The retraining flow, which has new folds every
+time, measures both sides itself (below). A person who wants to replace a champion
+across a change of setup compares the two by hand and uses ``set-champion`` (below),
+which records that it was done by hand.
 
 **The champion must be reproducible.** A version is promoted only if its run was
 recorded from a known git commit with no changed files, and with a known data version.
@@ -136,6 +136,14 @@ and requires a reason. It writes the same tags, with ``promotion.decision = manu
 the record shows that the rule was not applied and why. It is the only way back for a
 version the gate has judged, and it replaces that version's earlier record: the tags of a
 version hold its latest decision, not its history.
+
+**The retraining flow.** A retrain learns from newer data than the champion, so its
+backtest folds are not the champion's and ``check_comparable`` would always refuse. The
+flow therefore measures both sides on the same rows itself: the champion by the
+forecasts it really issued in the last four weeks, the retrained recipe by a backtest of
+the same four weeks. It applies the rule with ``compare`` and ``decision_of`` and records
+the outcome with ``record_decision``, as ``promote`` does. The rule is the same in every
+part: the margin on the pooled MAE and no fold higher, against both references.
 
 **What the gate does not do.** It does not re-score anything, does not look at May or
 June, does not lock the store against two people promoting at once, does not judge
@@ -434,6 +442,27 @@ def decide(
             min_mae_gain,
         )
     )
+    return decision_of(
+        challenger.version,
+        None if champion is None else champion.version,
+        against_baseline,
+        against_champion,
+        min_mae_gain,
+    )
+
+
+def decision_of(
+    challenger_version: int,
+    champion_version: int | None,
+    against_baseline: Comparison,
+    against_champion: Comparison | None,
+    min_mae_gain: float = MIN_MAE_GAIN,
+) -> Decision:
+    """The decision from the comparisons: promoted only if every reference is beaten.
+
+    ``decide`` calls it with the backtest scores of two runs, the retraining flow with
+    scores it measured itself. ``against_champion`` is ``None`` when there is no champion.
+    """
     comparisons = (
         [against_baseline] if against_champion is None else [against_baseline, against_champion]
     )
@@ -443,11 +472,11 @@ def decide(
         + "; ".join(_describe(comparison, min_mae_gain) for comparison in comparisons)
         + "."
     )
-    if champion is None:
+    if against_champion is None:
         reason += " There was no champion, so only the baseline had to be beaten."
     return Decision(
-        challenger_version=challenger.version,
-        champion_version=None if champion is None else champion.version,
+        challenger_version=challenger_version,
+        champion_version=champion_version,
         promoted=promoted,
         reason=reason,
         min_mae_gain=min_mae_gain,
@@ -519,17 +548,28 @@ def promote(settings: Settings) -> Decision | None:
         return None
     champion = None if champion_version is None else candidate(registry.version(champion_version))
     decision = decide(candidate(newest), champion)
+    record_decision(settings, registry, decision)
+    return decision
 
+
+def record_decision(settings: Settings, registry: Registry, decision: Decision) -> PromotionReport:
+    """Write a decision onto its version, move the aliases, and write the report.
+
+    The tags are written before the aliases move (see "The record" above). Used by
+    ``promote`` and by the retraining flow.
+    """
+    config = settings.mlflow
+    version = decision.challenger_version
     decided_at = datetime.now(UTC)
     outcome = "promoted" if decision.promoted else "rejected"
     registry.tag(
-        newest.version, decision_tags(outcome, decision.reason, champion_version, decided_at)
+        version, decision_tags(outcome, decision.reason, decision.champion_version, decided_at)
     )
     if decision.promoted:
-        registry.set_alias(config.champion_alias, newest.version)
+        registry.set_alias(config.champion_alias, version)
         registry.remove_alias(config.challenger_alias)
     else:
-        registry.set_alias(config.challenger_alias, newest.version)
+        registry.set_alias(config.challenger_alias, version)
 
     report = PromotionReport(
         **decision.model_dump(), registered_model=registry.name, decided_at=decided_at
@@ -539,14 +579,14 @@ def promote(settings: Settings) -> Decision | None:
     log.info(
         "promotion decided",
         extra={
-            "version": newest.version,
+            "version": version,
             "outcome": outcome,
-            "champion_before": champion_version,
+            "champion_before": decision.champion_version,
             "reason": decision.reason,
             "report": str(report_path),
         },
     )
-    return decision
+    return report
 
 
 def run_promotion(settings: Settings) -> None:

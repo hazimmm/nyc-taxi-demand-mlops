@@ -78,7 +78,7 @@ A second check uses the baseline as a witness. The baseline learns nothing, so o
 
 When either check fails, the gate refuses: it names every difference and changes nothing. It does not score the champion again on the new folds. That would mean training its recipe again inside this command, from parameters read back as text, with a feature config that may no longer exist. A person can compare by hand and use `set-champion`.
 
-For Phase 5 this means: retraining after an accuracy alert (Chapter 36) brings new data and new folds, so the retraining flow will have to score the champion again every time.
+For Phase 5 this means: retraining after an accuracy alert brings new data and new folds, so the stored scores of the champion can never be compared with a retrained version's. Chapter 37 shows what the retraining flow measures instead: the champion's real forecasts of the last four weeks against a backtest of the retrained recipe on the same rows, judged by the same rule.
 
 **The challenger must be reproducible.** A version is promoted only if its run came from a known commit with no changed files, and with a known data version. Otherwise nobody could rebuild the served model. Both versions here pass: commits `7bffb9e` and `5d1d9e4`, both with `git_dirty = false`, both on data version `7bacf1bf80cf4612d40552e74ef11cc5.dir`.
 

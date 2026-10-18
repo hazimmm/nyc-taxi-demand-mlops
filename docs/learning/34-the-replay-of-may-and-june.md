@@ -135,7 +135,7 @@ The reason is the lesson of Chapter 27. Suppose someone adds a feature for long 
 
 ## What the next features build on
 
-The monitoring of Chapters 35 and 36 reads the three folders: `forecasts/` for prediction drift, also on days not yet over; `inputs/` for input drift against the training features; `scored/` for accuracy and the rolling window. Retraining needs a cutoff, the moment up to which a new model may learn, and the simulated clock gives it a "now".
+The monitoring of Chapters 35 and 36 reads the three folders: `forecasts/` for prediction drift, also on days not yet over; `inputs/` for input drift against the training features; `scored/` for accuracy and the rolling window. Retraining needs a cutoff, the moment up to which a new model may learn, and the simulated clock gives it a "now". Chapter 37 also scores the champion by these `scored/` files when it compares it with a retrained model.
 
 ## Try it yourself
 
@@ -189,7 +189,7 @@ Run the tests of the replay.
 .venv\Scripts\python.exe -m pytest tests/unit/flows -q
 ```
 
-You should see `42 passed, 1 warning`.
+You should see `75 passed, 12 warnings`. The count includes the 33 tests of the retraining flow of Chapter 37, and the warnings come from libraries, as in Chapter 10.
 
 ## Key takeaways
 

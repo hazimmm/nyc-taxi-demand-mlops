@@ -192,7 +192,7 @@ The first line of `conftest.py` states a rule: "Tests never touch the network or
 
 Imagine a test that downloads a real TLC file. It takes minutes. It fails when the website is slow or your connection is down. It gives a different result when the file is corrected at the source. A failed test then no longer means "the code is broken", and after a few false alarms people stop reading failures. Tests are only useful if a failure can be trusted.
 
-So the tests build tiny tables in memory, as `_silver_trips()` does with two rows, and replace outside services with test doubles. The complete suite runs in about two minutes on the machine of this book. Chapter 14 shows how the download code, which does almost nothing except use the network, is tested under the same rule.
+So the tests build tiny tables in memory, as `_silver_trips()` does with two rows, and replace outside services with test doubles. The complete suite runs in about six to twelve minutes on the machines of this book. Chapter 14 shows how the download code, which does almost nothing except use the network, is tested under the same rule.
 
 ## Try it yourself
 
@@ -218,7 +218,7 @@ Run everything with coverage.
 .venv\Scripts\python.exe -m pytest --cov -q
 ```
 
-You should see `950 passed, 14 warnings` after about eleven to twelve minutes, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.92%`. Three warnings come from MLflow and its database library (Chapter 26), one from the test client of FastAPI (Chapter 30), and ten from NumPy and Litestar, two libraries that Evidently imports (Chapter 35). The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
+You should see `983 passed, 14 warnings` after about six to twelve minutes, depending on the machine, a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.93%`. Three warnings come from MLflow and its database library (Chapter 26), one from the test client of FastAPI (Chapter 30), and ten from NumPy and Litestar, two libraries that Evidently imports (Chapter 35). The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
 
 ## Key takeaways
 

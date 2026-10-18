@@ -140,7 +140,7 @@ Run the linter, the format check and the type checker.
 .venv\Scripts\python.exe -m mypy
 ```
 
-You should see `All checks passed!`, then `100 files already formatted`, then `Success: no issues found in 47 source files`. The numbers grow with the project. `--check` makes the formatter report without changing files.
+You should see `All checks passed!`, then `102 files already formatted`, then `Success: no issues found in 48 source files`. The numbers grow with the project. `--check` makes the formatter report without changing files.
 
 Give the linter a line with a problem. The text before the `|` is sent to ruff as if it were a file named `demo.py`.
 

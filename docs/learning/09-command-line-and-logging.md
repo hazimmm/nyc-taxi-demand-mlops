@@ -91,7 +91,7 @@ The first is the dependency groups of Chapter 6. The training stage needs LightG
 
 The second is speed. Loading large libraries takes seconds. Printing a help text should not wait for them.
 
-The third is the order of building. The full list of commands existed before any stage did, and today ten stages are written: `ingest`, `select-zones`, `silver`, `gold`, `validate`, `backtest`, `train`, `tune`, `promote` and `set-champion` (Chapters 14 to 29). A missing module is not an import error that breaks the whole program. It is a clear message for that one command.
+The third is the order of building. The full list of commands existed before any stage did, and the stages were written one by one, from `ingest` in Chapter 14 to `retrain` in Chapter 37. A command whose module did not exist yet was not an import error that broke the whole program, but a clear message for that one command.
 
 ```mermaid
 flowchart TB
@@ -208,22 +208,13 @@ You should see one line of this form, with the current time:
 
 The two extra values are separate fields. The `+00:00` at the end of the time shows that it is UTC.
 
-Run a command whose stage does not exist yet.
+Until Chapter 37, `python -m demand retrain` showed the branch "no" of Figure 9.1: its module did not exist, and the command printed `Not implemented yet: demand.flows.retrain_flow` and ended with exit code 1. Today every stage module exists and no stage is a placeholder, so no real command reaches the message. Two tests show both ways to it. The first tells the program that the module of `ingest` does not exist; the second puts a fake stage in the place of a real one, and the fake only raises `NotImplementedError("validate arrives later")`.
 
 ```powershell
-.venv\Scripts\python.exe -m demand retrain
-$LASTEXITCODE
+.venv\Scripts\python.exe -m pytest tests/unit/test_cli.py -q -k "unimplemented or placeholder"
 ```
 
-You should see `Not implemented yet: demand.flows.retrain_flow` and then the number `1`. This is the branch "no" of Figure 9.1: the module of the retraining stage is not written, and the command says so in one line, without a long error report, and with a failure code.
-
-No real command is a placeholder today, so the other way to this message cannot be shown with a command. A test shows it. It puts a fake stage in the place of a real one, and the fake only raises `NotImplementedError("validate arrives later")`.
-
-```powershell
-.venv\Scripts\python.exe -m pytest tests/unit/test_cli.py -q -k "placeholder"
-```
-
-You should see `1 passed, 27 deselected`. The test checks that the command prints `Not implemented yet: validate arrives later` and that the exit code is 1.
+You should see `2 passed, 26 deselected`. The tests check that the command prints `Not implemented yet` (and, for the placeholder, `Not implemented yet: validate arrives later`) and that the exit code is 1.
 
 Run the test that checks every stage command.
 
@@ -231,7 +222,7 @@ Run the test that checks every stage command.
 .venv\Scripts\python.exe -m pytest tests/unit/test_cli.py -q -k "each_command"
 ```
 
-You should see `11 passed, 17 deselected`. One stage does not exist yet, so how can its command be tested? Chapter 10 explains the method: the test puts a fake module in the place of the real one.
+You should see `11 passed, 17 deselected`. The test does not run the real stages, which would train models and download data. Chapter 10 explains the method: it puts a fake module in the place of the real one.
 
 ## Key takeaways
 
