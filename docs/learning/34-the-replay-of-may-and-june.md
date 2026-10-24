@@ -71,7 +71,7 @@ A forecast on disk is never computed again, a scored day is not scored again, an
 
 **Not a DVC stage.** A stage turns its inputs into its outputs in one run, and DVC deletes the outputs before it runs a stage (Chapter 21). The replay moves one day per step and keeps every file. Its next step reads its own earlier output and the alias `champion`, which DVC does not see (Chapter 29).
 
-**No Prefect yet.** The steps are plain functions that a Prefect flow will call when orchestration is added. A Prefect wrapper now would start a temporary server at every run and add nothing.
+**No Prefect in the replay command.** The steps are plain functions. `python -m demand forecast` calls them directly; a Prefect wrapper there would start a temporary server at every run and add nothing. Chapter 38 puts a thin Prefect flow around the same functions, for the runs that start on a schedule.
 
 ## The result
 
@@ -189,7 +189,7 @@ Run the tests of the replay.
 .venv\Scripts\python.exe -m pytest tests/unit/flows -q
 ```
 
-You should see `75 passed, 12 warnings`. The count includes the 33 tests of the retraining flow of Chapter 37, and the warnings come from libraries, as in Chapter 10.
+You should see `94 passed, 171 warnings`. The count includes the 33 tests of the retraining flow of Chapter 37 and the 19 of the orchestration of Chapter 38, and the warnings come from libraries, as in Chapter 10.
 
 ## Key takeaways
 

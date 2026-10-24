@@ -114,6 +114,21 @@ def test_monitor_refuses_a_day_in_another_format() -> None:
     assert result.exit_code == 2
 
 
+def test_schedule_passes_the_schedule_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[tuple[object, ...]] = []
+    _fake_module(
+        monkeypatch, "demand.flows.orchestration", serve_daily_step=lambda *args: calls.append(args)
+    )
+
+    runner.invoke(app, ["schedule", "--every-minutes", "2", "--push-to", "http://gw:9091"])
+    runner.invoke(app, ["schedule", "--cron", "0 1 * * *", "--days", "3"])
+
+    assert [call[1:] for call in calls] == [
+        (2, None, 1, "http://gw:9091"),
+        (None, "0 1 * * *", 3, None),
+    ]
+
+
 def test_forecast_refuses_zero_steps() -> None:
     result = runner.invoke(app, ["forecast", "--days", "0"])
 

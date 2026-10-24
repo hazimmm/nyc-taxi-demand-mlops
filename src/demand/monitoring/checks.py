@@ -75,7 +75,7 @@ behind the champion's backtest MAE is checked, not assumed: their MAE must equal
 backtest MAE recorded for the champion in the registry, to the six decimals stored. If
 the config, the data or the code no longer match the champion, the MAE differs, and this
 check is not evaluated (its ``note`` says why) instead of comparing against forecasts of
-some other model. The four fits take one to two minutes, on every run of the command
+some other model. The four fits take 15 to 30 seconds, on every run of the command
 (nothing caches them).
 
 The test is the same as for the inputs: Wasserstein distance on ``forecast``,

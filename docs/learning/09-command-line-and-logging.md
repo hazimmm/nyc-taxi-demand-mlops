@@ -91,7 +91,7 @@ The first is the dependency groups of Chapter 6. The training stage needs LightG
 
 The second is speed. Loading large libraries takes seconds. Printing a help text should not wait for them.
 
-The third is the order of building. The full list of commands existed before any stage did, and the stages were written one by one, from `ingest` in Chapter 14 to `retrain` in Chapter 37. A command whose module did not exist yet was not an import error that broke the whole program, but a clear message for that one command.
+The third is the order of building. The full list of commands existed before any stage did, and the stages were written one by one, from `ingest` in Chapter 14 to `retrain` in Chapter 37. Only `schedule`, of Chapter 38, was added to the list later. A command whose module did not exist yet was not an import error that broke the whole program, but a clear message for that one command.
 
 ```mermaid
 flowchart TB
@@ -214,7 +214,7 @@ Until Chapter 37, `python -m demand retrain` showed the branch "no" of Figure 9.
 .venv\Scripts\python.exe -m pytest tests/unit/test_cli.py -q -k "unimplemented or placeholder"
 ```
 
-You should see `2 passed, 26 deselected`. The tests check that the command prints `Not implemented yet` (and, for the placeholder, `Not implemented yet: validate arrives later`) and that the exit code is 1.
+You should see `2 passed, 27 deselected`. The tests check that the command prints `Not implemented yet` (and, for the placeholder, `Not implemented yet: validate arrives later`) and that the exit code is 1.
 
 Run the test that checks every stage command.
 
@@ -222,7 +222,7 @@ Run the test that checks every stage command.
 .venv\Scripts\python.exe -m pytest tests/unit/test_cli.py -q -k "each_command"
 ```
 
-You should see `11 passed, 17 deselected`. The test does not run the real stages, which would train models and download data. Chapter 10 explains the method: it puts a fake module in the place of the real one.
+You should see `11 passed, 18 deselected`. The test does not run the real stages, which would train models and download data. Chapter 10 explains the method: it puts a fake module in the place of the real one.
 
 ## Key takeaways
 
@@ -235,12 +235,12 @@ You should see `11 passed, 17 deselected`. The test does not run the real stages
 
 ## Exercises
 
-**1.** The image of the training commands (Chapter 32) installs the `ml` group, without the library `prometheus-client` that only the web service uses. Someone moves `import prometheus_client` to the top of `cli.py` "to keep imports tidy". What happens when that container runs `demand train`?
+**1.** The image of the web service (Chapter 32) installs the `serving` group, without Prefect, which only the scheduler of Chapter 38 uses. Someone moves `import prefect` to the top of `cli.py` "to keep imports tidy". What happens when that container runs `demand serve`?
 
 <details>
 <summary>Answer</summary>
 
-It fails immediately with `ModuleNotFoundError: No module named 'prometheus_client'`. Python executes all imports at the top of `cli.py` before it looks at which command was asked for. The library is in the `serving` group, which this image does not have. The `train` command never needs it, but it cannot start. This is the first reason for lazy imports: the imports of `cli.py` must not decide what a command needs.
+It fails immediately with `ModuleNotFoundError: No module named 'prefect'`. Python executes all imports at the top of `cli.py` before it looks at which command was asked for. The library is in the `orchestration` group, which this image does not have. The `serve` command never needs it, but it cannot start. This is the first reason for lazy imports: the imports of `cli.py` must not decide what a command needs.
 
 </details>
 

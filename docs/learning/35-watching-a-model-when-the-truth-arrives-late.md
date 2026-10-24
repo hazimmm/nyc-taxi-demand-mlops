@@ -144,7 +144,7 @@ You should see:
 2025-06-24 2025-06-30 28.501161 24.106025 1.1823
 ```
 
-Evaluate as of 00:00 on 29 May, into a scratch folder, so that the report in `reports/` stays as it is (Chapter 7 explained the variable). It takes one to two minutes, mostly for the reference: between 100 and 115 seconds on the machine of this book.
+Evaluate as of 00:00 on 29 May, into a scratch folder, so that the report in `reports/` stays as it is (Chapter 7 explained the variable). It takes up to two minutes, mostly for the reference: between 100 and 115 seconds on the machine of this book when this chapter was written, and 52 seconds when Chapter 38 was written. The scheduled flow of Chapter 38 computes the reference once per run and keeps it for the following days.
 
 ```powershell
 $env:DEMAND_PATHS__REPORTS_DIR = "$env:TEMP\monitoring"

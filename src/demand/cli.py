@@ -125,6 +125,26 @@ def set_champion(
 
 
 @app.command()
+def schedule(
+    every_minutes: Annotated[
+        int | None, typer.Option(min=1, help="A run every N minutes (a demo of the replay).")
+    ] = None,
+    cron: Annotated[
+        str | None, typer.Option(help='A cron schedule, e.g. "0 1 * * *" (production).')
+    ] = None,
+    days: Annotated[int, typer.Option(min=1, help="Simulated days per run.")] = 1,
+    push_to: Annotated[
+        str | None, typer.Option(help="Pushgateway for the monitoring numbers.")
+    ] = None,
+) -> None:
+    """Serve the daily step (forecast, monitor, retrain) on a Prefect schedule.
+
+    Needs a Prefect server (PREFECT_API_URL). Give exactly one of --every-minutes and --cron.
+    """
+    _run_stage("demand.flows.orchestration", "serve_daily_step", every_minutes, cron, days, push_to)
+
+
+@app.command()
 def forecast(
     days: Annotated[
         int,

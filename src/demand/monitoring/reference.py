@@ -9,7 +9,7 @@ forecasts. Their MAE is returned too, so the caller can compare it with the back
 the registry holds for the champion: only if the two agree are these the forecasts of
 that champion's backtest (``checks.py``).
 
-It fits four models, so it takes one to two minutes, on every run of the command. The
+It fits four models, so it takes 15 to 30 seconds, on every run of the command. The
 replay of monitoring day by day computes it once and passes it to every day
 (``flows/monitoring_flow.py``).
 """

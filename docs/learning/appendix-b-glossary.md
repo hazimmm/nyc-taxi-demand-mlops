@@ -26,6 +26,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Build backend | The tool that turns a source folder into something installable. Here: hatchling. | 5 |
 | Build context | The folder whose files the steps of a Dockerfile may copy, filtered by `.dockerignore`. Here the project folder, given as the last `.` of `docker build`. | 32 |
 | Cache (DVC) | The folder `.dvc/cache`, in which DVC keeps a copy of every output of a stage. | 21 |
+| Cache policy (Prefect) | The rule by which Prefect decides whether a task may reuse an earlier result. Both tasks of this project use `NO_CACHE`, because the same inputs on another day of the clock must do another day's work. | 38 |
 | Capability (Linux) | One part of the power of root, such as opening ports below 1024. The API container drops all of them (`cap_drop: ["ALL"]`). | 33 |
 | Cardinality (of a metric) | The number of distinct combinations of label values of a series. Each combination is a time series of its own, so a label must have few values: here the route and the status, never a day or a zone. | 31 |
 | Categorical feature | An input whose values are labels from a fixed list, not amounts. Here: `zone_id`. A tree can put any group of labels on one side of a question. | 24 |
@@ -43,6 +44,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Comparison weeks (retraining) | The 28 days before the cutoff, on which the champion's real forecasts, a backtest of the retrained recipe and the weekly baseline are scored on the same 13,440 zone-hours. | 37 |
 | Complete (of an hourly count) | Said of the count of an hour once the hour has ended. The pickups of 18:00 are complete at 19:00. | 2 |
 | Complete grid | A table with one row for every combination of zone and hour, whether something happened or not. An hour without pickups is a row with 0. | 18 |
+| Concurrency limit | The largest number of runs that may be in progress at once. The deployment `daily-step` allows one, with the strategy `CANCEL_NEW`: a run that becomes due while another is in progress is cancelled, not queued. | 38 |
 | Configuration | The values that can change without the logic changing: dates, paths, limits, addresses. | 7 |
 | Constant | A name for a value that never changes, written in capitals. | 8 |
 | Constraint (lock file) | A file given to `uv pip compile` with `-c`, whose versions the new lock must use. The lock of each image is made with `-c requirements.lock`, so it holds the same versions as the main lock. | 32 |
@@ -55,6 +57,8 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Coverage gate | A rule that fails the test run when coverage is under a limit. Here 80%, applied with `--cov`. | 10 |
 | CrashLoopBackOff | The state Kubernetes shows for a container that exits again and again, restarted with growing pauses. Docker Compose shows the same situation as `Restarting (3)`. | 33 |
 | CRLF / LF | The two ways to mark the end of a line: Windows (two characters) and Linux or macOS (one). | 12 |
+| Cron schedule | A schedule written as five fields: minute, hour, day of month, month, day of week, named after the Unix tool cron. `"0 1 * * *"` means 01:00 every day. | 38 |
+| CronJob (Kubernetes) | A Kubernetes object that starts a container on a cron schedule. Its setting `concurrencyPolicy: Forbid` skips a run while the last one is still running. Planned for Phase 6. | 38 |
 | Cutoff (retraining) | The last day a retrained model may learn from: the day before the moment of the retrain, so every training target ended before its first forecast. | 37 |
 | Data contract | A precise description of a table that can be checked automatically and that producer and consumer both rely on. | 8 |
 | Data leakage | Training or testing with information that is not available when the model is really used. | 2, 19 |
@@ -64,6 +68,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Decorator | A marker above a function, starting with `@`, that changes how the function is used. | 9 |
 | Dependency | A library that the code needs in order to run. | 6 |
 | Dependency injection | Giving a function the things it depends on, such as a network client, as arguments, so that a test can pass different ones. | 14 |
+| Deployment (Prefect) | A flow registered with the Prefect server, with its parameters and schedule, so that the server can say when a run is due. Here `daily-step/nyc-taxi-demand`, registered by `python -m demand schedule`. | 38 |
 | `deps`, `params`, `outs` | The three lists of a stage in `dvc.yaml`: the files the stage reads, the config keys it uses, and what it writes. `deps` is short for dependencies, here in the sense of files, not libraries. | 21 |
 | Deterministic | Said of a process that gives the same output for the same input, every time. | 25 |
 | Digest (image) | The SHA-256 checksum of one exact image, written after `@`. Unlike a tag, it cannot be moved to another image. | 32 |
@@ -81,6 +86,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Entry point | The place where a program starts. Here: `python -m demand`. | 9 |
 | `.env` file | A text file with lines of the form `NAME=value`, read into environment variables when the program starts. Not stored in git. | 7 |
 | Environment variable | A named value outside the program, set by the shell or the platform and read at start-up. | 7 |
+| Ephemeral mode (Prefect) | What Prefect does when a flow runs without a server address: it starts a temporary server for the run, about 17 to 20 seconds here, with a database under `PREFECT_HOME`. | 38 |
 | Exit code | The number a program returns when it ends. Zero is success. uvicorn returns 3 when the startup of the service fails. | 9, 31 |
 | Expanding window | A way to cut the training rows of a backtest: every fold trains from the first row of the table, so later folds have more training rows. | 23 |
 | Expected failure | A failure that is not a mistake in the code, such as a missing input file or a failed quality gate. It is printed as one line that says what to do next. Here: every `PipelineError`. | 20 |
@@ -95,6 +101,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Final fit | Fitting the chosen recipe once more on all training rows, after the backtest. The result is the model that is stored. | 26 |
 | Fit | To let a forecaster learn from past rows. A baseline has the method and learns nothing. | 22 |
 | Fixture | A function that prepares something for tests. A test asks for it by parameter name. | 10 |
+| Flow (Prefect) | A Python function, marked with `@flow`, that Prefect runs and records as one run with its state and logs. Here `daily_step`. | 38 |
 | Fold | One repetition of a backtest, with its own training and test period. | 3, 23 |
 | Footer (Parquet) | A small block at the end of a Parquet file that describes its columns, types and number of rows. | 14 |
 | Forecast | A prediction about a future time, made from past data. | 1 |
@@ -123,6 +130,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Ingest | To bring data from outside sources into the project. The first stage of the pipeline. | 14 |
 | Input drift | A change in the distribution of the model inputs compared with the reference. Here 10 of the 16 inputs are tested, and the inputs count as drifted when the share of drifted columns is 0.3 or more. | 35 |
 | Input example | A few rows of valid model inputs, stored next to the model. Here: the first five training rows. | 26 |
+| Interval schedule | A schedule that makes a run due every fixed period, such as one minute: `--every-minutes 1`, the demo of the stack. | 38 |
 | Issue moment | The moment a forecast is made, which fixes what it may know. Here 00:00 on the day before the forecast day, or 01:00 around the night the clocks go back. The service reports it as `issued_at`; the replay stores it as `generated_at`. | 2, 30, 34 |
 | JSON | A standard text format for structured data. The service answers in it. | 9, 30 |
 | Label (metric) | A name and a value that split a Prometheus series, such as `status="422"`. | 31 |
@@ -160,7 +168,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | monkeypatch | A pytest fixture that changes something for one test and restores it afterwards. | 10 |
 | Multi-stage build | A Dockerfile with more than one stage, where a later stage copies only what it needs from an earlier one. Here the venv crosses from `builder` to `runtime`, and the install tools stay behind. | 32 |
 | Naive timestamp | A date and time without a timezone. | 17 |
-| Named volume | A volume that Docker creates and keeps under a name. The stack has five, with the prefix `nyc-taxi-demand_`; `docker compose down -v` deletes them. | 32, 33 |
+| Named volume | A volume that Docker creates and keeps under a name. The stack has six, with the prefix `nyc-taxi-demand_`; `docker compose down -v` deletes them. | 32, 33 |
 | NaT | "Not a time": the missing value for timestamps in pandas. | 17 |
 | Network (containers) | A private connection between containers, on which one reaches another by its service name, such as `http://mlflow:5000`. Compose creates one for the stack. | 32, 33 |
 | Noise (of a score) | Movement of a score that comes from chance, such as another seed, and not from a difference in the model. Here about 0.2 pickups of MAE. | 25 |
@@ -169,7 +177,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | OpenAPI | A standard format that describes the endpoints, parameters and answers of a web service. FastAPI writes it at `/openapi.json` and shows it at `/docs`. | 30 |
 | Optional dependency group | A named set of additional libraries, installed only where needed. | 6 |
 | Optuna | A library that searches for hyper-parameters: it proposes values, sees the score, and proposes better ones. Used by `python -m demand tune`. | 27 |
-| Orchestrator | A program that starts the steps of a pipeline on a schedule and in order. Here Prefect, which will call the daily step `run_day` once a day. | 37 |
+| Orchestrator | A program that starts the steps of a pipeline on a schedule, runs one at a time where needed, records every run with its logs, and retries what is safe to retry. Here Prefect, which runs the daily step `run_day` as the flow `daily-step`. | 37, 38 |
 | Outlier flag | A true/false column that marks an hour whose pickups are far from normal for its slot. The hour is kept. Here: `is_outlier`. | 18 |
 | Over-fitting to the validation set | Settings chosen on a validation set fit it better than they fit new data, so its score for them is too good. Here about 30% of the in-sample tuning gain did not hold on weeks the search had not seen. | 27 |
 | p-value | The probability of a difference at least as large as the one seen, if both samples came from the same distribution. It assumes independent rows, which hours of a time series are not, so this project's drift test uses no p-value. | 35 |
@@ -188,7 +196,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Port mapping | A rule that makes a port of a container reachable from the machine, such as `127.0.0.1:8000:8000`. Bound to `127.0.0.1`, it is not reachable from the network. | 33 |
 | Prediction drift | A change in the distribution of the forecasts compared with forecasts of the same recipe on hours it had not learned from: here the backtest's fold forecasts, computed again. | 35 |
 | Producer / consumer | The step that writes a table / the step that reads it. | 8 |
-| Profile (Compose) | A label that keeps a service out of `docker compose up`. The service `pipeline` has one, because it runs a command and ends. | 33 |
+| Profile (Compose) | A label that keeps a service out of `docker compose up`. The service `pipeline` has the profile `pipeline`, because it runs a command and ends; the `scheduler` has `schedule`, because it writes a new day of forecasts every minute. | 33, 38 |
 | Prometheus text format | The plain-text format of `/metrics`: lines `# HELP` and `# TYPE` for each series, then one line per value with its labels. | 31 |
 | Promotion gate | The rule that decides whether the newest model version becomes champion, run as `python -m demand promote`. It is not part of `dvc repro`, so rebuilding never changes the served model. | 29 |
 | Provisioning (Grafana) | Setting up Grafana from files at every start: here the Prometheus data source and the dashboards "Prediction API" and "Model monitoring". | 33, 36 |
@@ -216,13 +224,14 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Rolling-origin backtest | A backtest repeated with a training end date that moves forward. | 3 |
 | Run (MLflow) | One recorded execution of the training, with an id. It holds parameters (settings chosen before), metrics (numbers produced), tags (where it came from) and artifacts (files). | 26 |
 | Sampler | The part of Optuna that proposes the next values. Here TPE, seeded with `project.seed`: ten random trials, then more trials near the values that scored well. | 27 |
+| Schedule | A rule that says when runs of a flow are due: an interval or a cron line. Here each run moves the simulated clock by one day, whatever the date on the wall. | 38 |
 | Schema | The formal definition of a table: columns, types and rules. | 8 |
 | Scrape | One request of Prometheus for the `/metrics` page of a target. Here every 15 seconds, of the API and of the Pushgateway. | 33, 36 |
 | Search space | The ranges in which a search may choose each hyper-parameter. | 27 |
 | Seasonal naive forecast | The forecast "the same as one season ago". Here the season is a week. See *baseline*. | 22 |
 | Seed | The number from which a computer starts its sequence of random-looking numbers. The same seed gives the same random choices. Here: `project.seed`. | 25 |
 | Seed check | Scoring the current and the best hyper-parameters again with two more seeds, to see whether a gain is larger than the noise. | 27 |
-| Service (Compose) | One kind of container in `docker-compose.yml`, with its image and settings: `mlflow`, `api`, `prometheus`, `pushgateway`, `grafana` and `pipeline`. | 33, 36 |
+| Service (Compose) | One kind of container in `docker-compose.yml`, with its image and settings: `mlflow`, `api`, `prometheus`, `pushgateway`, `grafana`, `prefect`, and `pipeline` and `scheduler` behind profiles. | 33, 36, 38 |
 | SHA-256 | A method for calculating a checksum of 64 characters. | 15 |
 | Shadow forecast | A forecast of a model that is not served, issued and scored next to the served one and shown to nobody. It would let two models be compared on the same days; this project does not build it, so rollback stays by hand. | 37 |
 | SHAP value | The contribution of one input to one forecast. The base value plus the SHAP values of all inputs of a row is exactly the output of the model. | 28 |
@@ -246,6 +255,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Tag (image) | The readable part of an image name after `:`, such as `3.12.15-slim-trixie` or `local`. A tag can be moved to another image; compare *digest*. | 32 |
 | Tag (model version) | A label that stays with one model version, such as `promotion.decision = promoted`. Compare *alias*, which can move. | 29 |
 | Target | The thing a model predicts. Here: the number of pickups. | 2 |
+| Task (Prefect) | A function called inside a flow that Prefect records as a run of its own, with its own state, time, logs and retries. Here `day` (no retries) and `push to the pushgateway` (2 retries). | 38 |
 | Test double | A simple object that stands in for a real one during a test. | 10 |
 | Test set | The data that judges a model and takes part in no decision. A choice tuned on it makes its score too good. Here the replay of May and June plays this role. | 37 |
 | Time-based split | Training on data before a date and testing on data after it. | 3 |
@@ -273,6 +283,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Web framework | A library in which a web application is written. It maps paths to functions and turns their results into responses. Here: FastAPI. | 30 |
 | Web service | A program that starts, prepares itself and then waits for requests over the network, and answers each one. | 30 |
 | Window (monitoring) | The last days a check looks at: 7 here. For drift, the last 7 forecast days issued; for accuracy, the last 7 days that are over, which end two days earlier. | 35 |
+| Work pool / worker (Prefect) | The way to run deployments on infrastructure chosen per run: the server holds the work, and a worker process starts each run, for example in a new container. Not used here; `serve()` runs the flow in one long-running process. | 38 |
 | Write-once | Said of a record that is never changed after it is written. Here a forecast file in `data/predictions/forecasts/`; the actual values go into a separate table, `scored/`. | 34 |
 | YAML | A text format for configuration that is easy for people to read. | 7 |
 | Z-score | The distance of a value from the mean of its group, counted in standard deviations. | 18 |

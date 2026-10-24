@@ -63,7 +63,7 @@ python -m demand forecast --days 61         # replay May and June 2025 day by da
 python -m demand monitor                     # drift and live accuracy at the replay clock
 ```
 
-`forecast` moves a simulated clock: each step issues the next day's forecast at 00:00 on the day before, with the same code as the API, and scores the days that are over against the real pickups and the weekly baseline (`data/predictions/`, `reports/replay_report.json`). `monitor` checks input drift, prediction drift and live accuracy over the last 7 days (`reports/monitoring_report.json`). Only accuracy raises an alert (live MAE at least 1.25 times the backtest MAE); drift is reported as a warning. `--as-of YYYY-MM-DD` evaluates an earlier day of the replay; `--push-to http://localhost:9091` sends the numbers to the Pushgateway of the Docker stack. Each run takes one to two minutes. `python -m demand retrain` retrains when the accuracy alert is on and the last retrain is at least `monitoring.retrain_cooldown_days` days old: the new model learns from every hour before the clock, is scored on the last 4 weeks against the champion's real forecasts and the baseline on the same hours, and is promoted only if it passes the same gate as `promote`. Rollback stays manual (`set-champion`). `retrain` evaluates monitoring first, as of the issue moment of the newest forecast, and rewrites `reports/monitoring_report.json`; run `monitor` again for the report at the clock. Results of the replay: [docs/model-card.md](docs/model-card.md).
+`forecast` moves a simulated clock: each step issues the next day's forecast at 00:00 on the day before, with the same code as the API, and scores the days that are over against the real pickups and the weekly baseline (`data/predictions/`, `reports/replay_report.json`). `monitor` checks input drift, prediction drift and live accuracy over the last 7 days (`reports/monitoring_report.json`). Only accuracy raises an alert (live MAE at least 1.25 times the backtest MAE); drift is reported as a warning. `--as-of YYYY-MM-DD` evaluates an earlier day of the replay; `--push-to http://localhost:9091` sends the numbers to the Pushgateway of the Docker stack. Each run takes under a minute. `python -m demand retrain` retrains when the accuracy alert is on and the last retrain is at least `monitoring.retrain_cooldown_days` days old: the new model learns from every hour before the clock, is scored on the last 4 weeks against the champion's real forecasts and the baseline on the same hours, and is promoted only if it passes the same gate as `promote`. Rollback stays manual (`set-champion`). `retrain` evaluates monitoring first, as of the issue moment of the newest forecast, and rewrites `reports/monitoring_report.json`; run `monitor` again for the report at the clock. Results of the replay: [docs/model-card.md](docs/model-card.md).
 
 ## Run with Docker
 
@@ -77,6 +77,15 @@ docker compose up -d --wait                 # API, Prometheus, Pushgateway, Graf
 ```
 
 API at http://localhost:8000/docs, MLflow at http://localhost:5000, Prometheus at http://localhost:9090, the Pushgateway at http://localhost:9091, Grafana at http://localhost:3000 (dashboards open without a login; admin login from `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` in `.env`, `admin`/`admin` if unset, for a laptop only). The stack keeps its own model store in Docker volumes and never reads `mlflow.db` or `mlruns/`; it reads `data/` read-only. Commit before `train`: the gate refuses a model trained from changed files. Until a champion exists the API exits with code 3 and `docker compose ps` shows it restarting. `docker compose down` stops everything and keeps the volumes; `docker compose down -v` deletes them.
+
+## Scheduled with Prefect
+
+```powershell
+docker compose up -d --wait                 # the stack, now with a Prefect server
+docker compose --profile schedule up -d scheduler   # one simulated day a minute
+```
+
+The scheduler serves the daily step (forecast, monitor, retrain if due) as a Prefect deployment and pushes each day's monitoring numbers to the Pushgateway. Runs are listed at http://localhost:4200. One simulated day a minute is a demo of the mechanism: the replay covers May and June 2025 in about an hour. In production the same command would run once a night: `python -m demand schedule --cron "0 1 * * *"`. The stack writes its own replay into `data/predictions-stack` with its own champion; `docker compose --profile schedule down` stops it.
 
 ## Learning book as a PDF
 

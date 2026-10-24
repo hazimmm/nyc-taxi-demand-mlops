@@ -94,6 +94,14 @@ Official documentation for the tools that the repository uses today, a few books
 
 - **Designing Machine Learning Systems** (see above) – the chapter "Continual Learning and Test in Production" discusses how often to retrain, why a retrained model must be evaluated against the one in production before it replaces it, and shadow deployment, the idea behind the shadow forecasts of Chapter 37.
 
+## Scheduling
+
+- **Prefect documentation, "Flows"** – what a flow is, how a flow calls tasks, and the section "Why both flows and tasks?" (Chapter 38). <https://docs.prefect.io/v3/concepts/flows>
+- **Prefect documentation, "Tasks"** – what a task run records, and the options for retries and caching, which link to their own guides. <https://docs.prefect.io/v3/concepts/tasks>
+- **Prefect documentation, "Deployments"** – the difference between `serve()`, one long-running process for flows on a fixed machine, and work pools with workers, which start each run on infrastructure chosen per run. <https://docs.prefect.io/v3/concepts/deployments>
+- **Prefect documentation, "Schedule flow runs"** – the cron and interval schedules. <https://docs.prefect.io/v3/concepts/schedules>
+- **Kubernetes documentation, "CronJob"** – for Phase 6: a schedule for containers, and `concurrencyPolicy`, the Kubernetes form of the rule "never two runs at once". <https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/>
+
 ## Command line, tests and code quality
 
 - **Typer documentation** – commands, arguments, testing a CLI. <https://typer.tiangolo.com>

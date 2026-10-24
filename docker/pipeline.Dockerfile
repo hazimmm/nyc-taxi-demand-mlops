@@ -1,5 +1,6 @@
 # The image of the batch side: the `demand` command line (train, promote, tune, backtest,
-# and the data commands) and, in docker-compose.yml, the MLflow tracking server.
+# forecast, monitor, retrain, and the data commands) and, in docker-compose.yml, the
+# MLflow tracking server and the scheduler of the daily step (Prefect).
 #
 #   docker build -f docker/pipeline.Dockerfile -t nyc-taxi-demand/pipeline:local .
 #
@@ -7,9 +8,14 @@
 # shared steps line by line (the two stages, the pinned base, the lock, the cache). Only
 # what differs is explained here:
 #
-#   * the libraries of docker/requirements-pipeline.lock: the `ml` extra (LightGBM,
-#     MLflow, Optuna, SHAP, matplotlib). FastAPI and uvicorn come with it, because the
-#     MLflow server needs them; only the Prometheus client of the API is missing;
+#   * the libraries of docker/requirements-pipeline.lock: the extras `ml` (LightGBM,
+#     MLflow, Optuna, SHAP, matplotlib), `monitoring` (Evidently, the Prometheus client)
+#     and `orchestration` (Prefect). FastAPI and uvicorn come with them, because the
+#     MLflow server needs them. The lock is compiled against requirements.lock, so every
+#     version in it is the one the project is developed and tested with:
+#       uv pip compile pyproject.toml --extra ml --extra monitoring --extra orchestration
+#         --universal --python-version 3.12 -c requirements.lock
+#         -o docker/requirements-pipeline.lock
 #   * git, which training calls to record the commit a model was trained from;
 #   * a home folder for the user, and two folders for the MLflow server's volumes.
 #
@@ -18,6 +24,8 @@
 # use as a client. Taking it from this image guarantees that client and server match,
 # runs it as a user without privileges (the official image, ghcr.io/mlflow/mlflow, runs as
 # root and is 1.3 GB on its own), and leaves one image fewer to pull and keep up to date.
+# The Prefect server does not come from this image (docker-compose.yml says why); the
+# scheduler of the daily step does, as a Prefect client.
 #
 # DVC is not installed, and `dvc repro` does not run in a container. The data stages
 # write data/, dvc.lock and the DVC cache into the project folder; from a container they
@@ -73,7 +81,8 @@ RUN apt-get update \
 RUN git config --system --add safe.directory '*'
 
 # The user, as in the API image (same number), but with a home folder: matplotlib (the
-# SHAP plot) and MLflow keep small caches and settings under ~ and fail without one.
+# SHAP plot) and MLflow keep small caches and settings under ~ and fail without one, and
+# a Prefect client keeps its settings in ~/.prefect.
 RUN groupadd --system --gid 10001 app \
     && useradd --system --uid 10001 --gid app --create-home --home-dir /home/app \
        --shell /usr/sbin/nologin app
@@ -81,10 +90,10 @@ RUN groupadd --system --gid 10001 app \
 # The folders the containers of this image write to; docker-compose.yml mounts a named
 # volume on each. /mlflow/backend and /mlflow/artifacts: the MLflow server's database and
 # model files. /work/reports: the reports the commands write (backtest, training,
-# promotion), which must not land in the read-only checkout. They are created here, owned
-# by the user, because Docker fills a new named volume with what the image has at that
-# path, owner included. Without them the volumes would be created empty and owned by
-# root, and the user could not write to them.
+# promotion, replay, monitoring, retrain), which must not land in the read-only checkout.
+# They are created here, owned by the user, because Docker fills a new named volume with
+# what the image has at that path, owner included. Without them the volumes would be
+# created empty and owned by root, and the user could not write to them.
 RUN mkdir -p /mlflow/backend /mlflow/artifacts /work/reports \
     && chown -R app:app /mlflow /work
 

@@ -127,7 +127,7 @@ flowchart LR
 | **Drift warns, accuracy alerts.** Input and prediction drift are computed at once and reported as warnings; only live MAE against the backtest MAE, once actuals arrive, raises an alert. Batch numbers reach Prometheus through a Pushgateway. | Ground truth is always late, but the drift test fired in 10 of 11 normal training weeks, so it cannot trigger an action. |
 | **Gated retraining** with cooldown and rollback. | An automatically retrained model must not replace a better one. |
 | **DVC for the pipeline definition, Prefect for scheduling**, both calling the same functions. | Reproducibility in development, automation in production, no duplicated logic. |
-| **Docker Compose has its own MLflow server and store** in named volumes; the pipeline container trains and promotes a champion in it. Prefect joins Compose in phase 5, when its first flow exists. | A local `mlflow.db` stores Windows paths that a container cannot open, and a fresh clone has no store at all: the stack must rebuild its model from the data. |
+| **Docker Compose has its own MLflow server and store** in named volumes; the pipeline container trains and promotes a champion in it. Prefect serves the daily step in Compose (profile `schedule`). | A local `mlflow.db` stores Windows paths that a container cannot open, and a fresh clone has no store at all: the stack must rebuild its model from the data. |
 
 ## Contracts
 

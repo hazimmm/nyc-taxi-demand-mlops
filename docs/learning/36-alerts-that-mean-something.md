@@ -86,7 +86,7 @@ flowchart TB
     G["grafana :3000<br/>dashboard Model monitoring"] --> P
 ```
 
-*Figure 36.3 – How the numbers of a batch command reach Grafana.*
+*Figure 36.3 – How the numbers of a batch command reach Grafana. Since Chapter 38 the scheduler of the stack sends the same PUT after every simulated day, to `http://pushgateway:9091`.*
 
 `docker-compose.yml` has a sixth service, `pushgateway`, from an image pinned by digest, on port 9091 bound to `127.0.0.1`. [`prometheus.yml`](../../monitoring/prometheus/prometheus.yml) has a second scrape job, `demand-monitoring`, with `honor_labels: true`: Prometheus keeps the labels the numbers were pushed with, such as `check`, instead of replacing them with the labels of the target.
 

@@ -96,9 +96,9 @@ uv pip compile pyproject.toml --extra serving --universal --python-version 3.12 
 |---|---|
 | `requirements.lock` (all groups) | 282 |
 | `docker/requirements-api.lock` (`serving`) | 117 |
-| `docker/requirements-pipeline.lock` (`ml`) | 112 |
+| `docker/requirements-pipeline.lock` (`ml`, `monitoring`, `orchestration`) | 201 |
 
-*Figure 32.2 – The three lock files.*
+*Figure 32.2 – The three lock files. Until the last push of Phase 5 the pipeline lock held the `ml` group only, 112 libraries; Chapter 38 explains the change.*
 
 The container engineer of this project built the API image both ways. With the full lock it was 2.42 GB on disk and 512 MB compressed. With its own lock it is 1.45 GB and 331 MB. The compressed size is what a server downloads.
 
@@ -156,12 +156,12 @@ The opposite, a list of what to leave out, sends every new folder to the build u
 
 [`docker/pipeline.Dockerfile`](../../docker/pipeline.Dockerfile) builds the image of the batch commands: `train`, `promote`, `tune` and the others. It has the same two stages, base and user number. Its comments name what differs.
 
-- It installs `docker/requirements-pipeline.lock`, the `ml` group. It has no `prometheus-client`, which only the service uses.
+- It installs `docker/requirements-pipeline.lock`: the groups `ml`, `monitoring` (Evidently and the Prometheus client, Chapters 35 and 36) and `orchestration` (Prefect, Chapter 38). Its 201 versions are all equal to those of `requirements.lock`.
 - It installs `git`. `demand train` records the commit of the code and whether files differed from it (Chapter 26), and the promotion gate refuses a model without a clean commit (Chapter 29).
 - The user has a home folder, because matplotlib and MLflow keep small files under it.
 - Its entry point is `demand`, so `docker run nyc-taxi-demand/pipeline:local train` runs `demand train`.
 
-The same image also runs the MLflow server of Chapter 33. The server is MLflow itself, version 3.17.0 from the same lock, so server and clients cannot differ.
+The same image also runs the MLflow server of Chapter 33. The server is MLflow itself, version 3.17.0 from the same lock, so server and clients cannot differ. Since Chapter 38 it also runs the scheduler of the daily step. The Prefect server is the exception: it comes from Prefect's official image, because with the libraries of this lock it could not schedule (Chapter 38).
 
 **DVC stays on your machine.** The image has no DVC. The data stages write `data/`, `dvc.lock` and the DVC cache into the project folder. From a container they would write into your checkout as another user, through the slowest kind of mount that Docker Desktop has. So `dvc repro` runs on your machine, as in Chapter 21, and the containers only read the data.
 
@@ -175,19 +175,19 @@ These commands need Docker Desktop running and the images built. If `docker imag
 docker image ls "nyc-taxi-demand/*"
 ```
 
-You should see the two images, with `DISK USAGE` 1.45GB and 1.56GB and `CONTENT SIZE` 331MB and 359MB. The `ID` column will differ on your machine. Ask which user the service runs as.
+You should see the two images, with `DISK USAGE` 1.45GB and 2.22GB and `CONTENT SIZE` 331MB and 462MB. Before the groups `monitoring` and `orchestration` were added in Chapter 38, the pipeline image was 1.56 GB and 359 MB. The `ID` column will differ on your machine. Ask which user the service runs as.
 
 ```powershell
 docker run --rm --entrypoint id nyc-taxi-demand/api:local
 ```
 
-`docker run` starts a container from the image, `--entrypoint id` runs the program `id` in place of the service, and `--rm` deletes the container when it ends. You should see `uid=10001(app) gid=10001(app) groups=10001(app)`. Check that the pipeline image lacks the library of the service.
+`docker run` starts a container from the image, `--entrypoint id` runs the program `id` in place of the service, and `--rm` deletes the container when it ends. You should see `uid=10001(app) gid=10001(app) groups=10001(app)`. Check that the API image lacks a library it does not need: Prefect, the scheduler of Chapter 38.
 
 ```powershell
-docker run --rm --entrypoint python nyc-taxi-demand/pipeline:local -c "import prometheus_client"
+docker run --rm --entrypoint python nyc-taxi-demand/api:local -c "import prefect"
 ```
 
-The last line should be `ModuleNotFoundError: No module named 'prometheus_client'`. Count the pinned libraries of the API lock with the command of Chapter 6.
+The last line should be `ModuleNotFoundError: No module named 'prefect'`. Count the pinned libraries of the API lock with the command of Chapter 6.
 
 ```powershell
 (Select-String -Path docker/requirements-api.lock -Pattern '^[a-zA-Z0-9_.\-]+==').Count

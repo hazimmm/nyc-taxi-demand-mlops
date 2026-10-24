@@ -6,7 +6,7 @@ The images of Chapter 32 exist. The service in its container needs three more th
 
 - Why the stack has its own MLflow server, and what that proved about the model.
 - A bug that only the containers could find, and the test that now guards it.
-- The five services of `docker-compose.yml`, and how they start in order.
+- The services of `docker-compose.yml`, and how they start in order.
 - What a container does when the service exits with code 3.
 - Volumes, mounts and ports, and four settings that harden the API container.
 - How Prometheus and Grafana are set up from files.
@@ -71,7 +71,7 @@ The new test `test_the_model_comes_from_the_configured_store_and_not_from_mlflow
 
 The lesson: a second environment is a test. The unit tests ran in one place, with one coincidence that hid the bug. The containers changed the working folder, the filesystem and the address, and the bug appeared.
 
-## Five services
+## The services
 
 ```mermaid
 flowchart TD
@@ -81,9 +81,9 @@ flowchart TD
     T["pipeline<br/>train, promote"] -->|"registers versions"| M
 ```
 
-*Figure 33.3 – The services and who calls whom. All run on one network that Compose creates. Phase 5 added a sixth, `pushgateway`, which Prometheus also scrapes (Chapter 36).*
+*Figure 33.3 – The services of Phase 4 and who calls whom. All run on one network that Compose creates. Phase 5 added three more: `pushgateway`, which Prometheus also scrapes (Chapter 36), the Prefect server `prefect`, and the `scheduler`, which runs the daily step when Prefect says a run is due (Chapter 38).*
 
-A **service** in Compose is one kind of container with its image and settings. `mlflow`, `api`, `prometheus` and `grafana` stay up, and since Phase 5 `pushgateway` too. `pipeline` runs one command and ends, so it has a **profile**: a label that keeps it out of `docker compose up`. `docker compose run --rm pipeline train` starts it anyway.
+A **service** in Compose is one kind of container with its image and settings. The file has eight. `mlflow`, `api`, `prometheus` and `grafana` stay up, and since Phase 5 `pushgateway` and `prefect` too. `pipeline` runs one command and ends, so it has a **profile**: a label that keeps it out of `docker compose up`. `docker compose run --rm pipeline train` starts it anyway. The eighth, `scheduler`, stays up but writes a new day of forecasts every minute, so it has a profile of its own, `schedule` (Chapter 38).
 
 The services reach each other by name: the API calls `http://mlflow:5000`, and Prometheus calls `api:8000`. These names exist only on the network of the stack.
 
@@ -103,11 +103,11 @@ Every service that stays up has `restart: unless-stopped`: Docker starts it agai
 
 ## Volumes, mounts and ports
 
-The stack keeps five named volumes: the MLflow database and model files, the reports of the pipeline, the measurements of Prometheus and the database of Grafana. `docker compose down` removes the containers and keeps the volumes. `docker compose down -v` deletes them.
+The stack keeps six named volumes: the MLflow database and model files, the reports of the pipeline, the measurements of Prometheus, the database of Grafana and, since Chapter 38, the database of Prefect. `docker compose down` removes the containers and keeps the volumes. `docker compose down -v` deletes them.
 
 The API sees two folders of your machine through read-only bind mounts: `data/gold` and `data/silver/weather`, the two tables of its snapshot (Chapter 30). The pipeline sees the whole checkout read-only at `/repo` (Chapter 32), and writes its reports into a volume, so the `reports/` folder of your machine stays as it is.
 
-A **port mapping** makes a port of a container reachable from your machine. The API's is `"127.0.0.1:8000:8000"`: port 8000 of the address `127.0.0.1` on your machine leads to port 8000 in the container. Every port of the stack is bound to `127.0.0.1`, so it is reachable from your machine and not from the network your machine is on. MLflow and Prometheus have no login, so this binding is their only protection, which is enough for a laptop. Inside the container the service listens on `0.0.0.0`, as Chapter 30 set: a request that arrives through the mapping comes in on the container's own network address, not on its `127.0.0.1`.
+A **port mapping** makes a port of a container reachable from your machine. The API's is `"127.0.0.1:8000:8000"`: port 8000 of the address `127.0.0.1` on your machine leads to port 8000 in the container. Every port of the stack is bound to `127.0.0.1`, so it is reachable from your machine and not from the network your machine is on. MLflow, Prometheus and, since Chapter 38, the Prefect server have no login, so this binding is their only protection, which is enough for a laptop. Inside the container the service listens on `0.0.0.0`, as Chapter 30 set: a request that arrives through the mapping comes in on the container's own network address, not on its `127.0.0.1`.
 
 ## A container that cannot change itself
 
@@ -126,7 +126,7 @@ Grafana is set up by **provisioning**: at every start it reads files that define
 
 Anyone who opens Grafana sees the dashboards as a Viewer, without a login, and can change nothing. The admin login comes from `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` in `.env`, or `admin` and `admin` when they are not set. That default is for a laptop behind `127.0.0.1` only.
 
-Prefect, the scheduler of the plan, is not in the stack. The replay of Chapter 34 runs as plain functions without it. Prefect arrives when the steps of Phase 5 are scheduled; until then it would be a container that runs and does nothing.
+Prefect was left out of the stack in Phase 4, because a container that runs and does nothing adds nothing. It joined with its first flow, in Chapter 38: the service `prefect` is the Prefect server, on port 4200, with its database in the volume `prefect-data`. Unlike MLflow, it does not run from the pipeline image but from Prefect's official image, and Chapter 38 explains why.
 
 ## From zero
 
@@ -143,7 +143,7 @@ docker compose up -d --wait
 2. `up -d --wait mlflow` starts an empty MLflow server and returns when it is healthy. `-d` runs the containers in the background.
 3. `train` trains and registers version 1. It took 43 seconds when the container engineer ran it. Commit first: the gate of step 4 refuses a model trained from changed files.
 4. `promote` prints the decision shown above.
-5. `up -d --wait` starts the rest and returns when all the services that stay up are healthy: four in Phase 4, five since the Pushgateway of Chapter 36.
+5. `up -d --wait` starts the rest and returns when all the services that stay up are healthy: four in Phase 4, five with the Pushgateway of Chapter 36, six with the Prefect server of Chapter 38. The scheduler is not started; Chapter 38 shows how.
 
 The container engineer also ran the steps out of order. With step 5 before step 3, the API exits with code 3 and the message `No model is registered under 'taxi-demand' in http://mlflow:5000…`. Between steps 3 and 4 the message is `The alias 'champion' is not set on 'taxi-demand' (aliases set: none; versions: [1])…`. In both cases `docker compose ps` shows `Restarting (3)`, and the API comes up by itself after `promote`.
 
@@ -163,7 +163,7 @@ docker compose up -d --wait
 docker compose ps --format "table {{.Service}}\t{{.Status}}"
 ```
 
-You should see five lines, `api`, `grafana`, `mlflow`, `prometheus` and `pushgateway`, each with `Up` and `(healthy)`. Ask the service which model it serves.
+You should see six lines, `api`, `grafana`, `mlflow`, `prefect`, `prometheus` and `pushgateway`, each with `Up` and `(healthy)`. The `scheduler` of Chapter 38 is not among them, because of its profile. Ask the service which model it serves.
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8000/ready

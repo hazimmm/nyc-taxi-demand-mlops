@@ -5,12 +5,12 @@
 #   docker compose up -d --wait mlflow            # start an empty MLflow server
 #   docker compose run --rm pipeline train        # train and register a model in it
 #   docker compose run --rm pipeline promote      # make it champion if it passes the gate
-#   docker compose up -d --wait                   # the API, Prometheus, Pushgateway, Grafana
-#   python -m demand monitor --push-to http://localhost:9091   # on the host: monitoring numbers
+#   docker compose up -d --wait                   # the API, Prefect, Prometheus, Pushgateway, Grafana
+#   docker compose --profile schedule up -d       # ... and the daily step, once a minute (demo)
 #
 #   http://localhost:8000/docs   the API            http://localhost:5000   MLflow
 #   http://localhost:9090        Prometheus         http://localhost:3000   Grafana
-#   http://localhost:9091        Pushgateway
+#   http://localhost:9091        Pushgateway        http://localhost:4200   Prefect
 #
 #   docker compose down       # stop and remove the containers; the volumes are kept
 #   docker compose down -v    # ... and delete the volumes: the MLflow store, the metrics
@@ -25,14 +25,12 @@
 # or changed by any of this.
 #
 # **Where the data comes from.** data/ is built on the host by `dvc repro` and mounted
-# read-only. Nothing in the stack writes to the project folder.
+# read-only. Nothing in the stack writes to the project folder, except the replay of the
+# stack into data/predictions-stack (see the pipeline service).
 #
 # Ports are published on 127.0.0.1 only: reachable from this machine, not from the network
-# it is on. Nothing here has a login worth the name (MLflow and Prometheus have none), so
-# that line is the only protection, and it is enough for a laptop.
-#
-# Prefect is not here yet. Phase 5 adds its server together with the first flow that
-# uses it; until then it would be a container that runs and does nothing.
+# it is on. Nothing here has a login worth the name (MLflow, Prefect and Prometheus have
+# none), so that line is the only protection, and it is enough for a laptop.
 
 name: nyc-taxi-demand
 
@@ -101,7 +99,7 @@ services:
     # .git, so that the model is recorded with the commit and data version it came from
     # (the promotion gate refuses a model without them).
     working_dir: /repo
-    environment:
+    environment: &pipeline-environment
       DEMAND_MLFLOW__TRACKING_URI: http://mlflow:5000
       # The reports go to a volume; the reports/ of the project folder stays as it is.
       DEMAND_PATHS__REPORTS_DIR: /work/reports
@@ -110,7 +108,7 @@ services:
       # the image was built from an older checkout. The libraries still come from the
       # image: after a change to the dependencies, rebuild it (`docker compose build`).
       PYTHONPATH: /repo/src
-    volumes:
+    volumes: &pipeline-volumes
       - .:/repo:ro
       # The replay writes its forecasts here (src/demand/flows/forecast_flow.py). A
       # folder of its own: the stack's MLflow store numbers its versions independently
@@ -133,6 +131,75 @@ services:
     depends_on:
       mlflow:
         condition: service_healthy
+
+  # ------------------------------------------------------------------------------------
+  # Prefect: the server that keeps the schedule and the record of every flow run. Its UI
+  # shows the runs of the daily step, each simulated day a task run with its logs.
+  # ------------------------------------------------------------------------------------
+  prefect:
+    # The official image, pinned by version and by digest like the others. The same
+    # Prefect as the scheduler (3.8.8), but not from the pipeline image, as MLflow is:
+    # the server's scheduling fails with the SQLAlchemy of requirements.lock (2.1.4;
+    # "Can't evaluate bulk DML statement" at every attempt to create the next runs),
+    # and this image comes with SQLAlchemy 2.0.45, with which it works. Pushed on
+    # 6 October 2026, the day 3.8.8 was released. It runs as root, as published.
+    image: prefecthq/prefect:3.8.8-python3.12@sha256:57e02b3f63d663e02b06d4127362ea48d92d4b361fbd96c8ba8f01e5702755f4
+    command: ["prefect", "server", "start", "--host", "0.0.0.0", "--port", "4200"]
+    environment:
+      # The database (flow runs, deployments, schedules) and Prefect's other files, in
+      # a named volume. Four slashes, as for MLflow: an absolute path.
+      PREFECT_HOME: /prefect
+      PREFECT_SERVER_DATABASE_CONNECTION_URL: sqlite+aiosqlite:////prefect/prefect.db
+      # Where the browser on the host finds the API; the other containers use
+      # http://prefect:4200/api.
+      PREFECT_UI_API_URL: http://localhost:4200/api
+      # No usage statistics sent to Prefect.
+      PREFECT_SERVER_ANALYTICS_ENABLED: "false"
+    volumes:
+      - prefect-data:/prefect
+    ports:
+      - "127.0.0.1:4200:4200"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:4200/api/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------------------
+  # The scheduler: runs the daily step (src/demand/flows/orchestration.py) when the
+  # Prefect server says a run is due. One simulated day a minute, a demo: the data end
+  # on 30 June 2025, and each run moves the replay's clock by one day whatever the wall
+  # clock says (production would be a cron, "0 1 * * *"; the module explains). Each run
+  # sends its monitoring numbers to the Pushgateway, for Prometheus and Grafana.
+  # ------------------------------------------------------------------------------------
+  scheduler:
+    image: nyc-taxi-demand/pipeline:local
+    build: *pipeline-build
+    # A profile, because it writes: every minute it forecasts one more day into
+    # data/predictions-stack. `docker compose --profile schedule up -d` starts it.
+    profiles: ["schedule"]
+    working_dir: /repo
+    command: ["schedule", "--every-minutes", "1", "--push-to", "http://pushgateway:9091"]
+    environment:
+      <<: *pipeline-environment
+      PREFECT_API_URL: http://prefect:4200/api
+      # The log lines of the daily step (one per simulated day) reach the Prefect UI,
+      # not only those of Prefect itself.
+      PREFECT_LOGGING_EXTRA_LOGGERS: demand
+    # The same mounts as the pipeline service: the checkout read-only (so that a retrain
+    # is recorded with its commit), the stack's replay files and the reports volume.
+    volumes: *pipeline-volumes
+    depends_on:
+      mlflow:
+        condition: service_healthy
+      prefect:
+        condition: service_healthy
+      pushgateway:
+        condition: service_healthy
+    restart: unless-stopped
 
   # ------------------------------------------------------------------------------------
   # The prediction API.
@@ -199,7 +266,8 @@ services:
 
   # ------------------------------------------------------------------------------------
   # Pushgateway: keeps the numbers the monitoring command sent last, for Prometheus.
-  # `python -m demand monitor --push-to http://localhost:9091` sends them from the host
+  # The scheduler sends them after every simulated day; `python -m demand monitor
+  # --push-to http://localhost:9091` sends them from the host
   # (src/demand/monitoring/metrics.py says why a batch command pushes instead of being
   # scraped). It keeps them in memory only: after a restart there is nothing until the
   # next run of the command, and an empty panel says so.
@@ -266,5 +334,6 @@ volumes:
   mlflow-backend:
   mlflow-artifacts:
   pipeline-reports:
+  prefect-data:
   prometheus-data:
   grafana-data:

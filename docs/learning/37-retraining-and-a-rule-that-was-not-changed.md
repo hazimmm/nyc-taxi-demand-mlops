@@ -137,7 +137,7 @@ An honest automatic rollback needs **shadow forecasts**: forecasts of the old ch
 - **The nights the clocks change.** Around the night the clocks go back, the issue moment is 01:00 (Chapter 30). May and June have no such night, and the retrain was not tested on one.
 - **Prediction drift after a retrain.** Its reference is the April backtest of the first training, whose MAE does not match the one recorded for a retrained version, so the check reports "not evaluated".
 
-The last push of Phase 5 adds an **orchestrator**, Prefect: a program that starts the daily step on a schedule. The step is already one function, `run_day`: forecast and score, monitor as of the same moment, retrain if needed. The simulation was that function in a loop.
+Chapter 38 adds an **orchestrator**, Prefect: a program that starts the daily step on a schedule. The step is already one function, `run_day`: forecast and score, monitor as of the same moment, retrain if needed. The simulation was that function in a loop, and the scheduled flow is the same loop with a clock in front of it.
 
 ## Try it yourself
 
@@ -210,4 +210,4 @@ The rule, fixed before the replay, rejected it, and the gain comes from a compar
 
 ---
 
-[Previous: Chapter 36 – Alerts that mean something, and the numbers in Grafana](36-alerts-that-mean-something.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 36 – Alerts that mean something, and the numbers in Grafana](36-alerts-that-mean-something.md) | [Contents](README.md) | [Next: Chapter 38 – A clock that starts the day: scheduling with Prefect](38-a-clock-that-starts-the-day.md)
