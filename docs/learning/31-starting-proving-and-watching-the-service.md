@@ -41,7 +41,7 @@ ERROR:    Application startup failed. Exiting.
 
 The **exit code** (Chapter 9) is 3, uvicorn's code for a failed startup. The message comes at the end of a traceback, not as the one line of Chapter 20, because uvicorn prints the error itself.
 
-The alternative would be a service that starts without a model and answers 503 on `/ready` until it has one. The docstring of `app.py` explains why that is worse. It needs a loop inside the process that keeps retrying, and without that loop the process waits for ever. Kubernetes, the system of Phase 6 that runs the containers, asks two different questions with automatic requests named probes. A **liveness** probe asks "is the process alive?", and Kubernetes restarts a container that fails it. A **readiness** probe asks "can it answer now?", and Kubernetes sends requests only to containers that pass it, but restarts none. A service with no model would be alive, never ready, and never restarted. A process that exits is restarted, with a growing pause between attempts, its message is in the log, and it comes up by itself once the alias is back. Chapter 33 shows this with Docker Compose, and Phase 6 with Kubernetes.
+The alternative would be a service that starts without a model and answers 503 on `/ready` until it has one. The docstring of `app.py` explains why that is worse. It needs a loop inside the process that keeps retrying, and without that loop the process waits for ever. Kubernetes, the system of Phase 6 that runs the containers, asks two different questions with automatic requests named probes. A **liveness** probe asks "is the process alive?", and Kubernetes restarts a container that fails it. A **readiness** probe asks "can it answer now?", and Kubernetes sends requests only to containers that pass it, but restarts none. A service with no model would be alive, never ready, and never restarted. A process that exits is restarted, with a growing pause between attempts, its message is in the log, and it comes up by itself once the alias is back. Chapter 33 shows this with Docker Compose, and Chapter 40 with Kubernetes.
 
 In practice a client never sees the 503 of Chapter 30. Until `lifespan` has finished the port is closed, and a probe that cannot connect counts as not ready too. The 503 is for an application used without its startup, as in the tests.
 
@@ -130,7 +130,7 @@ The docstring of `app.py` lists what is left out on purpose: authentication, COR
 The honest limits, measured on the machine of this book:
 
 - **Speed.** A request for one or two zones took about 35 ms, and one for all 20 zones about 53 ms. Of the 35 ms, building the features took about 25 ms, mostly pandas, and the model about 7 ms. The first request after a start was slower, between about 120 and 200 ms.
-- **One process.** uvicorn runs one worker process. More load needs more copies, which is the job of Phase 6. No load test was run.
+- **One process.** uvicorn runs one worker process. More load needs more copies, which is the job of Phase 6. No load test was run here; Chapter 40 runs a small one on Kubernetes.
 - **Stopping.** Whether requests in progress are finished when the process is told to stop (a graceful shutdown) is not tested.
 - **Two small gaps.** A failed start prints a traceback, not one line. And FastAPI's own pages `/docs` and `/openapi.json` are counted as `unmatched`.
 

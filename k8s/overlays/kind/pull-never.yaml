@@ -1,0 +1,42 @@
+# imagePullPolicy: Never on every container of the project. The images exist only on
+# this machine and in the kind node (`kind load docker-image`); there is no registry to
+# pull them from. Without it, a missing image would fail with a confusing
+# ErrImagePull from Docker Hub. With it, the error is ErrImageNeverPull: "load the image
+# into the node first".
+#
+# Strategic-merge patches: Kustomize finds each container by its name and changes only
+# the field given here.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  template:
+    spec:
+      containers:
+        - name: api
+          imagePullPolicy: Never
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+spec:
+  template:
+    spec:
+      containers:
+        - name: mlflow
+          imagePullPolicy: Never
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: daily-step
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: daily-step
+              imagePullPolicy: Never

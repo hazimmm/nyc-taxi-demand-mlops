@@ -1,0 +1,58 @@
+# The base: everything the project runs in Kubernetes, the same on every cluster.
+# An overlay (k8s/overlays/kind) adds what depends on the cluster: which image tags,
+# whether images may be pulled, whether the schedule runs. Render it with
+#
+#   kubectl kustomize k8s/overlays/kind
+#
+# The base on its own renders too, but its images have no tag, so it is not meant to be
+# applied directly. k8s/README.md explains every decision made in these files.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Every resource below lands in this namespace. Set here, in the base, and not in the
+# overlay: an overlay-wide namespace would also move the metrics-server of the kind
+# overlay out of kube-system, where it must live.
+namespace: nyc-taxi-demand
+
+# A label on every object, so `kubectl get all -l app.kubernetes.io/part-of=nyc-taxi-demand`
+# finds them. includeSelectors: false keeps it out of the Deployments' selectors, which
+# cannot be changed after a Deployment is created.
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: nyc-taxi-demand
+    includeSelectors: false
+
+resources:
+  - namespace.yaml
+  - data-pvc.yaml
+  - mlflow.yaml
+  - api.yaml
+  - daily-step-cronjob.yaml
+
+# Settings that are not secret, as DEMAND_<SECTION>__<KEY> variables
+# (src/demand/config.py): they override configs/config.yaml, which is baked into the
+# images. Kustomize adds a hash of the content to the name (demand-settings-7k2f...)
+# and rewrites every reference to it, so a changed value gives the pods a new name to
+# read, and the Deployment rolls its pods by itself. With a fixed name, a change would
+# reach only pods started after it, silently.
+configMapGenerator:
+  - name: demand-settings
+    literals:
+      # The MLflow Service of this namespace (mlflow.yaml).
+      - DEMAND_MLFLOW__TRACKING_URI=http://mlflow:5000
+      # The data volume (data-pvc.yaml) is mounted here. The same path as the
+      # config's relative "data", made explicit.
+      - DEMAND_PATHS__DATA_DIR=/app/data
+      # The reports of the daily step: on the data volume too, because the root
+      # filesystem of the containers is read-only.
+      - DEMAND_PATHS__REPORTS_DIR=/app/data/reports
+
+# A placeholder, and on purpose empty: nothing in this stack has a secret today (the
+# MLflow server has no login, Prefect and Grafana are not in the cluster). It exists so
+# that the wiring is in place (the API and the daily step read it with envFrom) and so
+# that a junior sees where a secret would go. A real secret is never committed: see
+# "Settings and secrets" in k8s/README.md for how to add one from a git-ignored file.
+secretGenerator:
+  - name: demand-secrets
+    type: Opaque

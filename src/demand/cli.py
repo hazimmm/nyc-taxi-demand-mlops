@@ -125,6 +125,25 @@ def set_champion(
 
 
 @app.command()
+def step(
+    days: Annotated[
+        int,
+        typer.Option(
+            min=1, help="Steps of the simulated clock to run; stops early at the end of the data."
+        ),
+    ] = 1,
+    push_to: Annotated[
+        str | None, typer.Option(help="Pushgateway for the monitoring numbers.")
+    ] = None,
+) -> None:
+    """Run the daily step (forecast, monitor, retrain if due) once, without Prefect.
+
+    What a Kubernetes CronJob runs; `schedule` serves the same step with Prefect.
+    """
+    _run_stage("demand.flows.orchestration", "run_days", days, push_to)
+
+
+@app.command()
 def schedule(
     every_minutes: Annotated[
         int | None, typer.Option(min=1, help="A run every N minutes (a demo of the replay).")

@@ -1,0 +1,18 @@
+# On a laptop the schedule does not start runs by itself: every run moves the replay's
+# clock by one simulated day, and that should be something the owner decides. A
+# suspended CronJob still works as a template for a run started by hand:
+#
+#   kubectl create job -n nyc-taxi-demand --from=cronjob/daily-step daily-step-manual-1
+#
+# To let it run every night at 01:00 (New York time), as in the base:
+#
+#   kubectl patch cronjob daily-step -n nyc-taxi-demand --type merge -p '{"spec":{"suspend":false}}'
+#
+# (in Windows PowerShell 5.1 the inner quotes must be escaped: '{\"spec\":{\"suspend\":false}}').
+# The next `kubectl apply -k` suspends it again.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: daily-step
+spec:
+  suspend: true

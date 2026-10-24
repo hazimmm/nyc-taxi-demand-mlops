@@ -69,6 +69,10 @@ services:
       - --allowed-hosts=mlflow:5000,localhost:5000,127.0.0.1:5000
       # One worker is plenty for one person; each worker is a process of its own.
       - --workers=1
+    environment:
+      # MLflow 3.17 starts background processes for its GenAI jobs, which this project
+      # does not use: measured 1.76 GiB of memory with them, 366 MiB without.
+      MLFLOW_SERVER_ENABLE_JOB_EXECUTION: "false"
     volumes:
       - mlflow-backend:/mlflow/backend
       - mlflow-artifacts:/mlflow/artifacts

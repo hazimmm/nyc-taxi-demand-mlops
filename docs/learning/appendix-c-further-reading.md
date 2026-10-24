@@ -61,7 +61,7 @@ Official documentation for the tools that the repository uses today, a few books
 - **MDN Web Docs on HTTP** – an overview of HTTP, request methods (GET and POST), and the list of response status codes, including 404, 422 and 503. <https://developer.mozilla.org/en-US/docs/Web/HTTP>
 - **Prometheus documentation** – the pages "Metric types" (counter, gauge, histogram), "Metric and label naming", and "Instrumentation", whose section "Do not overuse labels" explains the cost of cardinality. <https://prometheus.io/docs/concepts/metric_types/>, <https://prometheus.io/docs/practices/naming/> and <https://prometheus.io/docs/practices/instrumentation/>
 - **Prometheus Python client** – the pages on Counter, Gauge, Histogram, labels and registries. <https://prometheus.github.io/client_python/>
-- **Kubernetes documentation** – the page "Configure Liveness, Readiness and Startup Probes", for Phase 6; and the page "Configure a Security Context for a Pod or Container", which describes `runAsNonRoot` (Chapter 32). <https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/>
+- **Kubernetes documentation** – the page "Configure Liveness, Readiness and Startup Probes", used in Chapter 39; and the page "Configure a Security Context for a Pod or Container", which describes `runAsNonRoot` (Chapter 32). <https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/>
 
 ## Containers
 
@@ -100,7 +100,27 @@ Official documentation for the tools that the repository uses today, a few books
 - **Prefect documentation, "Tasks"** – what a task run records, and the options for retries and caching, which link to their own guides. <https://docs.prefect.io/v3/concepts/tasks>
 - **Prefect documentation, "Deployments"** – the difference between `serve()`, one long-running process for flows on a fixed machine, and work pools with workers, which start each run on infrastructure chosen per run. <https://docs.prefect.io/v3/concepts/deployments>
 - **Prefect documentation, "Schedule flow runs"** – the cron and interval schedules. <https://docs.prefect.io/v3/concepts/schedules>
-- **Kubernetes documentation, "CronJob"** – for Phase 6: a schedule for containers, and `concurrencyPolicy`, the Kubernetes form of the rule "never two runs at once". <https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/>
+- **Kubernetes documentation, "CronJob"** – used in Chapter 39: a schedule for containers, and `concurrencyPolicy`, the Kubernetes form of the rule "never two runs at once". <https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/>
+
+## Kubernetes
+
+- **Kubernetes documentation, "Learn Kubernetes Basics"** – a short tutorial: a cluster, a Deployment, a Service, scaling and a rolling update, in that order. Read it before Chapter 39. <https://kubernetes.io/docs/tutorials/kubernetes-basics/>
+- **Kubernetes documentation, "Kubernetes Components"** – the control plane, the API server, the controllers and the nodes. <https://kubernetes.io/docs/concepts/overview/components/>
+- **Kubernetes documentation, "Deployments" and "Service"** – rolling updates with `maxSurge` and `maxUnavailable`, the strategy `Recreate`, selectors, and the Service type `ClusterIP`. <https://kubernetes.io/docs/concepts/workloads/controllers/deployment/> and <https://kubernetes.io/docs/concepts/services-networking/service/>
+- **Kubernetes documentation, "Resource Management for Pods and Containers"** – requests and limits, CPU in thousandths, and what happens to a container over its memory limit. <https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/>
+- **Kubernetes documentation, "Horizontal Pod Autoscaling"** – the rule by which the HPA computes the number of replicas, its tolerance, how it treats pods without measurements, and the stabilisation window (Chapter 40). <https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/>
+- **Kubernetes documentation, "Persistent Volumes"** – claims, volumes and the access modes ReadWriteOnce and ReadWriteMany. <https://kubernetes.io/docs/concepts/storage/persistent-volumes/>
+- **Kubernetes documentation, "ConfigMaps" and "Secrets"** – settings as environment variables, and why a Secret is only encoded, not encrypted. <https://kubernetes.io/docs/concepts/configuration/configmap/> and <https://kubernetes.io/docs/concepts/configuration/secret/>
+- **Kubernetes documentation, "Jobs"** – `backoffLimit`, `activeDeadlineSeconds`, `ttlSecondsAfterFinished`, and the restart policy of a Job's pod. <https://kubernetes.io/docs/concepts/workloads/controllers/job/>
+- **Kubernetes documentation, "Pod Security Standards"** – the three levels, and every rule of the level "restricted". <https://kubernetes.io/docs/concepts/security/pod-security-standards/>
+- **Kubernetes documentation, "Use Port Forwarding to Access Applications in a Cluster"** – what `kubectl port-forward` does. <https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/>
+- **Kubernetes documentation, "Declarative Management of Kubernetes Objects Using Kustomize"** – bases, overlays, patches, and the ConfigMap and Secret generators with their hashed names. <https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/>
+- **Kustomize reference** – every field of a `kustomization.yaml`, such as `images`, `patches`, `labels` and `configMapGenerator`. <https://kubectl.docs.kubernetes.io/references/kustomize/>
+- **kind documentation, "Quick Start"** – installing kind, creating and deleting a cluster from a config file, pinning the node image, and `kind load docker-image`. <https://kind.sigs.k8s.io/docs/user/quick-start/>
+- **metrics-server README** – what it measures, how to install it, and the flag `--kubelet-insecure-tls`, with its warning. <https://github.com/kubernetes-sigs/metrics-server>
+- **kubeconform README** – checking manifests against the schemas of one Kubernetes version, without a cluster. <https://github.com/yannh/kubeconform>
+- **Git documentation, `git worktree`** – a second working folder of the same repository, used in Chapter 40 to train from a clean commit. <https://git-scm.com/docs/git-worktree>
+- **Kubernetes: Up and Running** by Brendan Burns, Joe Beda, Kelsey Hightower and Lachlan Evenson (O'Reilly, third edition, 2022) – a book that explains the same objects at more length, with the reasons behind them.
 
 ## Command line, tests and code quality
 

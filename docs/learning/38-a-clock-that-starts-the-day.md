@@ -170,7 +170,7 @@ One thing did not work as the Compose file says. `PREFECT_LOGGING_EXTRA_LOGGERS:
 
 Phase 5 built four things on the served model: a replay of May and June (Chapter 34), monitoring in which only accuracy alerts (Chapters 35 and 36), retraining judged by the gate (Chapter 37), and a schedule that starts the daily step and records every run.
 
-Phase 6 moves the stack to Kubernetes. A **CronJob** starts a container on a cron schedule. It can call `run_days` directly or keep Prefect. Its `concurrencyPolicy: Forbid` is the idea of `CANCEL_NEW`: a new run is skipped while the last one runs. And the clean-checkout check needs the commit baked into the image, because a cluster has no checkout to mount.
+Phase 6 moves the stack to Kubernetes (Chapters 39 and 40). A **CronJob** starts a container on a cron schedule. It calls `run_days` directly, through a new command `step`, without Prefect. Its `concurrencyPolicy: Forbid` is the idea of `CANCEL_NEW`: a new run is skipped while the last one runs. And the clean-checkout check needs the commit baked into the image, because a cluster has no checkout to mount; until then, a retrain that comes due in the cluster is refused (Chapter 40).
 
 ## Try it yourself
 
@@ -240,4 +240,4 @@ A run does not carry "its" day. It reads the folder of forecasts and does the ne
 
 ---
 
-[Previous: Chapter 37 – Retraining, and a rule that was not changed](37-retraining-and-a-rule-that-was-not-changed.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 37 – Retraining, and a rule that was not changed](37-retraining-and-a-rule-that-was-not-changed.md) | [Contents](README.md) | [Next: Chapter 39 – From Compose to a cluster: the objects of Kubernetes](39-from-compose-to-a-cluster.md)

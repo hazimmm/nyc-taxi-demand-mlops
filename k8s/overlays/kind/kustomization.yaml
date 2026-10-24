@@ -1,0 +1,34 @@
+# The base, for a local kind cluster (k8s/kind-cluster.yaml):
+#
+#   kubectl apply -k k8s/overlays/kind
+#
+# What this overlay changes, and nothing else:
+#   * the images: the tags built by `docker compose build`, loaded into the cluster's
+#     node with `kind load docker-image`, and never pulled (pull-never.yaml);
+#   * the daily step is suspended: runs are started by hand (suspend-daily-step.yaml).
+#
+# Two things of the kind setup are deliberately not in this kustomization:
+#   * metrics-server/ is a cluster add-on, applied once with its own `kubectl apply -k`:
+#     deleting the project (`kubectl delete -k k8s/overlays/kind`) must not remove it.
+#   * data-loader.yaml is a pod used once to copy the data in, then deleted: in here,
+#     every `kubectl apply` would start it again.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# The tag of the images that `docker compose build` makes. A local tag has no digest
+# to pin (an image gets a registry digest only when it is pushed); what pins the image
+# here is that `kind load docker-image` copies the exact image on this machine into the
+# node, and imagePullPolicy: Never stops the node from ever fetching another one.
+images:
+  - name: nyc-taxi-demand/api
+    newTag: local
+  - name: nyc-taxi-demand/pipeline
+    newTag: local
+
+patches:
+  - path: pull-never.yaml
+  - path: suspend-daily-step.yaml

@@ -91,7 +91,7 @@ The first is the dependency groups of Chapter 6. The training stage needs LightG
 
 The second is speed. Loading large libraries takes seconds. Printing a help text should not wait for them.
 
-The third is the order of building. The full list of commands existed before any stage did, and the stages were written one by one, from `ingest` in Chapter 14 to `retrain` in Chapter 37. Only `schedule`, of Chapter 38, was added to the list later. A command whose module did not exist yet was not an import error that broke the whole program, but a clear message for that one command.
+The third is the order of building. The full list of commands existed before any stage did, and the stages were written one by one, from `ingest` in Chapter 14 to `retrain` in Chapter 37. Only `schedule`, of Chapter 38, and `step`, of Chapter 39, were added to the list later. A command whose module did not exist yet was not an import error that broke the whole program, but a clear message for that one command.
 
 ```mermaid
 flowchart TB

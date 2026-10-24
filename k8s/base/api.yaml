@@ -1,0 +1,177 @@
+# The prediction API (`demand serve`, src/demand/serving): a Deployment, the Service in
+# front of it, and the HorizontalPodAutoscaler that sets how many pods run.
+# k8s/README.md, "The API", gives the measurements behind the numbers.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  labels:
+    app.kubernetes.io/name: api
+spec:
+  # No `replicas`: the HPA below owns the number of pods. With a number here, every
+  # `kubectl apply` would set it back and fight the autoscaler.
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      # A new pod first, and an old one removed only once the new one is ready: the
+      # number of pods that answer never drops during an update. `kubectl rollout
+      # restart deployment/api` is how a new champion is picked up
+      # (src/demand/serving/model_loader.py says why the service never swaps models).
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api
+    spec:
+      automountServiceAccountToken: false
+      # See mlflow.yaml: no Service variables injected into the environment.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: nyc-taxi-demand/api
+          # The image's CMD, `demand serve`, is what runs; nothing to override.
+          envFrom:
+            - configMapRef:
+                name: demand-settings
+            - secretRef:
+                name: demand-secrets
+          env:
+            # LightGBM and NumPy start one thread per CPU of the *node*, not of the
+            # limit below; under a limit of one CPU those threads only queue for it.
+            # Measured with --cpus 1: the same throughput (18 requests/s) and about
+            # 20 MiB less memory with one thread.
+            - name: OMP_NUM_THREADS
+              value: "1"
+          ports:
+            - name: http
+              containerPort: 8000
+          # Measured with docker stats and the cgroup's memory.peak on the compose
+          # image: 250 MiB after startup, 286 MiB peak under 16 parallel clients (one
+          # CPU). CPU: one request for three zones takes 46 ms; one pod saturates one
+          # CPU at about 18 such requests/s. The request (what the scheduler reserves,
+          # and what the HPA's percentage is of) is half a CPU; the limit is one, which
+          # a single uvicorn worker cannot use much beyond anyway.
+          resources:
+            requests:
+              cpu: 500m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          # The service opens its port only once the model and the data are loaded
+          # (src/demand/serving/app.py), 3 to 10 s warm, about 25 s cold. If it cannot
+          # load them it exits with code 3, and Kubernetes restarts it with a growing
+          # pause (CrashLoopBackOff) until it can.
+          #
+          # Startup: up to 2 minutes (24 x 5 s) before Kubernetes gives up and
+          # restarts the container. Liveness is not asked during that time, so a slow
+          # cold start is not mistaken for a hung process.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 24
+          # Liveness: "is the process alive?" Three failures in a row (30 s) and the
+          # container is restarted. /health needs nothing but the process.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          # Readiness: "can it answer a forecast?" A pod that fails it is taken out of
+          # the Service (no traffic) but not restarted.
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          # On deletion, the pod leaves the Service's endpoints while it is already
+          # being stopped, and for a moment some nodes still send it requests. Five
+          # seconds of waiting before the stop signal lets them catch up.
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            # The data snapshot, read-only: the service never writes data.
+            - name: data
+              mountPath: /app/data
+              readOnly: true
+            # Where the model is downloaded at startup (model_loader.py).
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: demand-data
+            readOnly: true
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  labels:
+    app.kubernetes.io/name: api
+spec:
+  # Inside the cluster only. From the laptop: `kubectl port-forward svc/api 8000:8000`.
+  # No Ingress: one person on one machine needs no public address.
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: api
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+---
+# More pods when the CPU is busy, fewer when it is not. The HPA reads the pods' CPU use
+# from metrics-server (installed separately, k8s/overlays/kind/metrics-server) every
+# 15 s. Utilization is a percentage of the *request* (500m): at 70 %, about 350m per
+# pod on average, it adds pods; below, it removes them, after five minutes of calm so
+# that a short pause does not shrink the fleet.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api
+  labels:
+    app.kubernetes.io/name: api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  # Two at least, so that one pod can restart (a new champion, a node drain) while the
+  # other answers. Four at most: on one laptop more pods only compete for the same CPUs.
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

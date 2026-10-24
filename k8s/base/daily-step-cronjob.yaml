@@ -1,0 +1,114 @@
+# The daily step of the replay (src/demand/flows/orchestration.py, `run_days`): forecast
+# the next simulated day, score the days that are over, monitor, and retrain if due.
+# In compose a Prefect scheduler runs it; here a CronJob does, one short-lived pod per
+# run, and no Prefect server is needed. k8s/README.md, "The daily step and retraining",
+# explains why a retrain that comes due is refused in the cluster, and what that looks
+# like.
+#
+# It runs `demand step`, a one-shot command (one call of run_days, then exit).
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: daily-step
+  labels:
+    app.kubernetes.io/name: daily-step
+spec:
+  # What production would run: once a night at 01:00, New York time (the timezone of
+  # the data). The kind overlay suspends it, and a run is started by hand instead
+  # (`kubectl create job --from=cronjob/daily-step ...`): each run moves the replay's
+  # clock by one simulated day whatever the wall clock says (orchestration.py).
+  schedule: "0 1 * * *"
+  timeZone: America/New_York
+  # Never two runs at once. A run that comes due while one is still going is skipped,
+  # not queued: the Kubernetes equivalent of the CANCEL_NEW of the Prefect deployment.
+  # Two runs would forecast the same day from the same folder of forecasts.
+  concurrencyPolicy: Forbid
+  # A run that could not start within 5 minutes of its time (the cluster was off) is
+  # skipped rather than started late; the next night's run does the next day anyway.
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # No retries, on purpose. The clock of the replay is the folder of forecasts: a
+      # run that failed *after* writing its forecast (a refused retrain, monitoring)
+      # has moved the clock, and a retry would forecast the next day, not repeat this
+      # one. A failure is for a person to read (`kubectl logs job/...`), as a failed
+      # flow run is in the Prefect UI.
+      backoffLimit: 0
+      # A run that hangs is stopped after 30 minutes (a normal one takes about a
+      # minute; a retrain, if it could run here, a few).
+      activeDeadlineSeconds: 1800
+      # Finished Jobs are deleted after a day, also those started by hand, which the
+      # history limits above do not count.
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: daily-step
+        spec:
+          # Never: a failed container is not restarted in the same pod either (the
+          # same reason as backoffLimit: 0).
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: daily-step
+              image: nyc-taxi-demand/pipeline
+              # The image's entry point is `demand`, so this runs `demand step`: one
+              # simulated day. No --push-to: there is no Pushgateway in the cluster
+              # (k8s/README.md, "Monitoring").
+              args: ["step"]
+              envFrom:
+                - configMapRef:
+                    name: demand-settings
+                - secretRef:
+                    name: demand-secrets
+              env:
+                # As in api.yaml: one thread for LightGBM under a limit of one CPU.
+                - name: OMP_NUM_THREADS
+                  value: "1"
+              # Measured on the pipeline image (cgroup memory.peak): `demand monitor`
+              # 472 MiB, the prediction-drift reference (four LightGBM fold models) 230
+              # MiB and 14 s at one CPU. A whole step was not measured: it writes
+              # forecasts, which this round did not do outside a cluster.
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 512Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                # Read and written: the step writes predictions/ and reports/.
+                - name: data
+                  mountPath: /app/data
+                - name: tmp
+                  mountPath: /tmp
+                # matplotlib and MLflow keep small caches in the home folder
+                # (docker/pipeline.Dockerfile); with a read-only root it must be a
+                # volume of its own.
+                - name: home
+                  mountPath: /home/app
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: demand-data
+            - name: tmp
+              emptyDir:
+                sizeLimit: 256Mi
+            - name: home
+              emptyDir:
+                sizeLimit: 64Mi

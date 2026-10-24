@@ -1,0 +1,65 @@
+# A pod that does nothing but hold the data volume open, so that the data built on the
+# host by `dvc repro` can be copied into it with `kubectl cp`. Used once, then deleted;
+# k8s/README.md, "The data" and step 4 of "Running it", gives the commands. Not part
+# of the kustomization (every `kubectl apply -k` would start it again), so it names its
+# namespace and image tag itself.
+#
+# Why a copy and not a folder of the host mounted into the kind node (extraMounts):
+# the same commands work on any cluster, the cluster's replay cannot write into the
+# project folder on the host, and there is no Windows path to get right in the kind
+# config. The data are about 3 MB, so copying costs nothing.
+#
+# It passes the namespace's "restricted" pod security like every other pod. It stops by
+# itself after an hour (activeDeadlineSeconds) if it is forgotten.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: data-loader
+  namespace: nyc-taxi-demand
+  labels:
+    app.kubernetes.io/name: data-loader
+    app.kubernetes.io/part-of: nyc-taxi-demand
+spec:
+  restartPolicy: Never
+  activeDeadlineSeconds: 3600
+  automountServiceAccountToken: false
+  enableServiceLinks: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: data-loader
+      # The pipeline image: it has the tar that `kubectl cp` needs, and it is already
+      # in the node, so nothing new is pulled.
+      image: nyc-taxi-demand/pipeline:local
+      imagePullPolicy: Never
+      command: ["sleep", "3600"]
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          cpu: 500m
+          memory: 128Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      volumeMounts:
+        - name: data
+          mountPath: /app/data
+        # Where `kubectl cp` puts the archive before it is unpacked.
+        - name: tmp
+          mountPath: /tmp
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: demand-data
+    - name: tmp
+      emptyDir:
+        sizeLimit: 64Mi

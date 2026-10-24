@@ -16,7 +16,7 @@ The images of Chapter 32 exist. The service in its container needs three more th
 
 The store of Chapter 26 is the file `mlflow.db` and the folder `mlruns`. It records where the files of each model are, as an absolute address: `file:C:/nyc-taxi-demand-mlops/mlruns/...`. Inside a Linux container there is no `C:`. A container given the database would find the version and fail to open its files. And a fresh clone of the repository has no store at all, because `mlflow.db` and `mlruns` are not in git (Chapter 12).
 
-So the stack does not use that store. **Docker Compose** is a tool that starts several containers together from one file, [`docker-compose.yml`](../../docker-compose.yml). Its service `mlflow` is an MLflow server with its own store. The database is a SQLite file in the named volume `mlflow-backend`. The model files are in the volume `mlflow-artifacts`, and the server sends them over HTTP. A client never reads them by a path. Their addresses start with `mlflow-artifacts:`. The training run in the stack has the address `mlflow-artifacts:/1/c2c39e815e354be3904809c7257e83cc/artifacts`, which names no folder of any machine.
+So the stack does not use that store. **Docker Compose** is a tool that starts several containers together from one file, [`docker-compose.yml`](../../docker-compose.yml). Its service `mlflow` is an MLflow server with its own store. The database is a SQLite file in the named volume `mlflow-backend`. The model files are in the volume `mlflow-artifacts`, and the server sends them over HTTP. A client never reads them by a path. Since Phase 6 the server runs with `MLFLOW_SERVER_ENABLE_JOB_EXECUTION=false`, which saves about 1.4 GiB of memory (Chapter 39). Their addresses start with `mlflow-artifacts:`. The training run in the stack has the address `mlflow-artifacts:/1/c2c39e815e354be3904809c7257e83cc/artifacts`, which names no folder of any machine.
 
 The store starts empty. The service `pipeline` fills it: it runs `demand train` and `demand promote` on the data in `data/`, with the same code and config as on your machine. The store on your machine is neither read nor changed.
 
@@ -99,7 +99,7 @@ The API must not start before MLflow can answer. Each service that stays up has 
 
 The API and the pipeline wait for a healthy `mlflow`, and Grafana for a healthy `prometheus`. Prometheus does not depend on the API, on purpose. Its job is to record that the API is down, so it must keep running when the API is not.
 
-Every service that stays up has `restart: unless-stopped`: Docker starts it again whenever it ends, unless you stopped it. Here Chapter 31 meets Docker. Without a champion, the service exits with code 3. Docker starts it again, waits longer after each attempt, and `docker compose ps` shows `Restarting (3)`. Once a champion exists, the next attempt succeeds and the service stays up. Kubernetes does the same in Phase 6, and calls the state CrashLoopBackOff.
+Every service that stays up has `restart: unless-stopped`: Docker starts it again whenever it ends, unless you stopped it. Here Chapter 31 meets Docker. Without a champion, the service exits with code 3. Docker starts it again, waits longer after each attempt, and `docker compose ps` shows `Restarting (3)`. Once a champion exists, the next attempt succeeds and the service stays up. Kubernetes does the same, and calls the state CrashLoopBackOff (Chapter 40).
 
 ## Volumes, mounts and ports
 

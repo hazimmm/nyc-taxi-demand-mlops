@@ -1,0 +1,31 @@
+# The project's data inside the cluster: one volume, mounted at /app/data.
+#
+#   gold/demand_hourly.parquet          read by the API and the daily step
+#   gold/features.parquet               read by the daily step (monitoring)
+#   silver/weather/weather_hourly.parquet   read by the API and the daily step
+#   predictions/                        written by the daily step: the replay's clock
+#   reports/                            written by the daily step
+#
+# The first three are built on the host by `dvc repro` and copied in once (about 3 MB;
+# k8s/README.md, "The data" and step 4 of "Running it"). The replay in the cluster
+# starts empty and is its own: the cluster's MLflow numbers its model versions
+# independently of the host's and the compose stack's, so the three replays must never
+# share files.
+#
+# ReadWriteOnce means "mounted by one *node* at a time", not one pod: on a one-node kind
+# cluster the API pods (read-only) and the daily step (read-write) all mount it. On a
+# cluster of several nodes they could be scheduled on different nodes and the second
+# would wait for ever to attach it. That cluster needs ReadWriteMany storage (NFS, a
+# cloud file share) or the data in object storage; k8s/README.md says more.
+#
+# No storageClassName: the cluster's default class. On kind that is "standard", the
+# local-path provisioner, which creates a folder on the node for each claim.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demand-data
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi

@@ -1,0 +1,14 @@
+# One namespace for the whole project: `kubectl delete namespace nyc-taxi-demand` removes
+# every object of it (and its volumes' claims) in one step.
+#
+# Pod Security Admission, level "restricted": the API server refuses any pod here that
+# could run as root, keeps Linux capabilities, can gain privileges, or runs without a
+# seccomp profile. Every pod in k8s/ is written to pass it; the label turns "we wrote it
+# that way" into "the cluster checks it", also for pods someone adds later.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nyc-taxi-demand
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted

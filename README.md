@@ -87,6 +87,19 @@ docker compose --profile schedule up -d scheduler   # one simulated day a minute
 
 The scheduler serves the daily step (forecast, monitor, retrain if due) as a Prefect deployment and pushes each day's monitoring numbers to the Pushgateway. Runs are listed at http://localhost:4200. One simulated day a minute is a demo of the mechanism: the replay covers May and June 2025 in about an hour. In production the same command would run once a night: `python -m demand schedule --cron "0 1 * * *"`. The stack writes its own replay into `data/predictions-stack` with its own champion; `docker compose --profile schedule down` stops it.
 
+## Run it on Kubernetes (kind)
+
+```powershell
+docker compose down                         # the cluster needs port 5000 and the memory
+docker compose build api pipeline
+kind create cluster --config k8s/kind-cluster.yaml
+kind load docker-image nyc-taxi-demand/api:local nyc-taxi-demand/pipeline:local --name nyc-taxi-demand
+kubectl apply -k k8s/overlays/kind/metrics-server
+kubectl apply -k k8s/overlays/kind
+```
+
+The same system on a local Kubernetes cluster ([kind](https://kind.sigs.k8s.io/) v0.33.0): MLflow, the API on two to four pods scaled by CPU, and the daily step as a CronJob (`python -m demand step`, one simulated day per run, without Prefect). The data is copied into a volume, a model is trained on the host against the cluster's MLflow and passes the same gate, and the API is reached with `kubectl port-forward`. Every step, what it prints and why each choice was made: [k8s/README.md](k8s/README.md). Retraining inside the cluster is refused by the gate, because the images carry no git commit; Prometheus and Grafana stay in compose. `kind delete cluster --name nyc-taxi-demand` removes everything.
+
 ## Learning book as a PDF
 
 ```powershell

@@ -1,0 +1,158 @@
+# MLflow: the tracking server and model registry of the cluster. The same server as the
+# mlflow service of docker-compose.yml, from the pipeline image (so server and clients
+# run the same MLflow, 3.17.0), with its store on a volume. k8s/README.md, "MLflow",
+# explains the choices; the comments here say what each line does.
+#
+# Its store is the cluster's own, empty at first: the host's mlflow.db names model files
+# by Windows paths, and the compose stack's store lives in Docker volumes. The first
+# model gets in through the same gate as everywhere else (k8s/README.md, step 5 of
+# "Running it").
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mlflow-store
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      # A model version is about 2 MB with its reports; 2 GiB is room for hundreds.
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+spec:
+  # Exactly one: the backend is a SQLite file, which one process at a time may write.
+  replicas: 1
+  # Recreate, not the default RollingUpdate: a rolling update starts the new pod before
+  # stopping the old one, and two servers would open the same SQLite file (and the same
+  # ReadWriteOnce volume) at once. Recreate stops the old pod first; the cost is a few
+  # seconds with no server, which the clients survive (they retry, or fail and are run
+  # again).
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mlflow
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mlflow
+    spec:
+      # The pod never talks to the Kubernetes API, so it gets no token for it.
+      automountServiceAccountToken: false
+      # No *_SERVICE_HOST / *_PORT variables for every Service of the namespace. The
+      # Service "mlflow" would give this pod MLFLOW_PORT=tcp://10.96.x.x:5000, and
+      # `mlflow server` reads MLFLOW_PORT as its --port: without the --port below it
+      # fails with "'tcp://...' is not a valid integer" (tried with docker run).
+      enableServiceLinks: false
+      securityContext:
+        # The user of the image (docker/pipeline.Dockerfile), by number.
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        # Volumes that support it are made writable to group 10001 when mounted.
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mlflow
+          image: nyc-taxi-demand/pipeline
+          # The image's entry point is `demand`; the server is `mlflow server`.
+          command: ["mlflow"]
+          args:
+            - server
+            - --host=0.0.0.0
+            - --port=5000
+            # Runs, versions and aliases. Four slashes: sqlite:/// and the absolute path.
+            - --backend-store-uri=sqlite:////mlflow/mlflow.db
+            # Model files, served over HTTP by this server (mlflow-artifacts:/ addresses),
+            # so no other pod needs this volume.
+            - --artifacts-destination=/mlflow/artifacts
+            # MLflow refuses a request whose Host header is not listed (protection
+            # against DNS rebinding). The short name, for pods of this namespace; the
+            # longer forms of the same Service; and localhost, for
+            # `kubectl port-forward svc/mlflow 5000:5000`. /health is exempt, so the
+            # probes below (Host: the pod's IP) pass.
+            - --allowed-hosts=mlflow:5000,mlflow.nyc-taxi-demand:5000,mlflow.nyc-taxi-demand.svc:5000,mlflow.nyc-taxi-demand.svc.cluster.local:5000,localhost:5000,127.0.0.1:5000
+            - --workers=1
+          env:
+            # MLflow 3.17 starts nine background processes for its "jobs" (GenAI
+            # evaluation and trace features) that this project never uses. Measured
+            # with docker stats: 1.76 GiB with them, 366 MiB without.
+            - name: MLFLOW_SERVER_ENABLE_JOB_EXECUTION
+              value: "false"
+          ports:
+            - name: http
+              containerPort: 5000
+          # Measured idle at 366 MiB (docker run, jobs off, empty store). The limit
+          # leaves room for a model upload and a busy UI; past it the kernel kills the
+          # process (OOMKilled) and Kubernetes restarts it.
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          # Kubernetes ignores the image's HEALTHCHECK; these are its equivalents.
+          # Startup: up to 2 minutes (60 x 2 s) for the first start, which creates the
+          # database. Liveness and readiness are not asked until it has passed.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 2
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: store
+              mountPath: /mlflow
+            # Python and MLflow write temporary files; the root filesystem is read-only.
+            # Tried: the server runs with only /tmp and /mlflow writable.
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: store
+          persistentVolumeClaim:
+            claimName: mlflow-store
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow
+  labels:
+    app.kubernetes.io/name: mlflow
+spec:
+  # Reachable inside the cluster only, as http://mlflow:5000 from this namespace.
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: mlflow
+  ports:
+    - name: http
+      port: 5000
+      targetPort: http

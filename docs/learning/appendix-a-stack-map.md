@@ -47,7 +47,7 @@ The baseline, the metrics and the backtest of Chapters 22 and 23 need no new too
 | Tool | What it is | Problem it solves here | Status | Chapter |
 |---|---|---|---|---|
 | LightGBM | A library for gradient-boosted decision trees | The forecasting model: 600 trees with the Poisson objective and the zone as a category, behind the `Forecaster` interface | In use (parameters from the config, tuned with Optuna and pasted by hand) | 24, 25, 27 |
-| MLflow | Records of training runs, and a model registry | Every training run is recorded with its parameters, scores, git commit and data version; the model is stored with a signature and registered as a version of `taxi-demand`; the alias `champion` names the version to serve, and the promotion gate moves it; the service resolves the alias once and loads that version from a temporary copy | In use (on the laptop a local SQLite file and the folder `mlruns`; in Docker Compose an MLflow server with its store in two named volumes; only `tracking.py`, `registry.py` and `serving/model_loader.py` import it) | 26, 29, 31, 33 |
+| MLflow | Records of training runs, and a model registry | Every training run is recorded with its parameters, scores, git commit and data version; the model is stored with a signature and registered as a version of `taxi-demand`; the alias `champion` names the version to serve, and the promotion gate moves it; the service resolves the alias once and loads that version from a temporary copy | In use (on the laptop a local SQLite file and the folder `mlruns`; in Docker Compose an MLflow server with its store in two named volumes; on Kubernetes the same server with its store on a PersistentVolumeClaim; both servers run with `MLFLOW_SERVER_ENABLE_JOB_EXECUTION=false`; only `tracking.py`, `registry.py` and `serving/model_loader.py` import it) | 26, 29, 31, 33, 39 |
 | scikit-learn | General machine-learning library | LightGBM's class `LGBMRegressor` follows its interface and needs it installed | Declared (no code of the project imports it) | – |
 | Optuna | Library that searches for good model parameters | `python -m demand tune`: a seeded search over five LightGBM hyper-parameters, at most 30 trials or 900 seconds, that prints a block for the config | In use (only `tuning.py` imports it) | 27 |
 | SHAP | Library that explains model predictions | Splits each forecast of the final model into contributions per input; a training run stores the mean sizes and a summary plot | In use (only `explain.py` imports it) | 28 |
@@ -79,7 +79,7 @@ The replay of Chapter 34 needs no new tool, and neither does the command `foreca
 
 | Tool | What it is | Problem it solves here | Status | Chapter |
 |---|---|---|---|---|
-| Prefect | An orchestrator: runs flows on a schedule, one at a time, records every run with its logs, and retries tasks | `python -m demand schedule` serves the flow `daily-step` of `flows/orchestration.py`, which calls `run_day` of `flows/retrain_flow.py` for each simulated day as the task `day`, and pushes the monitoring numbers as a task with 2 retries; one run a minute in the stack (a demo), a nightly cron in production | In use (version 3.8.8; only `flows/orchestration.py` imports it; the client runs from the pipeline image; without a server Prefect starts a temporary one) | 38 |
+| Prefect | An orchestrator: runs flows on a schedule, one at a time, records every run with its logs, and retries tasks | `python -m demand schedule` serves the flow `daily-step` of `flows/orchestration.py`, which calls `run_day` of `flows/retrain_flow.py` for each simulated day as the task `day`, and pushes the monitoring numbers as a task with 2 retries; one run a minute in the stack (a demo), a nightly cron in production | In use (version 3.8.8; only `flows/orchestration.py` imports it; the client runs from the pipeline image; without a server Prefect starts a temporary one; on Kubernetes a CronJob runs the same step without Prefect) | 38, 39 |
 | prefecthq/prefect:3.8.8-python3.12 | Prefect's official image | The Prefect server of the stack, service `prefect` on port 4200: it keeps the deployment, the schedule and the record of every run, in a SQLite database in the volume `prefect-data`. Chosen over the pipeline image because the server could not schedule with SQLAlchemy 2.1.4 of `requirements.lock`; this image has SQLAlchemy 2.0.45 | In use (in Docker Compose, pinned by tag and digest; runs as root, as published; 12 days old when pinned, an exception to the two-week rule) | 38 |
 | Evidently | Library for data and model monitoring | The input-drift and prediction-drift checks: the normed Wasserstein distance per column with a fixed threshold of 0.1, and the HTML page `reports/monitoring_input_drift.html` | In use (version 0.7.23; only `monitoring/checks.py` imports it) | 35 |
 | prometheus-client | See the Serving table | Builds the gauges of a monitoring report and sends them to the Pushgateway with one HTTP PUT | In use (only `monitoring/metrics.py`, `serving/metrics.py` and `serving/app.py` import it) | 36 |
@@ -88,10 +88,16 @@ The replay of Chapter 34 needs no new tool, and neither does the command `foreca
 
 ## Kubernetes (Phase 6)
 
-| Tool | What it is | Problem it solves here | Status |
-|---|---|---|---|
-| Kubernetes with kind | A system that runs and scales containers; kind runs it locally inside Docker | A local "production" target | Planned |
-| Kustomize | Tool for variants of Kubernetes configuration | One base configuration and one variant for kind | Planned |
+The cluster runs the same two images as Docker Compose. The daily step needs no new library: the CronJob runs the new command `python -m demand step`, which calls `run_days` without Prefect. Prometheus, the Pushgateway and Grafana stay in Docker Compose.
+
+| Tool | What it is | Problem it solves here | Status | Chapter |
+|---|---|---|---|---|
+| Kubernetes | A system that runs containers on a group of machines and keeps them in the state its objects describe | The files of `k8s/base/`: the API as a Deployment of 2 to 4 pods behind a Service, with probes and measured resources; MLflow as one pod with its store on a PersistentVolumeClaim; the data on a volume of its own; settings as a ConfigMap and a Secret; the daily step as a CronJob; a namespace with the "restricted" Pod Security Standard | In use (version 1.36.4 on kind; one node) | 39, 40 |
+| kubectl | The command-line tool that talks to the API server of a cluster | Applies the manifests (`kubectl apply -k`), copies the data in, starts Jobs by hand, opens port-forwards, and shows pods, logs and the HPA | In use (version 1.36.1, the one that comes with Docker Desktop) | 39, 40 |
+| kind | "Kubernetes in Docker": runs each node of a cluster as a Docker container | A local cluster of one node from `k8s/kind-cluster.yaml`; `kind load docker-image` copies the project's images into the node | In use (v0.33.0, checksum checked; node image `kindest/node:v1.36.4` pinned by digest) | 39, 40 |
+| Kustomize | A tool that builds manifests from a base and overlays, built into `kubectl` | One base for every cluster and one overlay for kind, which sets the image tags, never pulls images, and suspends the CronJob; it names the ConfigMap and the Secret by the hash of their content | In use (version 5.8.1, inside `kubectl`; no Helm) | 39 |
+| metrics-server | A cluster add-on that measures the CPU and memory of every pod | The CPU readings that the HorizontalPodAutoscaler of the API scales by, and `kubectl top` | In use (v0.9.0, its official manifest vendored in `k8s/overlays/kind/metrics-server/`, image pinned by digest; `--kubelet-insecure-tls` for kind only) | 39, 40 |
+| kubeconform | A validator that checks manifests against the official schemas of Kubernetes | Checks the 21 objects of `k8s/` without a cluster | In use by hand (image `ghcr.io/yannh/kubeconform:v0.8.0` pinned by digest; not yet in CI) | 40 |
 
 ## CI/CD and demo (Phase 7)
 
@@ -104,4 +110,4 @@ The replay of Chapter 34 needs no new tool, and neither does the command `foreca
 
 ---
 
-[Previous: Chapter 38 – A clock that starts the day: scheduling with Prefect](38-a-clock-that-starts-the-day.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)
+[Previous: Chapter 40 – Running it on kind: what happened](40-running-it-on-kind.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)

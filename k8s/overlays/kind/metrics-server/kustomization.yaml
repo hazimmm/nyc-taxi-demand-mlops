@@ -1,0 +1,41 @@
+# metrics-server: the cluster add-on that measures the CPU and memory of every pod, for
+# the HPA of the API and for `kubectl top`. kind does not ship it.
+#
+#   kubectl apply -k k8s/overlays/kind/metrics-server
+#
+# components.yaml is the release manifest of metrics-server v0.9.0 (released 13 July
+# 2026), vendored: downloaded once and committed, unchanged, so that rendering needs
+# no network and a review sees exactly what is installed. Downloaded from
+#   https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.9.0/components.yaml
+# sha256 1cec29a5267809306a2c6ec74a3e449abbb705b4a8beed0c8a1963910f72c79b
+# To upgrade: download the new release's file over it, update the version, the
+# checksum and the digest below, and render again.
+#
+# No `namespace:` here: the manifest puts metrics-server in kube-system itself.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - components.yaml
+
+# The image by its digest as well as its tag (the multi-platform index, read with
+# `docker buildx imagetools inspect registry.k8s.io/metrics-server/metrics-server:v0.9.0`).
+images:
+  - name: registry.k8s.io/metrics-server/metrics-server
+    newTag: v0.9.0@sha256:d9862115e7c7881280d3d75ca26bda8ffc0fc213315979575bf23ce9826205c0
+
+patches:
+  # kind's kubelets serve their metrics with a self-signed certificate that names no IP
+  # address, so metrics-server cannot verify it and reports nothing ("x509: cannot
+  # validate certificate"). --kubelet-insecure-tls skips that check. Acceptable on a
+  # cluster that lives on one laptop; on a real cluster the kubelets get certificates
+  # signed by the cluster's CA instead, and this flag must not be used.
+  - target:
+      kind: Deployment
+      name: metrics-server
+      namespace: kube-system
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --kubelet-insecure-tls

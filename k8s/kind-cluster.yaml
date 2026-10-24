@@ -1,0 +1,21 @@
+# The local Kubernetes cluster: one node, which is a Docker container on this machine.
+#
+#   kind create cluster --config k8s/kind-cluster.yaml
+#   kind delete cluster --name nyc-taxi-demand
+#
+# Written for kind v0.33.0. The node image is the one that release built for Kubernetes
+# 1.36.4, pinned by digest as its release notes require (an image of the same tag built
+# for another kind release may not work). 1.36 and not kind's default 1.37: kubectl here
+# is 1.36.1, and kubectl supports a server one minor version away at most, so the same
+# minor is the safe choice. Another kind version needs the image line from its own
+# release notes.
+#
+# Nothing else is configured on purpose: no host folders mounted into the node (the data
+# are copied in, k8s/overlays/kind/data-loader.yaml says why), no ports mapped to the
+# host (`kubectl port-forward` is enough for one person), no Ingress controller.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: nyc-taxi-demand
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.36.4@sha256:099e049362a1526b2db71494e1947aae99bd16290d7c895f2b7ea312e3cbfaed
