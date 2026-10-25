@@ -122,6 +122,18 @@ Official documentation for the tools that the repository uses today, a few books
 - **Git documentation, `git worktree`** – a second working folder of the same repository, used in Chapter 40 to train from a clean commit. <https://git-scm.com/docs/git-worktree>
 - **Kubernetes: Up and Running** by Brendan Burns, Joe Beda, Kelsey Hightower and Lachlan Evenson (O'Reilly, third edition, 2022) – a book that explains the same objects at more length, with the reasons behind them.
 
+## Continuous integration and known vulnerabilities
+
+- **GitHub Actions documentation** – the pages on workflows, jobs, runners and the matrix strategy, the reference of the workflow syntax (`on`, `permissions`, `concurrency`, `container`, `timeout-minutes`), and the page on the `GITHUB_TOKEN` and its permissions (Chapter 41). <https://docs.github.com/en/actions>
+- **GitHub Actions documentation, "Security hardening for GitHub Actions"** (in newer versions of the site, "Secure use reference") – why a third-party action should be pinned by its full commit hash, the least permissions for the token, and how untrusted input can reach a `run:` step. Search for its title on the site above.
+- **actions/checkout README** – the option `persist-credentials`. <https://github.com/actions/checkout>
+- **actionlint README** – what it checks, and how it runs shellcheck on `run:` steps. <https://github.com/rhysd/actionlint>
+- **pip-audit README** – auditing a requirements file, `--no-deps`, `--disable-pip`, `--ignore-vuln`, and the vulnerability services it can ask. <https://github.com/pypa/pip-audit>
+- **Trivy documentation** – scanning an image, the options `--severity` and `--ignore-unfixed`, and the page on filtering, which describes the YAML ignore file with `statement` and `expired_at`. <https://trivy.dev>
+- **OSV.dev** – a database that joins vulnerability records from many sources, with a search by package name or id; useful to read a CVE, GHSA or PYSEC record and its aliases. <https://osv.dev>
+- **PyPA Advisory Database** – the source of the PYSEC ids. <https://github.com/pypa/advisory-database>
+- **GitHub Advisory Database** – the GHSA records. <https://github.com/advisories>
+
 ## Command line, tests and code quality
 
 - **Typer documentation** – commands, arguments, testing a CLI. <https://typer.tiangolo.com>

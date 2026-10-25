@@ -101,13 +101,17 @@ The cluster runs the same two images as Docker Compose. The daily step needs no 
 
 ## CI/CD and demo (Phase 7)
 
-| Tool | What it is | Problem it solves here | Status |
-|---|---|---|---|
-| GitHub Actions | Service that runs automatic checks and delivery | Lint, types, tests and security checks on every push | Planned |
-| GHCR | GitHub's storage for container images | Stores the built images | Planned |
-| pip-audit, Trivy | Scanners for known security problems in libraries and images | Security checks | pip-audit declared, Trivy planned |
-| Streamlit on Hugging Face Spaces | A simple web-app library and a free host | The public demo | Planned |
+The checks of CI need no new library for the code: they run ruff, mypy and pytest from `requirements.lock`, in the image `python:3.12.15-slim-trixie` of the Containers table.
+
+| Tool | What it is | Problem it solves here | Status | Chapter |
+|---|---|---|---|---|
+| GitHub Actions | GitHub's service that runs workflows of jobs on fresh runners | `.github/workflows/ci.yml`: lint, types and tests, the dependency audit, and both images built and scanned, on every push to `dev` and `main` and on every pull request | In use (three jobs on `ubuntu-24.04` runners; actions pinned by full commit hash; the token can only read; the first run on GitHub was still to come when Chapter 41 was written) | 41 |
+| pip-audit | A scanner of the Python Packaging Authority that checks a list of Python packages against known vulnerabilities | `tools/audit_dependencies.py` audits `requirements.lock` and the two image locks, without the findings that `.trivyignore.yaml` accepts on that day | In use (version 2.10.1, in the `dev` group and in CI) | 41 |
+| Trivy | A scanner for known vulnerabilities in images: the packages of the operating system and the libraries installed in it | Scans the api and pipeline images in CI for HIGH and CRITICAL findings that have a fix; reads `.trivyignore.yaml` with its expiry days | In use in CI (version 0.75.0, official image `aquasec/trivy` pinned by digest, not through an action) | 41 |
+| actionlint | A linter for GitHub Actions workflows; it also runs shellcheck on every `run:` step | Found no problem in `ci.yml` | In use by hand (version 1.7.12; not in CI) | 41 |
+| GHCR | GitHub's storage for container images | Stores the built images | Planned (CI builds the images but does not push them) | – |
+| Streamlit on Hugging Face Spaces | A simple web-app library and a free host | The public demo | Planned | – |
 
 ---
 
-[Previous: Chapter 40 – Running it on kind: what happened](40-running-it-on-kind.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)
+[Previous: Chapter 41 – Every push checked: continuous integration and known vulnerabilities](41-every-push-checked.md) | [Contents](README.md) | [Next: Appendix B – Glossary](appendix-b-glossary.md)

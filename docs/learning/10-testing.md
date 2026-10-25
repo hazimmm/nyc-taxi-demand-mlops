@@ -184,7 +184,7 @@ Coverage is measured only when you ask for it. The same file says why:
 addopts = "-ra --strict-markers"
 ```
 
-While you work on one test file, you run that file many times. One file executes only part of the code, so a gate on every run would fail every time. The gate is applied to the complete run. Chapter 13 tells the story behind this comment.
+While you work on one test file, you run that file many times. One file executes only part of the code, so a gate on every run would fail every time. The gate is applied to the complete run. Chapter 13 tells the story behind this comment. CI, the automatic checks of every push, runs exactly this complete run with --cov, on Linux, inside the Python image of the Dockerfiles (Chapter 41).
 
 ## No network in tests
 
@@ -218,7 +218,7 @@ Run everything with coverage.
 .venv\Scripts\python.exe -m pytest --cov -q
 ```
 
-You should see `1004 passed, 173 warnings` after about six to twelve minutes, depending on the machine (5 minutes 57 seconds for this book), a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.93%`. The warnings all come from libraries. One is from the test client of FastAPI (Chapter 30), ten from NumPy and Litestar, two libraries that Evidently imports (Chapter 35), and three from MLflow and its database library SQLAlchemy (Chapter 26): fourteen, as before. The other 159 are new: SQLAlchemy complains about a column type of Prefect's server. They appear in the tests of the retraining flow, which set up an MLflow database after the tests of Chapter 38 have loaded Prefect's server code into the same process. Run alone, those tests give their usual 12 warnings. The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
+You should see `1008 passed, 173 warnings` after about five to twelve minutes, depending on the machine (4 minutes 40 seconds for this book), a table with one line per source file, and the line `Required test coverage of 80.0% reached. Total coverage: 99.93%`. The warnings all come from libraries. One is from the test client of FastAPI (Chapter 30), ten from NumPy and Litestar, two libraries that Evidently imports (Chapter 35), and three from MLflow and its database library SQLAlchemy (Chapter 26): fourteen, as before. The other 159 are new: SQLAlchemy complains about a column type of Prefect's server. They appear in the tests of the retraining flow, which set up an MLflow database after the tests of Chapter 38 have loaded Prefect's server code into the same process. Run alone, those tests give their usual 12 warnings. The numbers grow as the project grows. In the table, the column `Missing` lists line numbers that no test executed. This proves the gate is active for the complete run.
 
 ## Key takeaways
 

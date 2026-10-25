@@ -1,0 +1,223 @@
+# Known vulnerabilities that CI accepts for a limited time.
+#
+# Read by Trivy (the image scan) and by tools/audit_dependencies.py (pip-audit on the
+# lock files), so both scanners accept the same list. Each entry says why the finding
+# does not threaten this project and until when that is accepted. On the day
+# `expired_at` is reached the entry stops applying, the finding comes back and CI
+# fails, so nothing stays accepted by being forgotten.
+#
+# Entries with a fix expire on 2026-11-04: the day the last of the fixes is two weeks old,
+# which is the project's rule for taking a new release (a compromised release is
+# usually found and pulled within days). The upgrade is made on that day. Entries
+# without a fix are reviewed on 2026-12-01.
+
+vulnerabilities:
+  # certifi
+  - id: GHSA-6q48-6c7w-9gw2
+    statement: "certifi 2026.7.22 trusts the emSign ECC Root CA - G3, whose intermediate CAs have leaked keys. Used for HTTPS to the data sources and to PyPI; an attack needs a position on the network and one of those keys. Fixed in 2026.10.19 (20 Oct)."
+    expired_at: 2026-11-04
+  # uv
+  - id: GHSA-hq85-5cpj-mr62
+    statement: "uv 0.13.0 has the same leaked root in its own CA bundle. A development tool, used to compile the lock files. Fixed in 0.13.4 (20 Oct)."
+    expired_at: 2026-11-04
+  # mlflow
+  - id: CVE-2026-53995
+    statement: "Path traversal through a trace ID in the FileStore tracking backend. The project's MLflow servers use the SQLite backend, and none is reachable from outside the machine or the cluster. Fixed in 3.17.2 (21 Oct)."
+    expired_at: 2026-11-04
+  # gitpython
+  - id: CVE-2026-114145
+    statement: "create_submodule can clone into .git/hooks. MLflow and DVC only read the repository and never add submodules. Fixed in 3.2.1 (14 Oct)."
+    expired_at: 2026-11-04
+  # pillow
+  - id: CVE-2026-112390
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112391
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112392
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112393
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112395
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112396
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112397
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112398
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112399
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112400
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112401
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112402
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112403
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112404
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112405
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112406
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112891
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112892
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112893
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112894
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112895
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112896
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112897
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112899
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112900
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112901
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112902
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-114501
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-96636
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-96637
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-96638
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-96639
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-96640
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-96641
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-96642
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-96643
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-96644
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-96778
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  - id: GHSA-78g4-xqwv-q3g8
+    statement: "Decoder bugs on crafted images (JPEG, TIFF, GIF, EPS, PPM, JPEG 2000). Pillow comes with matplotlib, which only writes the SHAP plot; the project never opens an image it did not make. Fixed in 13.0.0 (16 Oct)."
+    expired_at: 2026-11-04
+  # filelock
+  - id: CVE-2026-112906
+    statement: "Races and path tricks in soft and SQLite-backed locks; every one needs an attacker who can already write files on the machine. Comes with virtualenv and DVC. Fixed in 4.2.1 (17 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112907
+    statement: "Races and path tricks in soft and SQLite-backed locks; every one needs an attacker who can already write files on the machine. Comes with virtualenv and DVC. Fixed in 4.2.1 (17 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112913
+    statement: "Races and path tricks in soft and SQLite-backed locks; every one needs an attacker who can already write files on the machine. Comes with virtualenv and DVC. Fixed in 4.2.1 (17 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112914
+    statement: "Races and path tricks in soft and SQLite-backed locks; every one needs an attacker who can already write files on the machine. Comes with virtualenv and DVC. Fixed in 4.2.1 (17 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112937
+    statement: "Races and path tricks in soft and SQLite-backed locks; every one needs an attacker who can already write files on the machine. Comes with virtualenv and DVC. Fixed in 4.2.1 (17 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-112940
+    statement: "Races and path tricks in soft and SQLite-backed locks; every one needs an attacker who can already write files on the machine. Comes with virtualenv and DVC. Fixed in 4.2.1 (17 Oct)."
+    expired_at: 2026-11-04
+  # virtualenv
+  - id: CVE-2026-113714
+    statement: "Shell syntax in a caller-supplied path or prompt, and wheel checks skipped. A development tool (pre-commit); the paths and prompts are the project's own. Fixed in 21.14.9 (17 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-113715
+    statement: "Shell syntax in a caller-supplied path or prompt, and wheel checks skipped. A development tool (pre-commit); the paths and prompts are the project's own. Fixed in 21.14.9 (17 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-113717
+    statement: "Shell syntax in a caller-supplied path or prompt, and wheel checks skipped. A development tool (pre-commit); the paths and prompts are the project's own. Fixed in 21.14.9 (17 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-113718
+    statement: "Shell syntax in a caller-supplied path or prompt, and wheel checks skipped. A development tool (pre-commit); the paths and prompts are the project's own. Fixed in 21.14.9 (17 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-113720
+    statement: "Shell syntax in a caller-supplied path or prompt, and wheel checks skipped. A development tool (pre-commit); the paths and prompts are the project's own. Fixed in 21.14.9 (17 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-113722
+    statement: "Shell syntax in a caller-supplied path or prompt, and wheel checks skipped. A development tool (pre-commit); the paths and prompts are the project's own. Fixed in 21.14.9 (17 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-113723
+    statement: "Shell syntax in a caller-supplied path or prompt, and wheel checks skipped. A development tool (pre-commit); the paths and prompts are the project's own. Fixed in 21.14.9 (17 Oct)."
+    expired_at: 2026-11-04
+  # setuptools
+  - id: GHSA-xmj3-9gf7-h52w
+    statement: "On Windows, a crafted wheel installed through the legacy egg path can write outside its folder. Only wheels from PyPI, pinned in the locks, are installed. Fixed in 84.1.0 (19 Oct)."
+    expired_at: 2026-11-04
+  # pypdf
+  - id: CVE-2026-113786
+    statement: "Crafted PDFs that use much memory or time. pypdf is only used by tools/build_book.py to read the PDF it has just built. Fixed in 6.21.2 (21 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-113789
+    statement: "Crafted PDFs that use much memory or time. pypdf is only used by tools/build_book.py to read the PDF it has just built. Fixed in 6.21.2 (21 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-113790
+    statement: "Crafted PDFs that use much memory or time. pypdf is only used by tools/build_book.py to read the PDF it has just built. Fixed in 6.21.2 (21 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-113791
+    statement: "Crafted PDFs that use much memory or time. pypdf is only used by tools/build_book.py to read the PDF it has just built. Fixed in 6.21.2 (21 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-115572
+    statement: "Crafted PDFs that use much memory or time. pypdf is only used by tools/build_book.py to read the PDF it has just built. Fixed in 6.21.2 (21 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-115580
+    statement: "Crafted PDFs that use much memory or time. pypdf is only used by tools/build_book.py to read the PDF it has just built. Fixed in 6.21.2 (21 Oct)."
+    expired_at: 2026-11-04
+  - id: CVE-2026-115585
+    statement: "Crafted PDFs that use much memory or time. pypdf is only used by tools/build_book.py to read the PDF it has just built. Fixed in 6.21.2 (21 Oct)."
+    expired_at: 2026-11-04
+  # nltk
+  - id: CVE-2026-81726
+    statement: "No fix released. Model-file APIs accept paths outside the NLTK data folder. NLTK comes with Evidently; the project's drift checks are on numbers and never load an NLTK model."
+    expired_at: 2026-12-01
+  # diskcache
+  - id: CVE-2025-69872
+    statement: "No fix released. diskcache unpickles what is in its cache folder, so an attacker who can write there can run code. It is DVC's local cache inside the project folder; writing there already means the machine is compromised."
+    expired_at: 2026-12-01

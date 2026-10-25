@@ -191,7 +191,7 @@ Two reasons. First, it would pin only the libraries you list. The transitive dep
 <details>
 <summary>Answer</summary>
 
-Find its line in `requirements.lock` and read the `# via` comment below it. It names the library that needs it. If that one is also unknown, read its `# via` comment, and continue until you reach a library that is declared in `pyproject.toml`.
+Find its line in `requirements.lock` and read the `# via` comment below it. It names the library that needs it. If that one is also unknown, read its `# via` comment, and continue until you reach a library that is declared in `pyproject.toml`. Chapter 41 adds a tool, pip-audit, that finds such announcements in the lock files by itself, and shows how each finding was judged.
 
 </details>
 

@@ -1,5 +1,7 @@
 # NYC Taxi Demand Forecasting
 
+[![ci](https://github.com/hazimmm/nyc-taxi-demand-mlops/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/hazimmm/nyc-taxi-demand-mlops/actions/workflows/ci.yml)
+
 Day-ahead forecast of hourly taxi pickups per NYC zone, wrapped in an end-to-end MLOps stack built only from free, open-source tools.
 
 Work in progress. See [docs/architecture.md](docs/architecture.md) for the system design and [docs/learning](docs/learning/README.md) for a textbook-style guide to the stack and the ideas behind it.
@@ -24,9 +26,12 @@ python -m ruff format --check .
 python -m ruff check .
 python -m mypy
 python -m pytest --cov
+python tools\audit_dependencies.py
 ```
 
-`--cov` measures coverage and fails the run below 80%. Leave it out when running a single test file.
+`--cov` measures coverage and fails the run below 80%. Leave it out when running a single test file. `audit_dependencies.py` checks the three lock files for known vulnerabilities with pip-audit.
+
+GitHub Actions runs the same checks on every push and pull request (`.github/workflows/ci.yml`): the four above in the Python image of the Dockerfiles, the audit, and both images built and scanned with Trivy for HIGH and CRITICAL vulnerabilities that have a fix. A finding that does not threaten the project can be accepted in `.trivyignore.yaml`, with the reason and an expiry day; both scanners read that file, and on the expiry day the finding fails CI again.
 
 ## Data pipeline
 

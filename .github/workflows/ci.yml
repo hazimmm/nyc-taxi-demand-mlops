@@ -1,0 +1,121 @@
+# CI: the checks of the README's "Checks" section, a vulnerability audit of the lock
+# files, and both images built and scanned. It runs on every push and pull request, and
+# a red run means the commit is not fit to merge.
+#
+# Pinning, the same rule as everywhere else in the project:
+#   * every action by the full commit hash of a release at least two weeks old (a tag
+#     can be moved to other code; a hash cannot). The tag is in the comment;
+#   * the checks run in the same Python image as docker/*.Dockerfile, by digest, with
+#     the libraries of requirements.lock, so CI tests what the developer and the images
+#     run;
+#   * Trivy runs from its official image by digest, not through a third-party action.
+name: ci
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+  workflow_dispatch:
+
+# The token of every job can read the repository and nothing else.
+permissions:
+  contents: read
+
+# A newer push to the same branch makes an older run pointless: cancel it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_IMAGE: python:3.12.15-slim-trixie@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+  TRIVY_IMAGE: aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
+
+jobs:
+  checks:
+    name: lint, types and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      # The same value as env.PYTHON_IMAGE: `env` cannot be read here.
+      image: python:3.12.15-slim-trixie@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+    steps:
+      # git before the checkout, so the checkout is a real repository (the training
+      # tests make commits in a temporary one); libgomp1 is the OpenMP runtime LightGBM
+      # needs, as in the images.
+      - name: Install git and the LightGBM runtime
+        run: |
+          apt-get update
+          apt-get install --yes --no-install-recommends git libgomp1
+          rm -rf /var/lib/apt/lists/*
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the locked libraries
+        run: |
+          python -m pip install --no-cache-dir --root-user-action=ignore uv==0.13.0
+          uv pip install --system -r requirements.lock
+          uv pip install --system -e . --no-deps
+      - name: ruff format
+        run: python -m ruff format --check .
+      - name: ruff check
+        run: python -m ruff check .
+      - name: mypy
+        run: python -m mypy
+      - name: pytest
+        run: python -m pytest --cov
+
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container:
+      image: python:3.12.15-slim-trixie@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Only what the audit needs, at the versions of requirements.lock.
+      - name: Install pip-audit
+        run: python -m pip install --no-cache-dir --root-user-action=ignore pip-audit==2.10.1 pyyaml==6.0.3
+      # Fails on any known vulnerability in the three lock files that .trivyignore.yaml
+      # does not accept, or no longer accepts because its day has passed.
+      - name: pip-audit
+        run: python tools/audit_dependencies.py
+
+  images:
+    name: image ${{ matrix.image }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [api, pipeline]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      # Built as `docker compose build` builds it, and loaded into the runner's Docker
+      # so that Trivy can scan it. No layer cache, on purpose: the images install the
+      # newest Debian security updates when they are built, and a cached layer would
+      # keep the old packages, so the scan would report what a fresh build has fixed.
+      - name: Build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: docker/${{ matrix.image }}.Dockerfile
+          tags: nyc-taxi-demand/${{ matrix.image }}:ci
+          load: true
+          push: false
+      # Fails on a HIGH or CRITICAL vulnerability that has a fix, in the OS packages or
+      # the Python libraries of the image, unless .trivyignore.yaml accepts it.
+      # Findings without a fix are left out: nothing can be done about them but to wait.
+      - name: Trivy
+        run: >
+          docker run --rm
+          -v /var/run/docker.sock:/var/run/docker.sock
+          -v "$PWD/.trivyignore.yaml:/ignore.yaml:ro"
+          "$TRIVY_IMAGE" image
+          --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed
+          --ignorefile /ignore.yaml --exit-code 1
+          nyc-taxi-demand/${{ matrix.image }}:ci

@@ -208,7 +208,7 @@ This removed the node and everything in it: the cluster's MLflow store, its mode
 ## What is still not done
 
 - **One node.** The ReadWriteOnce volumes would not work for the API and the daily step on several nodes (Chapter 39).
-- **Retraining in the cluster is refused**, until Phase 7 bakes the commit and the data version into the image.
+- **Retraining in the cluster is refused**, until Phase 7 bakes the commit and the data version into the image. Chapter 41 starts Phase 7 with CI, which builds and scans the images on every push but does not write the commit into them yet.
 - **The load test went through one pod.** It showed the HPA adding a pod, not three pods sharing the work.
 - **Left out on purpose** (Chapter 39): monitoring stays in Compose, and there is no NetworkPolicy, no Ingress, and no real Secret.
 
@@ -216,7 +216,7 @@ This removed the node and everything in it: the cluster's MLflow store, its mode
 
 Phase 6 put the system on Kubernetes. Chapter 39 described the objects, and this chapter ran them on kind. The API came up after its expected crash loop. The model was trained from a clean commit and was the same model a third time. The HPA added a pod under load. And the daily step ended in the failure that was designed as its alarm.
 
-Phase 7 builds the images in CI from a commit, which also makes retraining in a cluster possible.
+Phase 7 builds the images in CI from a commit, which also makes retraining in a cluster possible. Its first step, in Chapter 41, is continuous integration: every push is checked on a fresh machine.
 
 ## Try it yourself
 
@@ -295,4 +295,4 @@ The gate would then promote models whose record says nothing true about their co
 
 ---
 
-[Previous: Chapter 39 – From Compose to a cluster: the objects of Kubernetes](39-from-compose-to-a-cluster.md) | [Contents](README.md) | [Next: Appendix A – Stack map](appendix-a-stack-map.md)
+[Previous: Chapter 39 – From Compose to a cluster: the objects of Kubernetes](39-from-compose-to-a-cluster.md) | [Contents](README.md) | [Next: Chapter 41 – Every push checked: continuous integration and known vulnerabilities](41-every-push-checked.md)

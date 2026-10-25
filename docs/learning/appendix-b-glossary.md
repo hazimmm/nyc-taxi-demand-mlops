@@ -4,9 +4,12 @@ Every technical term used in the book, in alphabetical order. The number in the 
 
 | Term | Meaning | Ch. |
 |---|---|---|
+| Accepted risk / time-boxed exception | A known problem that a team decides, in writing, to live with, with the reason. When the decision has a fixed end, it is a time-boxed exception. Here every entry of `.trivyignore.yaml` has a statement and an `expired_at` day; on that day the finding counts again and CI fails. | 41 |
+| Action (GitHub Actions) | A reusable step that someone published in a repository, used with `uses:`, such as `actions/checkout`, which copies the repository onto the runner. Here every action is pinned by its full commit hash. | 41 |
 | Actuals | The real observed values, here the real pickups, known only after the hour has passed. | 3 |
 | Alert / warning (monitoring) | An alert means "act on this"; a warning means "look at this". Here only the accuracy check raises an alert, which the retraining flow reads; the two drift checks raise warnings, which nothing acts on. | 35, 36, 37 |
 | Alias (model registry) | A name that points at one version of a registered model and can be moved to another. `models:/taxi-demand@champion` loads whichever version the alias `champion` points at now. The service resolves it to a version number once, at startup. | 26, 29, 31 |
+| Alias (vulnerability id) | Another id of the same vulnerability in another list. `CVE-2026-114145` and `GHSA-83vg-56qc-22m7` are one problem in gitpython. pip-audit matches an ignored id against the aliases too. | 41 |
 | Allow-list | A list of what is let in, where everything else is left out. `.dockerignore` is one: its first line, `*`, leaves out everything, and the next lines let back in what the images are built from. | 32 |
 | API server (Kubernetes) | The part of the control plane that every request goes to. `kubectl` talks to it, and it refuses objects that break the rules, such as a pod that breaks the namespace's Pod Security Standard. | 39 |
 | Artifact | A file that is stored with a training run, such as a report or the model. | 26 |
@@ -33,19 +36,21 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Capability (Linux) | One part of the power of root, such as opening ports below 1024. The API container drops all of them (`cap_drop: ["ALL"]`). | 33 |
 | Cardinality (of a metric) | The number of distinct combinations of label values of a series. Each combination is a time series of its own, so a label must have few values: here the route and the status, never a day or a zone. | 31 |
 | Categorical feature | An input whose values are labels from a fixed list, not amounts. Here: `zone_id`. A tree can put any group of labels on one side of a question. | 24 |
+| Certificate authority (CA) | An organisation that signs the certificates by which a website proves who it is. A root CA is one that software trusts directly; certifi is Python's list of them. | 41 |
 | Champion / challenger | The model in use / a new model that must beat it to replace it. As aliases: `champion` points at the served version, and `challenger` at the newest version the promotion gate judged and did not promote. In retraining, the challenger is the recipe trained again up to the cutoff; if it is rejected, it gets the alias `challenger`. | 1, 29, 37 |
 | Clean exam | The score on a hold-out that no decision has used. Here the replay of May and June 2025: MAE 27.80, against 24.11 in the April backtest that chose the settings. | 23, 27, 34 |
 | Cleaning report | The record of a cleaning run: rows in, rows removed by each rule, rows out. Here: `reports/silver_cleaning_report.json`. | 16 |
 | Cleaning rule | A condition that marks a row as not valid, with a name and a fixed place in the order of the rules. | 16 |
 | Checksum | A short code calculated from the content of a file. If the content changes, the code changes. | 4, 15 |
 | Chunk | One piece of a file that is read or received in pieces. | 14 |
-| CI | Continuous integration: automatic checks that run on every push. Planned for Phase 7, which will also build the images from a commit. | 13, 40 |
+| CI | Continuous integration: every change is checked automatically on a clean machine as soon as it is pushed. Here the workflow `.github/workflows/ci.yml` on GitHub Actions runs lint, types, tests, a dependency audit and an image scan on every push and pull request. Building the images with their commit written into them is still to come. | 13, 40, 41 |
 | CLI | Command-line interface: a program controlled by typed commands. | 9 |
 | Client / server | The program that sends a request / the program that waits for requests and answers them. | 30 |
 | Closing step | The last step of the replay. It moves the simulated clock to 00:00 on 1 July 2025, the end of the demand history, forecasts nothing, and scores 29 and 30 June. Every later step repeats it and changes nothing. | 34 |
 | Cluster | A group of machines that Kubernetes treats as one. Here a kind cluster with one node. | 39 |
 | ClusterIP | The type of a Kubernetes Service that is reachable only inside the cluster. Both Services of this project have it; from the laptop they are reached with a port-forward. | 39 |
 | Code review | Reading a change before it is accepted, to find mistakes and to check that code, tests and documents agree. | 13 |
+| Commit hash pinning | Naming an action by the full commit hash of one exact version of its code instead of by a tag. A tag can be moved to other code; a hash cannot. Compare *digest* for images. | 41 |
 | Comparison weeks (retraining) | The 28 days before the cutoff, on which the champion's real forecasts, a backtest of the retrained recipe and the weekly baseline are scored on the same 13,440 zone-hours. | 37 |
 | Complete (of an hourly count) | Said of the count of an hour once the hour has ended. The pickups of 18:00 are complete at 19:00. | 2 |
 | Complete grid | A table with one row for every combination of zone and hour, whether something happened or not. An hour without pickups is a row with 0. | 18 |
@@ -63,11 +68,13 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Counter, gauge, histogram | Three kinds of Prometheus series: a number that only goes up; a value that can go up and down; counts of values in ranges, with their number and their sum. Every number of the monitoring report is sent as a gauge. | 31, 36 |
 | Coverage | The share of the code that the tests execute. | 10 |
 | Coverage gate | A rule that fails the test run when coverage is under a limit. Here 80%, applied with `--cov`. | 10 |
+| Crafted (file or input) | Made on purpose to trigger a bug, for example an image file built to crash a decoder. | 41 |
 | CrashLoopBackOff | The state Kubernetes shows for a container that exits again and again, restarted with growing pauses: 10 seconds, then twice as long each time, up to five minutes. Docker Compose shows the same situation as `Restarting (3)`. The API pods were in it on kind until a model existed. | 33, 39, 40 |
 | CRLF / LF | The two ways to mark the end of a line: Windows (two characters) and Linux or macOS (one). | 12 |
 | Cron schedule | A schedule written as five fields: minute, hour, day of month, month, day of week, named after the Unix tool cron. `"0 1 * * *"` means 01:00 every day. | 38 |
 | CronJob (Kubernetes) | A Kubernetes object that creates a Job on a cron schedule. `daily-step` runs `demand step` at 01:00 New York time; `concurrencyPolicy: Forbid` skips a run while the last one is still running. On kind it is **suspended**: the schedule starts nothing, and runs are started by hand with `kubectl create job --from=cronjob/daily-step`. | 38, 39, 40 |
 | Cutoff (retraining) | The last day a retrained model may learn from: the day before the moment of the retrain, so every training target ended before its first forecast. | 37 |
+| CVE | "Common Vulnerabilities and Exposures": the most common list of published vulnerabilities, with ids such as `CVE-2026-53995`. | 41 |
 | Data contract | A precise description of a table that can be checked automatically and that producer and consumer both rely on. | 8 |
 | Data leakage | Training or testing with information that is not available when the model is really used. | 2, 19 |
 | Daylight saving time | The summer clock, one hour ahead of the winter clock. The change skips one local hour in spring and repeats one in autumn. | 17 |
@@ -97,7 +104,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Entry point | The place where a program starts. Here: `python -m demand`. | 9 |
 | `.env` file | A text file with lines of the form `NAME=value`, read into environment variables when the program starts. Not stored in git. | 7 |
 | Environment variable | A named value outside the program, set by the shell or the platform and read at start-up. | 7 |
-| Ephemeral mode (Prefect) | What Prefect does when a flow runs without a server address: it starts a temporary server for the run, about 17 to 20 seconds here, with a database under `PREFECT_HOME`. | 38 |
+| Ephemeral mode (Prefect) | What Prefect does when a flow runs without a server address: it starts a temporary server for the run, about 17 to 20 seconds here, with a database under `PREFECT_HOME`. Prefect waits 20 seconds for it by default; the tests allow 120, because a busy machine with few CPUs needed more. | 38, 41 |
 | Exit code | The number a program returns when it ends. Zero is success. uvicorn returns 3 when the startup of the service fails. | 9, 31 |
 | Expanding window | A way to cut the training rows of a backtest: every fold trains from the first row of the table, so later folds have more training rows. | 23 |
 | Expected failure | A failure that is not a mistake in the code, such as a missing input file or a failed quality gate. It is printed as one line that says what to do next. Here: every `PipelineError`. | 20 |
@@ -111,7 +118,9 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Feature importance (gain) | For each input, the share of the improvement during training that came from tree questions about that input. It shows what the trees used, not a direction or a cause. | 24 |
 | Final fit | Fitting the chosen recipe once more on all training rows, after the backtest. The result is the model that is stored. | 26 |
 | Fit | To let a forecaster learn from past rows. A baseline has the method and learns nothing. | 22 |
+| Fix version | The first release of a library in which a known vulnerability is fixed. Trivy's `--ignore-unfixed` leaves out findings that have none yet. | 41 |
 | Fixture | A function that prepares something for tests. A test asks for it by parameter name. | 10 |
+| Flaky test | A test that passes and fails on the same code. It is a bug that has not been found yet. The fix is to make it fail every time, find the cause and remove it, not to run it again. | 41 |
 | Flow (Prefect) | A Python function, marked with `@flow`, that Prefect runs and records as one run with its state and logs. Here `daily_step`. | 38 |
 | Fold | One repetition of a backtest, with its own training and test period. | 3, 23 |
 | Footer (Parquet) | A small block at the end of a Parquet file that describes its columns, types and number of rows. | 14 |
@@ -121,6 +130,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Formatter | A tool that rewrites the layout of code in one fixed style. | 11 |
 | Frozen | Said of an object that cannot be changed after it is created. | 7 |
 | Gap (backtest) | The hours between the last training hour of a fold and its first test hour, used for neither. Here 47 hours per zone, so that no model learns from pickups that did not exist when its first forecast was issued. | 23 |
+| GHSA | A GitHub Security Advisory: GitHub's list of vulnerabilities, with ids such as `GHSA-6q48-6c7w-9gw2`. | 41 |
 | Git hook | A script that git runs automatically at a certain moment, for example before a commit. | 11 |
 | Gold layer | Data in the form its users need: one row per zone and hour, and the table of model inputs. | 4, 18 |
 | Graceful shutdown | Stopping a server so that the requests in progress are finished first. Not tested for this service. | 31 |
@@ -145,6 +155,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Input example | A few rows of valid model inputs, stored next to the model. Here: the first five training rows. | 26 |
 | Interval schedule | A schedule that makes a run due every fixed period, such as one minute: `--every-minutes 1`, the demo of the stack. | 38 |
 | Issue moment | The moment a forecast is made, which fixes what it may know. Here 00:00 on the day before the forecast day, or 01:00 around the night the clocks go back. The service reports it as `issued_at`; the replay stores it as `generated_at`. | 2, 30, 34 |
+| Job (GitHub Actions) | A part of a workflow that runs on its own runner, as a list of steps. Jobs run at the same time unless one waits for another. `ci.yml` has three: `checks`, `audit` and `images`. | 41 |
 | Job (Kubernetes) | A Kubernetes object that runs a pod until it finishes and records whether it succeeded (`Complete` or `Failed`). `backoffLimit: 0` means a failed Job is not retried. A CronJob creates one per run. | 39, 40 |
 | JSON | A standard text format for structured data. The service answers in it. | 9, 30 |
 | Junction (Windows) | A Windows link from one folder to another, made with `mklink /J`. The clean worktree used for training had its `data` folder as a junction to the project's data. | 40 |
@@ -176,6 +187,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Manifest (Kubernetes) | A YAML file that describes Kubernetes objects. Not the same as the manifest of the raw layer. The manifests of this project are in `k8s/`. | 39 |
 | Margin (promotion) | The smallest gain in pooled MAE that lets a new version replace the champion. Here 0.2, the measured range of the seeds on the backtest folds, written as the constant `MIN_MAE_GAIN` in the code. | 29 |
 | Mask | A column of true and false values, one per row, that marks the rows for which a condition holds. | 16 |
+| Matrix (GitHub Actions) | A list of values for which the same job runs once each. Here `image: [api, pipeline]` builds and scans both images with one job description. | 41 |
 | MD5 | A method for calculating a checksum of 32 characters. DVC uses it to see whether a file changed. | 21 |
 | Mean absolute SHAP value | The mean size of an input's contributions over many rows, whatever their direction. Here stored as `shap.mean_abs.<input>`. | 28 |
 | Medallion architecture | Storing data in layers of increasing quality: raw (bronze), silver, gold. | 4 |
@@ -213,6 +225,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Parametrised test | One test function that runs once for each entry in a list of inputs. | 10 |
 | Parquet | A compact file format for tables. | 12 |
 | Path (of a request) | The part of an address that says which part of a service should answer, such as `/predict`. | 30 |
+| Path traversal | A name such as `../../secret` that leads a program out of the folder it should stay in. | 41 |
 | Persist (DVC) | The option `persist: true` of an output. It tells DVC not to delete the output before it runs the stage. | 21 |
 | PersistentVolumeClaim (PVC) | A request for storage that outlives every pod. The cluster gives it a PersistentVolume that fits. Here `demand-data` for the data and the replay, and `mlflow-store` for MLflow. | 39 |
 | Pickle | Python's own format for saving objects to a file. It can only be loaded where the classes are installed, and only from a trusted source. | 26 |
@@ -234,11 +247,14 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Provisioning (Grafana) | Setting up Grafana from files at every start: here the Prometheus data source and the dashboards "Prediction API" and "Model monitoring". | 33, 36 |
 | Pruning (of a trial) | Stopping a trial early when its first results look bad. Not used here. | 27 |
 | Pull / push (metrics) | Prometheus pulls: it asks a running program for its numbers. A batch job pushes: it sends its numbers to a Pushgateway before it ends. | 36 |
+| Pull request | A request to merge one branch into another, which others can review. CI runs on every pull request. | 41 |
 | Pure function | A function whose result depends only on its arguments and that reads and writes nothing outside itself. | 16 |
 | Push | To send commits to the shared copy of the repository. | 12 |
 | Pushgateway | A small server of the Prometheus project that keeps the last numbers a batch job pushed, and lets Prometheus scrape them. Here the service `pushgateway` on port 9091; it keeps the numbers in memory only. | 36 |
+| PYSEC | The list of vulnerabilities of the Python Packaging Authority, for packages on PyPI, with ids such as `PYSEC-2026-4320`. | 41 |
 | Quality gate | A check that can stop a pipeline. A stage runs one on its table before it writes it. The command `validate` runs one on the files of a layer before the next stage reads them. | 8, 20 |
 | Query parameter | A pair of a name and a value in the address of a request, after `?` and separated by `&`, such as `date=2025-05-14`. A name may appear more than once. | 30 |
+| Race (race condition) | A bug that appears only when two things happen in a certain order or at the same moment. | 41 |
 | Random split | Putting rows into training and test sets by chance. Wrong for data ordered in time. | 3 |
 | Raw layer | Data exactly as downloaded, never modified. Also called bronze. | 4 |
 | Read-only filesystem | A container whose files cannot be written (`read_only: true`). Writing into the API container fails with `Read-only file system`. | 33 |
@@ -260,6 +276,7 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Rolling-origin backtest | A backtest repeated with a training end date that moves forward. | 3 |
 | Run (MLflow) | One recorded execution of the training, with an id. It holds parameters (settings chosen before), metrics (numbers produced), tags (where it came from) and artifacts (files). | 26 |
 | Runbook | A list of commands to run in order, with what each should print. Here "Running it" in `k8s/README.md`. | 40 |
+| Runner (GitHub Actions) | The virtual machine on which one job runs. GitHub starts a fresh one for each job and deletes it afterwards, so it has only what the repository describes. | 41 |
 | Sampler | The part of Optuna that proposes the next values. Here TPE, seeded with `project.seed`: ten random trials, then more trials near the values that scored well. | 27 |
 | Schedule | A rule that says when runs of a flow are due: an interval or a cron line. Here each run moves the simulated clock by one day, whatever the date on the wall. | 38 |
 | Schema | The formal definition of a table: columns, types and rules. | 8 |
@@ -272,10 +289,12 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Seed check | Scoring the current and the best hyper-parameters again with two more seeds, to see whether a gain is larger than the noise. | 27 |
 | Service (Compose) | One kind of container in `docker-compose.yml`, with its image and settings: `mlflow`, `api`, `prometheus`, `pushgateway`, `grafana`, `prefect`, and `pipeline` and `scheduler` behind profiles. | 33, 36, 38 |
 | Service (Kubernetes) | A fixed name and address in front of the pods that match a selector, which spreads requests over those that are ready. Here `api` (`http://api:8000`) and `mlflow` (`http://mlflow:5000`). | 39 |
+| Severity (vulnerability) | A rough measure of how bad the worst case of a vulnerability is: LOW, MEDIUM, HIGH or CRITICAL. The image scan of CI fails on HIGH and CRITICAL. | 41 |
 | SHA-256 | A method for calculating a checksum of 64 characters. | 15 |
 | Shadow forecast | A forecast of a model that is not served, issued and scored next to the served one and shown to nobody. It would let two models be compared on the same days; this project does not build it, so rollback stays by hand. | 37 |
 | SHAP value | The contribution of one input to one forecast. The base value plus the SHAP values of all inputs of a row is exactly the output of the model. | 28 |
 | Share of drifted columns | The number of tested columns that drifted, divided by the number tested. At 1 July it is 0.5: 5 of 10. | 35 |
+| shellcheck | A linter for shell scripts. actionlint runs it on every `run:` step of a workflow. | 41 |
 | Silver layer | Cleaned data: valid rows, fixed types, no duplicates. One row is one valid trip, or one hour of weather. | 4, 16 |
 | Simulated clock | A "now" that the program sets itself, without the wall clock, to replay unseen historical data one day at a time as if it were happening. Here its position is the newest file in `data/predictions/forecasts/`. | 3, 34 |
 | Slot | The group of hours that an hour is compared with when outliers are flagged: the same zone, the same hour of the day and the same kind of day (working day or weekend). | 18 |
@@ -290,9 +309,11 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Static type checker | A tool that reads type hints and reports contradictions. Here: mypy. | 11 |
 | Status code | The number in the answer of a web server that says how the request went, for example 200, 404 or 503. From 400 to 499 the client must change the request; from 500 the server has the problem. 422 means the request was understood but cannot be answered as asked. | 14, 30 |
 | stdout / stderr | The two output channels of a program: one for results, one for messages about the run. | 9 |
+| Step (GitHub Actions) | One item of a job: a shell command (`run:`) or an action (`uses:`). The steps of a job run in order, and the job stops at the first that fails. | 41 |
 | Streaming | Receiving or reading a file piece by piece, so that it is never in memory as a whole. | 14 |
 | Strict schema | A schema that refuses columns it does not list (`strict=True`). | 8 |
 | Structured logging | Writing each log event as a record with named fields. | 9 |
+| Supply-chain attack | An attack on the tools and libraries a project uses, instead of on the project itself, such as a bad release on PyPI or an action whose tag was moved to bad code. Pinning by hash and the two-week rule are defences. | 41 |
 | Tag (image) | The readable part of an image name after `:`, such as `3.12.15-slim-trixie` or `local`. A tag can be moved to another image; compare *digest*. | 32 |
 | Tag (model version) | A label that stays with one model version, such as `promotion.decision = promoted`. Compare *alias*, which can move. | 29 |
 | Target | The thing a model predicts. Here: the number of pickups. | 2 |
@@ -300,10 +321,12 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Test double | A simple object that stands in for a real one during a test. | 10 |
 | Test set | The data that judges a model and takes part in no decision. A choice tuned on it makes its score too good. Here the replay of May and June plays this role. | 37 |
 | Time-based split | Training on data before a date and testing on data after it. | 3 |
+| Time-boxed exception | See *accepted risk*. | 41 |
 | Timeout | The longest time a program waits for one operation before it treats it as failed. | 14 |
 | Timezone-aware timestamp | A timestamp that carries its timezone, so that it names exactly one moment. | 17 |
 | `tmp_path` | A pytest fixture that gives each test a new empty folder. | 10 |
 | tmpfs | A folder kept in memory, not on disk. The API container's only writable folder is a tmpfs at `/tmp`. | 33 |
+| Token (GitHub Actions) | A temporary password that a job gets to talk to GitHub. `permissions: contents: read` lets it only read the repository, and `persist-credentials: false` keeps it out of the checked-out folder. | 41 |
 | Traceback | The report of files and line numbers that Python prints when an error is not handled. It is made for finding a mistake in the code. | 20 |
 | Training report | The short record of a training run on disk: the MLflow run, the model version, the data version and the headline scores. Here: `reports/training_report.json`. | 26 |
 | Training/serving skew | A difference between how features are calculated for training and for prediction. | 4, 19, 31 |
@@ -320,12 +343,15 @@ Every technical term used in the book, in alphabetical order. The number in the 
 | Vendoring | Downloading a file from another project once and committing it unchanged, with its checksum, instead of fetching it at install time. The manifest of metrics-server is vendored. | 39 |
 | Virtual environment | A folder with its own Python and its own installed libraries, separate from all others. | 6 |
 | Volume | Storage that lives outside every container, so that data outlives it. See *named volume* and *bind mount*. | 32 |
+| Vulnerability | A mistake in software that an attacker can use. A known one is published with an id (CVE, GHSA, PYSEC), the versions it affects and, when one exists, a fix version. | 41 |
+| Vulnerability database | A collection of published vulnerabilities with the versions they affect. OSV.dev joins many of them; pip-audit asks PyPI's service, and Trivy downloads its own database. | 41 |
 | Warm-up rows | The first rows of every zone, for which the history is too short to fill all lags and windows. Here 215 hours per zone. They are dropped, not filled. | 19 |
 | Wasserstein distance (normed) | The average distance the values of one distribution must travel to become the other, divided by the standard deviation of the reference. A column has drifted at 0.1 or more, a tenth of a standard deviation. | 35 |
 | Web framework | A library in which a web application is written. It maps paths to functions and turns their results into responses. Here: FastAPI. | 30 |
 | Web service | A program that starts, prepares itself and then waits for requests over the network, and answers each one. | 30 |
 | Window (monitoring) | The last days a check looks at: 7 here. For drift, the last 7 forecast days issued; for accuracy, the last 7 days that are over, which end two days earlier. | 35 |
 | Work pool / worker (Prefect) | The way to run deployments on infrastructure chosen per run: the server holds the work, and a worker process starts each run, for example in a new container. Not used here; `serve()` runs the flow in one long-running process. | 38 |
+| Workflow (GitHub Actions) | A YAML file in `.github/workflows/` that says when it runs (`on:`) and which jobs it runs. Here `ci.yml`. | 41 |
 | Worktree (git) | A second working folder of the same repository, at a commit you choose: `git worktree add --detach <folder> HEAD`. The cluster's first model was trained in one, so that it came from a clean commit. | 40 |
 | Write-once | Said of a record that is never changed after it is written. Here a forecast file in `data/predictions/forecasts/`; the actual values go into a separate table, `scored/`. | 34 |
 | YAML | A text format for configuration that is easy for people to read. | 7 |

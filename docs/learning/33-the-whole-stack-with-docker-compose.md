@@ -150,7 +150,7 @@ The container engineer also ran the steps out of order. With step 5 before step 
 ## The limits
 
 - **Size.** The API image is 1.45 GB. Most of it is libraries: pyarrow 156 MB, scipy 109 MB, pandas 72 MB, MLflow 67 MB and DuckDB 58 MB. The `serving` group includes the whole `ml` group, with Optuna, SHAP and matplotlib. A smaller group for the service is possible, and nobody has checked that the service works with it.
-- **Debian packages.** `libgomp1` and `git` are not pinned by version. The base digest fixes the Debian release, which receives only security fixes.
+- **Debian packages.** `libgomp1` and `git` are not pinned by version. The base digest fixes the Debian release, which receives only security fixes. So a fresh build gets the newest of them and a cached build does not; Chapter 41 shows what this meant for a scan.
 - **Time.** The first start from zero was not timed cleanly. With the images built and the volumes filled, `up -d --wait` took about 23 seconds on the machine of this book.
 - **Processors.** Only x86_64 was tested.
 

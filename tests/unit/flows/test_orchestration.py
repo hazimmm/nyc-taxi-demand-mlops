@@ -23,6 +23,7 @@ from prefect.settings import (
     PREFECT_API_URL,
     PREFECT_HOME,
     PREFECT_SERVER_DATABASE_CONNECTION_URL,
+    PREFECT_SERVER_EPHEMERAL_STARTUP_TIMEOUT_SECONDS,
     temporary_settings,
 )
 
@@ -320,11 +321,20 @@ def prefect_home(tmp_path: Path) -> Iterator[Path]:
     Prefect then starts a temporary server for the flow run. It is stopped here, once
     the logs still waiting to be sent have reached it: left to Prefect, it is stopped when
     Python exits, after pytest has closed the output Prefect writes to.
+
+    The server gets two minutes to start instead of Prefect's 20 seconds. It builds its
+    database first, and on a busy machine with few CPUs (a CI runner, measured with four)
+    that took longer than 20 seconds every time, so the test failed by the clock and not
+    by the code.
     """
     home = tmp_path / "prefect"
     database = f"sqlite+aiosqlite:///{(home / 'prefect.db').as_posix()}"
     with temporary_settings(
-        updates={PREFECT_HOME: home, PREFECT_SERVER_DATABASE_CONNECTION_URL: database},
+        updates={
+            PREFECT_HOME: home,
+            PREFECT_SERVER_DATABASE_CONNECTION_URL: database,
+            PREFECT_SERVER_EPHEMERAL_STARTUP_TIMEOUT_SECONDS: 120,
+        },
         restore_defaults={PREFECT_API_URL},
     ):
         yield home

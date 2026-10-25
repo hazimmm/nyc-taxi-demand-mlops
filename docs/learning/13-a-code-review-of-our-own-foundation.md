@@ -81,7 +81,7 @@ addopts = "-ra --strict-markers"
 The general rule: a gate should be strict at the point where a decision is made, such as accepting a change, and silent everywhere else.
 
 > [!NOTE]
-> The comment mentions CI, the automatic checks that will run on every push. They arrive in Part IX. Until then, running `python -m pytest --cov` before a push is a manual step.
+> The comment mentions CI, the automatic checks that run on every push. They arrived in Part IX: Chapter 41 shows the workflow that runs `python -m pytest --cov` for every push and pull request. Before it, this was a manual step before each push.
 
 ## Story 4: a tool that was configured but not active
 
